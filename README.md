@@ -1,4 +1,4 @@
-# Project Title
+# Maxy CV Generator Student
 
 Project Based Virtual Intership: Maxy CV Generator Student.
 
