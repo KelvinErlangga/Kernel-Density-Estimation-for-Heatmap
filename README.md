@@ -2,6 +2,10 @@
 
 Project Based Virtual Intership: Maxy CV Generator Student.
 
+Akun admin :
+email : super@admin.com
+pw : 123123123
+
 ## Prasyarat
 
 Pastikan Anda memiliki hal-hal berikut yang telah diinstal di sistem Anda sebelum memulai:
