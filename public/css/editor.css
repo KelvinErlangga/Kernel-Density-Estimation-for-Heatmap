@@ -1,0 +1,348 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins", sans-serif;
+  background-image: url("/assets/images/background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.main-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 60px 140px;
+}
+
+.editor-panel {
+  width: 230px;
+  height: auto;
+  padding: 40px;
+  background: rgba(244, 248, 255, 0.5);
+  box-shadow: -1px 1px 10px rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 30px;
+}
+
+.editor-item {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+}
+
+.editor-item div {
+  color: #181d27;
+  font-size: 16px;
+  font-family: Inter, sans-serif;
+  font-weight: 400;
+  line-height: 20.5px;
+}
+
+.separator {
+  align-self: stretch;
+  height: 0px;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.editor-btn {
+  background-color: #3538cd;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth transition */
+}
+
+.editor-btn:hover {
+  background-color: #14179c; /* Darker green when hovered */
+  transform: scale(1.05); /* Slightly enlarge button on hover */
+}
+
+.editor-btn:active {
+  background-color: #4b4de3; /* Even darker green when clicked */
+}
+
+.editor-item {
+  display: flex;
+  align-items: center;
+}
+
+.editor-item img {
+  margin-right: 12px; /* Space between icon and button */
+}
+
+.color-picker {
+  padding: 8px;
+  border-radius: 8px;
+  border: 2px solid #ddd;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.color-picker:hover {
+  border-color: #4caf50; /* Highlight border on hover */
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: rgba(244, 244, 244, 0.9);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+#content {
+  width: 595px;
+  height: 842px;
+  background: white;
+  display: flex;
+  flex-direction: row;
+  border: 1px solid #000;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Left Panel */
+.left-panel {
+  width: 189px;
+  height: 842px;
+  background-color: #145349;
+  border: 1px solid black;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Profile Section */
+.profile-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  padding-top: 30px;
+}
+
+.profile-img {
+    width: 55px;
+    height: 55px;
+    background-color: #c44949;
+    border-radius: 50%;
+    overflow: hidden; /* Memotong gambar di luar lingkaran */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .profile-img img {
+    width: 100%; /* Memastikan gambar memenuhi kontainer */
+    height: 100%; /* Memastikan gambar memenuhi kontainer */
+    object-fit: cover; /* Memotong gambar jika proporsinya tidak sesuai */
+  }
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1px;
+}
+
+.profile-info .name {
+  text-align: center;
+  color: #fafafa;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 20px; /* Sesuaikan line-height untuk spacing */
+  word-wrap: break-word; /* Memastikan teks panjang dapat terpotong */
+  word-break: break-word; /* Memastikan kata panjang terpotong jika perlu */
+  white-space: normal; /* Izinkan teks untuk membungkus ke baris baru */
+  max-width: 100%; /* Pastikan teks tidak melewati batas kontainer */
+}
+
+.profile-info .role {
+  text-align: center;
+  color: #fafafa;
+  font-size: 10px;
+  line-height: 4px;
+  margin-bottom: 20px;
+}
+
+/* Details Section */
+.details-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  margin-left: 80px;
+}
+
+.details-title {
+  color: #fafafa;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 6px;
+  text-align: left;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: flex-start;
+}
+
+.detail-item .sub-menu {
+  color: #fafafa;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 0px;
+}
+
+.detail-item p {
+  color: #fafafa;
+  font-size: 10px;
+  font-weight: normal;
+  line-height: 0px;
+}
+
+/* Links Section */
+.links-section {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  margin-left: 80px;
+}
+
+.links-title {
+  color: #fafafa;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 4px;
+  text-align: left;
+}
+
+.link-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.link-item p {
+  color: #fafafa;
+  font-size: 10px;
+  font-weight: normal;
+  line-height: 3px;
+}
+
+/* Skills Section */
+.skills-section {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  margin-left: 80px;
+}
+
+.skills-title {
+  color: #fafafa;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 5px;
+}
+
+.skill-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.skill-item .sub-menu {
+  color: #fafafa;
+  font-size: 10px;
+  font-weight: normal;
+  line-height: 3px;
+}
+
+.skill-divider {
+  width: 110px;
+  height: 0;
+  border-top: 2px solid white;
+  opacity: 0.4;
+}
+
+/* Right Panel */
+.right-panel {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #333;
+}
+
+.right-panel h1 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.right-panel h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.right-panel h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 5px 0;
+}
+
+.right-panel p {
+  font-size: 12px;
+  margin: 5px 0;
+}
+
+.right-panel ul {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.right-panel ul li {
+  font-size: 12px;
+}
+
+/* Button Section */
+.download-buttons {
+  margin-top: 20px;
+  text-align: center;
+}

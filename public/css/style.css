@@ -1,0 +1,238 @@
+/* Background */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins", sans-serif;
+  background-image: url("/assets/images/background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  flex-direction: column;
+  position: relative;
+  background: linear-gradient(to bottom, white, #f4ebfa, #d1e7ff);
+}
+
+img.background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Responsif untuk Stepper */
+.stepper {
+  display: flex;
+  align-items: center;
+  margin: 2rem 0;
+  z-index: 20;
+  position: relative;
+}
+
+.stepper .step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stepper .circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  margin: 0;
+}
+
+.stepper .line {
+  width: 56px;
+  height: 2px;
+  background-color: #374151;
+  margin: 0;
+}
+
+.stepper .done {
+  background-color: #2d31a6;
+  color: white;
+}
+
+.stepper .current {
+  background-color: #2d31a6;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.stepper .pending {
+  background-color: #d1d5db;
+  color: #374151;
+  font-size: 1.5rem;
+}
+
+.back-button {
+  position: absolute;
+  top: 40px;
+  left: 40px;
+  display: flex;
+  align-items: center;
+  z-index: 10;
+}
+
+.back-button a {
+  text-decoration: none;
+  color: #2563eb;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+}
+
+.back-button a:hover {
+  text-decoration: underline;
+}
+
+.back-button svg {
+  width: 40px;
+  height: 40px;
+  margin-right: 8px;
+}
+
+/* Responsif untuk layar kecil */
+@media screen and (max-width: 768px) {
+  .stepper {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stepper .step {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stepper .line {
+    width: 40px;
+  }
+
+  .back-button {
+    left: 20px;
+  }
+}
+
+/* Responsif untuk layar sangat kecil */
+@media screen and (max-width: 480px) {
+  .stepper .circle {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .stepper .line {
+    width: 20px;
+  }
+
+  .back-button svg {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+/* Wrapper (pembungkus semua container) */
+.wrapper {
+  margin-top: 46px;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  margin-bottom: 40px;
+  background-color: rgba(100, 150, 200, 0.5);
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.main-container {
+  /* display: flex;
+  flex-wrap: wrap; */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.choose-template-title {
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: #2d31a6;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 10;
+}
+
+/* Container */
+.container {
+  position: relative;
+  background-color: rgba(244, 244, 244, 0.7);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  margin: 15px;
+  transition: box-shadow 0.3s ease;
+}
+
+.container img {
+  width: 100%;
+  max-width: 350px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border-radius: 8px;
+}
+
+.container:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.choose-template-btn {
+  position: absolute;
+  bottom: 85px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background-color: #2f56d4;
+  color: white;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  border-radius: 8px;
+  text-decoration: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.4s ease;
+}
+
+.container:hover .choose-template-btn {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.choose-template-btn:hover {
+  background-color: #1d3ba8;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.template-name {
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
