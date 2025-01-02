@@ -76,7 +76,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @forelse($applicants as $applicant)
+                                        @foreach($applicants as $applicant)
                                         <tr>
                                             <td>{{$applicant->user->name}}</td>
                                             <td>{{$applicant->hiring->position_hiring}}</td>
@@ -84,11 +84,7 @@
                                             <td>{{$applicant->user->email}}</td>
                                             <td><button class="btn btn-primary btn-sm">Selengkapnya</button></td>
                                         </tr>
-                                        @empty
-                                        <tr>
-                                            <td colspan="5">Tidak ada pelamar</td>
-                                        </tr>
-                                        @endforelse
+                                        @endforeach
                                     </tbody>
                                 </table>
                             </div>

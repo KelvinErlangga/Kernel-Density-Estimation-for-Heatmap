@@ -129,7 +129,7 @@
                             <p class="skills-title">Skills</p>
                             @foreach($curriculumVitaeUser->skills as $skill)
                             <div class="skill-item">
-                                <p class="sub-menu">{{$skill->skill_name}}</p>
+                                <p class="sub-menu">{{$skill->skill_name}} - {{$skill->category_level}}</p>
                                 <div class="skill-divider"></div>
                             </div>
                             @endforeach
