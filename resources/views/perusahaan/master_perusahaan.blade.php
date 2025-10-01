@@ -57,7 +57,7 @@
                     <div class="bg-white collapse-inner rounded">
                         <a class="collapse-item text-dark" href="{{route('perusahaan.lowongan.index')}}"> <i class="fas fa-briefcase"></i> Lowongan </a>
                         <a class="collapse-item text-dark" href="{{route('perusahaan.kandidat.index')}}"> <i class="fas fa-user-tie"></i> Kandidat </a>
-                        <!-- <a class="collapse-item text-dark" href="profil_perusahaan.html"> <i class="fas fa-building"></i> Profil Perusahaan </a> -->
+                        {{-- <a class="collapse-item text-dark" href="profil_perusahaan.html"> <i class="fas fa-building"></i> Profil Perusahaan </a> --}}
                     </div>
                 </div>
             </li>
@@ -70,7 +70,8 @@
                 </a>
                 <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities" data-parent="#accordionSidebar">
                     <div class="bg-white collapse-inner rounded">
-                        <!-- <a class="collapse-item text-dark" href="akun.html"> <i class="fas fa-fw fa-user text-dark"></i> Akun </a> -->
+                        {{-- <a class="collapse-item text-dark" href="akun.html"> <i class="fas fa-fw fa-user text-dark"></i> Akun </a> --}}
+                        <a class="collapse-item text-dark" href="{{route('perusahaan.akun.index')}}"> <i class="fas fa-fw fa-user text-dark"></i> Akun </a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <a class="collapse-item text-dark" href="route('logout')" onclick="event.preventDefault();

@@ -12,14 +12,16 @@ class CurriculumVitaeUser extends Model
 
     protected $fillable = [
         'user_id',
-        'template_curriculum_vitae_id'
+        'template_curriculum_vitae_id',
+        'pdf_file',
+        'pdf_filename',
     ];
 
     // get all cv
     public static function getCurriculumVitaeUser($userId)
     {
         $curriculumVitaes = CurriculumVitaeUser::with(['templateCV', 'user'])->where('user_id', $userId)
-            ->get();;
+            ->get();
 
         return $curriculumVitaes;
     }
@@ -44,33 +46,30 @@ class CurriculumVitaeUser extends Model
     }
 
     // relasi dengan tabel personal curriculum vitae
-    public function personalCurriculumVitae()
+    public function personalDetail()
     {
-        return $this->hasOne(PersonalCurriculumVitae::class);
+        return $this->hasOne(PersonalDetail::class);
     }
 
     // relasi dengan tabel education
     public function educations()
     {
-        return $this->hasMany(Education::class);
+        return $this->hasMany(Education::class, 'curriculum_vitae_user_id', 'id');
     }
 
-    // relasi dengan tabel experience
     public function experiences()
     {
-        return $this->hasMany(Experience::class);
+        return $this->hasMany(Experience::class, 'curriculum_vitae_user_id', 'id');
     }
 
-    // relasi dengan tabel language
-    public function languages()
-    {
-        return $this->hasMany(Language::class);
-    }
-
-    // relasi dengan tabel skill
     public function skills()
     {
-        return $this->hasMany(SkillUser::class);
+        return $this->hasMany(SkillUser::class, 'curriculum_vitae_user_id', 'id');
+    }
+
+    public function languages()
+    {
+        return $this->hasMany(Language::class, 'curriculum_vitae_user_id', 'id');
     }
 
     // relasi dengan tabel organisasi

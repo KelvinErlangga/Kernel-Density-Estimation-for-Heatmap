@@ -18,7 +18,8 @@ class RecommendedSkillController extends Controller
      */
     public function index()
     {
-        $recommended_skills = RecommendedSkill::getRecommendedSkill();
+        // Ambil semua termasuk soft deleted
+        $recommended_skills = RecommendedSkill::withTrashed()->get();
 
         return view('admin.recommended_skills.index', compact('recommended_skills'));
     }
@@ -46,11 +47,20 @@ class RecommendedSkillController extends Controller
     {
         DB::transaction(function () use ($request) {
             $validated = $request->validated();
+            $job_id = $validated['job_id'];
+            $skills = $validated['skill_id']; // array
 
-            $newRecommendedSkill = RecommendedSkill::create($validated);
+            foreach ($skills as $skillId) {
+                RecommendedSkill::create([
+                    'job_id' => $job_id,
+                    'skill_id' => $skillId,
+                ]);
+            }
         });
 
-        return redirect()->route('admin.recommended_skills.index');
+        return redirect()
+            ->route('admin.recommended_skills.index')
+            ->with('success', 'Rekomendasi keahlian berhasil ditambahkan.');
     }
 
     /**
@@ -91,12 +101,17 @@ class RecommendedSkillController extends Controller
      * @param  \App\Models\RecommendedSkill  $recommendedSkill
      * @return \Illuminate\Http\Response
      */
+    // Nonaktif (soft delete)
     public function destroy(RecommendedSkill $recommendedSkill)
     {
-        DB::transaction(function () use ($recommendedSkill) {
-            $recommendedSkill->delete();
-        });
+        $recommendedSkill->delete(); // soft delete
+        return redirect()->route('admin.recommended_skills.index')->with('success', 'Rekomendasi keahlian berhasil dinonaktifkan.');
+    }
 
-        return redirect()->route('admin.recommended_skills.index');
+    public function restore($id)
+    {
+        $recommendedSkill = RecommendedSkill::withTrashed()->findOrFail($id);
+        $recommendedSkill->restore();
+        return redirect()->route('admin.recommended_skills.index')->with('success', 'Rekomendasi keahlian berhasil diaktifkan kembali.');
     }
 }

@@ -9,6 +9,8 @@ class PersonalPelamar extends Model
 {
     use HasFactory;
 
+    protected $table = 'personal_pelamars';
+
     protected $fillable = [
         'user_id',
         'name_pelamar',
@@ -16,6 +18,9 @@ class PersonalPelamar extends Model
         'phone_pelamar',
         'city_pelamar',
         'gender',
-        'date_of_birth_pelamar'
+        'date_of_birth_pelamar',
+        'alamat_domisili',
+        'latitude',
+        'longitude',
     ];
 }

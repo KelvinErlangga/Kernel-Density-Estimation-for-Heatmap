@@ -16,7 +16,7 @@ body {
 }
 
 .editor-panel {
-  width: 230px;
+  width: 260px;
   height: auto;
   padding: 40px;
   background: rgba(244, 248, 255, 0.5);
@@ -105,19 +105,23 @@ body {
 }
 
 #content {
-  width: 595px;
-  height: 842px;
+  width: 595px;          /* ukuran A4 */
+  min-height: 842px;     /* tinggi minimum 1 halaman */
   background: white;
   display: flex;
   flex-direction: row;
   border: 1px solid #000;
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  page-break-inside: avoid;
 }
 
 /* Left Panel */
 .left-panel {
   width: 189px;
-  height: 842px;
+  height: auto;
   background-color: #145349;
   border: 1px solid black;
   display: flex;
@@ -171,7 +175,7 @@ body {
   word-wrap: break-word; /* Memastikan teks panjang dapat terpotong */
   word-break: break-word; /* Memastikan kata panjang terpotong jika perlu */
   white-space: normal; /* Izinkan teks untuk membungkus ke baris baru */
-  max-width: 100%; /* Pastikan teks tidak melewati batas kontainer */
+  max-width: 80%; /* Pastikan teks tidak melewati batas kontainer */
 }
 
 .profile-info .role {
@@ -186,9 +190,7 @@ body {
 .details-section {
   display: flex;
   flex-direction: column;
-  justify-content: start;
-  align-items: flex-start;
-  gap: 4px;
+  gap: 10px;
   width: 100%;
   margin-left: 80px;
 }
@@ -197,29 +199,33 @@ body {
   color: #fafafa;
   font-size: 14px;
   font-weight: bold;
-  line-height: 6px;
+  margin-bottom: 6px;
   text-align: left;
 }
 
 .detail-item {
   display: flex;
   flex-direction: column;
-  justify-content: start;
   align-items: flex-start;
+  margin-bottom: 6px;
 }
 
 .detail-item .sub-menu {
   color: #fafafa;
   font-size: 12px;
   font-weight: bold;
-  line-height: 0px;
+  margin-bottom: 2px;
 }
 
 .detail-item p {
   color: #fafafa;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: normal;
-  line-height: 0px;
+  line-height: 1.4;       /* biar ada jarak antar baris */
+  margin: 0;              /* reset bawaan <p> */
+  white-space: normal;    /* teks panjang bisa turun ke bawah */
+  word-wrap: break-word;  /* kalau ada kata panjang, otomatis dipecah */
+  max-width: 70%;        /* biar tetap di dalam container */
 }
 
 /* Links Section */
@@ -238,7 +244,7 @@ body {
   color: #fafafa;
   font-size: 14px;
   font-weight: bold;
-  line-height: 4px;
+  line-height: 16px; /* biar tidak terlalu rapat */
   text-align: left;
 }
 
@@ -247,14 +253,22 @@ body {
   flex-direction: column;
   justify-content: start;
   align-items: flex-start;
-  gap: 1px;
+  gap: 4px;
+  width: 100%;
+  word-wrap: break-word;    /* wrap otomatis */
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .link-item p {
   color: #fafafa;
   font-size: 10px;
   font-weight: normal;
-  line-height: 3px;
+  line-height: 14px;
+  margin: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 /* Skills Section */
@@ -264,7 +278,7 @@ body {
   flex-direction: column;
   justify-content: start;
   align-items: flex-start;
-  gap: 3px;
+  gap: 4px;
   width: 100%;
   margin-left: 80px;
 }
@@ -273,7 +287,7 @@ body {
   color: #fafafa;
   font-size: 14px;
   font-weight: bold;
-  line-height: 5px;
+  line-height: 16px;
 }
 
 .skill-item {
@@ -281,14 +295,22 @@ body {
   flex-direction: column;
   justify-content: start;
   align-items: flex-start;
-  gap: 1px;
+  gap: 4px;
+  width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .skill-item .sub-menu {
   color: #fafafa;
   font-size: 10px;
   font-weight: normal;
-  line-height: 3px;
+  line-height: 14px;
+  margin: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .skill-divider {
@@ -313,7 +335,7 @@ body {
 .right-panel h1 {
   font-size: 18px;
   font-weight: 700;
-  margin-bottom: 10px;
+  margin-bottom: 0px;
 }
 
 .right-panel h2 {
@@ -329,7 +351,7 @@ body {
 
 .right-panel p {
   font-size: 12px;
-  margin: 5px 0;
+  margin: 0px 0;
 }
 
 .right-panel ul {

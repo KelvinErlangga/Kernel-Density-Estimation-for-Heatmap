@@ -109,7 +109,28 @@
                         </div>
                         <div class="mb-4">
                             <label for="jenis-perusahaan" class="block text-sm font-medium text-gray-700">Jenis Perusahaan</label>
-                            <input id="jenis-perusahaan" name="type_of_company" value="{{old('type_of_company')}}" type="text" required class="mt-1 block w-full rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none p-2" />
+                            <select id="jenis-perusahaan" name="type_of_company" required
+                                class="mt-1 block w-full rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none p-2">
+                                <option value="" disabled {{ old('type_of_company') ? '' : 'selected' }}>Pilih Jenis Perusahaan</option>
+                                <option value="Teknologi Informasi & Komunikasi" {{ old('type_of_company') == 'Teknologi Informasi & Komunikasi' ? 'selected' : '' }}>Teknologi Informasi & Komunikasi</option>
+                                <option value="Software & Networking" {{ old('type_of_company') == 'Software & Networking' ? 'selected' : '' }}>Software & Networking</option>
+                                <option value="Keuangan & Perbankan" {{ old('type_of_company') == 'Keuangan & Perbankan' ? 'selected' : '' }}>Keuangan & Perbankan</option>
+                                <option value="Asuransi" {{ old('type_of_company') == 'Asuransi' ? 'selected' : '' }}>Asuransi</option>
+                                <option value="Kesehatan & Farmasi" {{ old('type_of_company') == 'Kesehatan & Farmasi' ? 'selected' : '' }}>Kesehatan & Farmasi</option>
+                                <option value="Pendidikan & Pelatihan" {{ old('type_of_company') == 'Pendidikan & Pelatihan' ? 'selected' : '' }}>Pendidikan & Pelatihan</option>
+                                <option value="Manufaktur & Produksi" {{ old('type_of_company') == 'Manufaktur & Produksi' ? 'selected' : '' }}>Manufaktur & Produksi</option>
+                                <option value="Konstruksi & Properti" {{ old('type_of_company') == 'Konstruksi & Properti' ? 'selected' : '' }}>Konstruksi & Properti</option>
+                                <option value="Energi & Pertambangan" {{ old('type_of_company') == 'Energi & Pertambangan' ? 'selected' : '' }}>Energi & Pertambangan</option>
+                                <option value="Transportasi & Logistik" {{ old('type_of_company') == 'Transportasi & Logistik' ? 'selected' : '' }}>Transportasi & Logistik</option>
+                                <option value="Pariwisata, Hotel & Restoran" {{ old('type_of_company') == 'Pariwisata, Hotel & Restoran' ? 'selected' : '' }}>Pariwisata, Hotel & Restoran</option>
+                                <option value="Media, Kreatif & Hiburan" {{ old('type_of_company') == 'Media, Kreatif & Hiburan' ? 'selected' : '' }}>Media, Kreatif & Hiburan</option>
+                                <option value="Ritel & Perdagangan" {{ old('type_of_company') == 'Ritel & Perdagangan' ? 'selected' : '' }}>Ritel & Perdagangan</option>
+                                <option value="Pertanian, Perikanan & Kehutanan" {{ old('type_of_company') == 'Pertanian, Perikanan & Kehutanan' ? 'selected' : '' }}>Pertanian, Perikanan & Kehutanan</option>
+                                <option value="Telekomunikasi" {{ old('type_of_company') == 'Telekomunikasi' ? 'selected' : '' }}>Telekomunikasi</option>
+                                <option value="Konsultan & Layanan Profesional" {{ old('type_of_company') == 'Konsultan & Layanan Profesional' ? 'selected' : '' }}>Konsultan & Layanan Profesional</option>
+                                <option value="Pemerintahan & Lembaga Publik" {{ old('type_of_company') == 'Pemerintahan & Lembaga Publik' ? 'selected' : '' }}>Pemerintahan & Lembaga Publik</option>
+                                <option value="Organisasi Nirlaba & Sosial" {{ old('type_of_company') == 'Organisasi Nirlaba & Sosial' ? 'selected' : '' }}>Organisasi Nirlaba & Sosial</option>
+                            </select>
                         </div>
                         <div class="mb-4">
                             <label for="domisili-perusahaan" class="block text-sm font-medium text-gray-700">Kota Domisili Perusahaan</label>

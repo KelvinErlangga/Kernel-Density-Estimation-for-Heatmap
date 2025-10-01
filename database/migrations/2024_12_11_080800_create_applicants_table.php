@@ -17,6 +17,7 @@ class CreateApplicantsTable extends Migration
             $table->id();
             $table->foreignId('hiring_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('curriculum_vitae_user_id')->constrained()->onDelete('cascade');
             $table->string('file_applicant');
             $table->enum('status', ['Diterima', 'Ditolak', 'Pending']);
             $table->timestamps();

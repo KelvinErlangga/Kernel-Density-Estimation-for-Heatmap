@@ -5,6 +5,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="" />
     <meta name="author" content="" />
 
@@ -27,7 +28,7 @@
         <!-- Sidebar -->
         <ul class="navbar-nav bg-white sidebar sidebar-light accordion" id="accordionSidebar">
             <!-- Sidebar - Brand -->
-            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{route('home')}}">
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{route('welcome')}}">
                 <div class="sidebar-brand-icon">
                     <img src="{{asset('assets/homepage/logo.png')}}" alt="Logo" class="img-fluid" style="width: 139px" />
                 </div>
@@ -52,6 +53,14 @@
                 </a>
             </li>
 
+            <!-- Nav Item - Heatmap Lowongan -->
+            <li class="nav-item active">
+                <a class="nav-link text-dark" href="{{route('pelamar.dashboard.heatmap.index')}}">
+                    <i class="fas fa-fw fa-briefcase text-dark"></i>
+                    <span>Heatmap Lowongan</span>
+                </a>
+            </li>
+
             <!-- Divider -->
             <hr class="sidebar-divider" />
 
@@ -64,7 +73,6 @@
                 <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
                     <div class="bg-white collapse-inner rounded">
                         <a class="collapse-item text-dark" href="{{route('pelamar.dashboard.curriculum_vitae.index')}}"> <i class="fas fa-fw fa-id-card text-dark"></i> Curriculum Vitae </a>
-                        <a class="collapse-item text-dark" href="{{route('pelamar.dashboard.cover_letter.index')}}"> <i class="fas fa-fw fa-file-alt text-dark"></i> Cover Letter </a>
                     </div>
                 </div>
             </li>
@@ -77,7 +85,7 @@
                 </a>
                 <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities" data-parent="#accordionSidebar">
                     <div class="bg-white collapse-inner rounded">
-                        <!-- <a class="collapse-item text-dark" href="{{route('pelamar.dashboard.akun.index')}}"> <i class="fas fa-fw fa-user text-dark"></i> Akun </a> -->
+                        <a class="collapse-item text-dark" href="{{route('pelamar.dashboard.akun.index')}}"> <i class="fas fa-fw fa-user text-dark"></i> Akun </a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <a class="collapse-item text-dark" href="route('logout')" onclick="event.preventDefault();
@@ -113,7 +121,7 @@
                     <!-- Topbar Navbar -->
                     <ul class="navbar-nav ml-auto">
                         <!-- Nav Item - Alerts -->
-                        <li class="nav-item dropdown no-arrow mx-1">
+                        {{-- <li class="nav-item dropdown no-arrow mx-1">
                             <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-bell fa-fw"></i>
                             </a>
@@ -124,7 +132,7 @@
                             <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i class="fas fa-envelope fa-fw"></i>
                             </a>
-                        </li>
+                        </li> --}}
 
                         <div class="topbar-divider d-none d-sm-block"></div>
 

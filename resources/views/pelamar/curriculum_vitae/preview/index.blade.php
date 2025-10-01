@@ -1,175 +1,210 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layouts.cv')
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Preview CV</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
-    <link rel="stylesheet" href="{{asset('css/style.css')}}">
-    <link rel="icon" href="{{asset('assets/icons/logo.svg')}}" type="image/x-icon">
-
-</head>
-
-<body>
-    <div id="content">
-        @php
-        $personalCurriculumVitae = $curriculumVitaeUser->personalCurriculumVitae;
-        @endphp
-        <!-- Left Panel -->
-        <div class="left-panel">
-            <!-- Profile Section -->
-            @if($personalCurriculumVitae)
-            <div class="profile-section">
-                <!-- <div class="profile-img"></div> -->
-                <div class="profile-info">
-                    <p class="name">{{$personalCurriculumVitae->first_name_curriculum_vitae}} {{$personalCurriculumVitae->last_name_curriculum_vitae}}</p>
-                    <!-- <p class="role">Frontend Developer</p> -->
-                </div>
-            </div>
-
-            <!-- Details Section -->
-            <div class="details-section">
-                <p class="details-title">Details</p>
-                <div class="detail-item">
-                    <p class="sub-menu">Address</p>
-                    <p>{{$personalCurriculumVitae->city_curriculum_vitae}}</p>
-                </div>
-                <div class="detail-item">
-                    <p class="sub-menu">Phone</p>
-                    <p>{{$personalCurriculumVitae->phone_curriculum_vitae}}</p>
-                </div>
-                <div class="detail-item">
-                    <p class="sub-menu">Email</p>
-                    <p>{{$personalCurriculumVitae->email_curriculum_vitae}}</p>
-                </div>
-            </div>
-            @endif
-
-            <!-- Links Section -->
-            @if($curriculumVitaeUser->links)
-            <div class="links-section">
-                <p class="links-title">Links</p>
-                <div class="link-item">
-                    @foreach($curriculumVitaeUser->links as $link)
-                    <a href="{{$link->url}}">
-                        <p class="sub-menu">{{$link->link_name}}</p>
-                    </a>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-
-            <!-- Skills Section -->
-            @if($curriculumVitaeUser->skills)
-            <div class="skills-section">
-                <p class="skills-title">Skills</p>
-                @foreach($curriculumVitaeUser->skills as $skill)
-                <div class="skill-item">
-                    <p class="sub-menu">{{$skill->skill_name}}</p>
-                    <div class="skill-divider"></div>
-                </div>
-                @endforeach
-            </div>
-            @endif
+@section('content')
+<div class="main-container">
+    <!-- Panel Kiri (Editor Panel) -->
+    <div class="editor-panel">
+        <div style="text-align: center; color: #3538cd; font-size: 32px; font-family: Poppins; font-weight: 400; line-height: 41px;">
+            Editor
         </div>
 
-        <!-- Right Panel -->
-        <div class="right-panel">
-            @if($personalCurriculumVitae->personal_summary)
-            <div>
-                <h1>Profile</h1>
-                <p>
-                    {{$personalCurriculumVitae->personal_summary}}
-                </p>
+        <div class="editor-item font-dropdown">
+            <img src="{{asset('assets/images/font.svg')}}" alt="Font Icon" style="width: 24px; height: 24px; margin-right: 8px;" />
+            <div class="custom-select-wrapper">
+                <select class="editor-btn" onchange="changeFont(this)">
+                    <option value="Poppins, sans-serif">Poppins</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="Times New Roman, serif">Times New Roman</option>
+                    <option value="Roboto, sans-serif">Roboto</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="Courier New, monospace">Courier New</option>
+                </select>
             </div>
-            @endif
+        </div>
 
-            @if($curriculumVitaeUser->experiences)
-            <div>
-                <h1>Experience</h1>
-                @foreach($curriculumVitaeUser->experiences as $experience)
-                <div>
-                    <h2>{{$experience->company_experience}}</h2>
-                    <h3>{{$experience->position_experience}}</h3>
+        <div class="editor-item">
+            <img src="{{asset('assets/images/color.svg')}}" alt="Color Icon" />
+            <input type="color" onchange="changeBackgroundColor(this.value)" class="color-picker" />
+        </div>
 
-                    @if($experience->end_date)
-                    <p>{{date('M Y', strtotime($experience->start_date))}} - {{date('M Y', strtotime($experience->end_date))}}</p>
-                    @else
-                    <p>{{date('M Y', strtotime($experience->start_date))}} - Present</p>
-                    @endif
-
-                    @if($experience->description_experience)
-                    {!! $experience->description_experience !!}
-                    @endif
-                </div>
-                @endforeach
+        <div class="editor-item">
+            <img src="{{asset('assets/images/download.svg')}}" alt="Download Icon" style="width: 24px; height: 24px; margin-right: 8px;" />
+            <div style="display: flex; gap: 8px;">
+                <button class="editor-btn" onclick="downloadAsImage('png')">PNG</button>
+                <button class="editor-btn" onclick="downloadAsImage('jpeg')">JPEG</button>
+                <button class="editor-btn" onclick="downloadAsPDF()">PDF</button>
             </div>
-            @endif
+        </div>
 
-            @if($curriculumVitaeUser->educations)
-            <div>
-                <h1>Education</h1>
-                @foreach($curriculumVitaeUser->educations as $education)
-                <div>
-                    <h2>{{$education->school_name}}</h2>
-                    @if($education->end_date)
-                    <p>{{$education->field_of_study}}, {{date('M Y', strtotime($education->start_date))}} - {{date('M Y', strtotime($education->end_date))}}</p>
-                    @else
-                    <p>{{$education->field_of_study}}, {{date('M Y', strtotime($education->start_date))}} - Present</p>
-                    @endif
-                </div>
-                @endforeach
-            </div>
-            @endif
+        <div class="editor-item">
+            <img src="{{asset('assets/images/print.svg')}}" alt="Print Icon" style="width: 24px; height: 24px; margin-right: 8px;" />
+            <button class="editor-btn" onclick="printCV()">Print</button>
+        </div>
 
-            @if($curriculumVitaeUser->languages)
-            <div>
-                <h1>Languages</h1>
-                @foreach($curriculumVitaeUser->languages as $language)
-                <p>{{$language->language_name}}</p>
-                @endforeach
-            </div>
-            @endif
+        <div class="editor-item">
+            <img src="{{asset('assets/images/edit.svg')}}" alt="Edit Icon" style="width: 24px; height: 24px; margin-right: 8px;" />
+            <a href="{{route('pelamar.curriculum_vitae.profile.index', $cv->id)}}" class="editor-btn">Edit Data</a>
+        </div>
+
+        <div class="editor-item">
+            <img src="{{asset('assets/images/download.svg')}}" alt="Save Icon" style="width: 24px; height: 24px; margin-right: 8px;" />
+            <button id="saveToDashboardBtn" data-template-id="{{ $cv->template_curriculum_vitae_id ?? 1 }}">Save to Dashboard</button>
+        </div>
+
+        <div class="editor-item">
+            <img src="{{asset('assets/images/home.svg')}}" alt="Home Icon" style="width: 24px; height: 24px; margin-right: 8px;" />
+            <a href="{{route('home')}}" class="editor-btn">Back to Home</a>
         </div>
     </div>
 
-    <div class="download-buttons">
-        <button onclick="downloadAsImage('png')">Download as PNG</button>
-        <button onclick="downloadAsImage('jpeg')">Download as JPEG</button>
-        <button onclick="downloadAsPDF()">Download as PDF</button>
-        <!-- <button><a href="{{ route('export-cv.pdf', $curriculumVitaeUser) }}">Download as PDF</a></button> -->
-        <!-- <button><a href="{{ route('print-cv', $curriculumVitaeUser) }}">Print</a></button> -->
-    </div>
-
-    <script>
-        async function downloadAsImage(type) {
-            const content = document.getElementById('content');
-            const canvas = await html2canvas(content);
-            const image = canvas.toDataURL(`image/${type}`);
-            const link = document.createElement('a');
-            link.href = image;
-            link.download = `cv.${type}`;
-            link.click();
+    <!-- Panel Kanan (Preview CV) -->
+    <div class="container">
+        <div id="content">
+            @foreach($layout as $section)
+                <div class="section {{ $section['key'] }}" data-key="{{ $section['key'] }}">
+                    <span class="drag-indicator" style="display:none;position:absolute;left:8px;top:12px;font-size:20px;color:#3538cd;cursor:grab;z-index:10;">
+                        &#x2630;
+                    </span>
+                    <span class="delete-indicator" style="display:none;position:absolute;right:8px;top:12px;font-size:20px;color:#e74c3c;cursor:pointer;z-index:10;" title="Hapus section">
+                        &#128465;
+                    </span>
+                    @includeIf('pelamar.curriculum_vitae.preview.sections.' . $section['key'], [
+                        'cv' => $cv
+                    ])
+                </div>
+            @endforeach
+        </div>
+        <style>
+        #content { position: relative; }
+        .section { position: relative; }
+        .drag-indicator, .delete-indicator {
+            transition: opacity 0.2s;
+            pointer-events: auto;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+            padding: 2px 6px;
         }
-
-        async function downloadAsPDF() {
-            const {
-                jsPDF
-            } = window.jspdf;
-            const content = document.getElementById('content');
-            const canvas = await html2canvas(content);
-            const image = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'px',
-                format: [595, 842], // A4 dimensions
+        .section:hover .drag-indicator,
+        .section:hover .delete-indicator {
+            display: inline-block !important;
+            opacity: 1;
+        }
+        </style>
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var content = document.getElementById('content');
+            Sortable.create(content, {
+                animation: 150,
+                handle: '.section',
+                draggable: '.section',
+                onEnd: function(evt) {
+                    // Ambil urutan baru
+                    var newOrder = Array.from(content.querySelectorAll('.section')).map(function(sec) {
+                        return sec.getAttribute('data-key');
+                    });
+                    // Kirim ke backend via AJAX (contoh, sesuaikan endpoint dan data)
+                    fetch('/cv/update-section-order', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            cv_id: '{{ $cv->id }}',
+                            order: newOrder
+                        })
+                    }).then(res => res.json()).then(data => {
+                        // Optional: tampilkan notifikasi sukses
+                    });
+                }
             });
-            pdf.addImage(image, 'PNG', 0, 0, 595, 842);
-            pdf.save('cv.pdf');
-        }
-    </script>
-</body>
+            // Tampilkan drag indicator saat hover
+            content.querySelectorAll('.section').forEach(function(sec) {
+                sec.addEventListener('mouseenter', function() {
+                    var dragIndicator = sec.querySelector('.drag-indicator');
+                    var deleteIndicator = sec.querySelector('.delete-indicator');
+                    if (dragIndicator) dragIndicator.style.display = 'inline-block';
+                    if (deleteIndicator) deleteIndicator.style.display = 'inline-block';
+                });
+                sec.addEventListener('mouseleave', function() {
+                    var dragIndicator = sec.querySelector('.drag-indicator');
+                    var deleteIndicator = sec.querySelector('.delete-indicator');
+                    if (dragIndicator) dragIndicator.style.display = 'none';
+                    if (deleteIndicator) deleteIndicator.style.display = 'none';
+                });
+                // Hapus section saat icon sampah diklik
+                var deleteIndicator = sec.querySelector('.delete-indicator');
+                if (deleteIndicator) {
+                    deleteIndicator.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        sec.remove();
+                        // Optional: update urutan ke backend
+                        var newOrder = Array.from(content.querySelectorAll('.section')).map(function(s) {
+                            return s.getAttribute('data-key');
+                        });
+                        fetch('/cv/update-section-order', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({
+                                cv_id: '{{ $cv->id }}',
+                                order: newOrder
+                            })
+                        });
+                    });
+                }
+            });
+        });
 
-</html>
+        document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("#content [contenteditable='true']").forEach(el => {
+        el.setAttribute("spellcheck", "false");
+
+        // highlight saat hover
+        el.addEventListener("mouseenter", () => {
+            el.style.outline = "1px dashed #3538cd";
+            el.style.cursor = "text";
+        });
+        el.addEventListener("mouseleave", () => {
+            el.style.outline = "none";
+        });
+
+        // simpan otomatis ke backend saat selesai edit
+        el.addEventListener("blur", () => {
+            const section = el.dataset.section;
+            const field   = el.dataset.field;
+            const value   = el.innerText.trim();
+
+            fetch("{{ route('pelamar.curriculum_vitae.updateInline') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({
+                    cv_id: "{{ $cv->id }}",
+                    section: section,
+                    field: field,
+                    value: value
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    console.log("Saved:", data.message);
+                } else {
+                    console.warn("Save failed:", data.message);
+                }
+            })
+            .catch(err => console.error("Error saving inline edit:", err));
+        });
+    });
+});
+        </script>
+    </div>
+</div>
+@endsection

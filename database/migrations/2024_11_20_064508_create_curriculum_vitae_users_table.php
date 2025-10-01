@@ -17,6 +17,8 @@ class CreateCurriculumVitaeUsersTable extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('template_curriculum_vitae_id')->constrained()->onDelete('cascade');
+            $table->longText('pdf_file')->nullable();
+            $table->string('pdf_filename', 255);
             $table->timestamps();
         });
     }

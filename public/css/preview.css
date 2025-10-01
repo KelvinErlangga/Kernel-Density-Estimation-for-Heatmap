@@ -1,0 +1,111 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins", sans-serif;
+  background-image: url("/assets/images/background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.main-container {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 40px;
+  padding: 40px 80px;
+}
+
+/* Panel kiri editor */
+.editor-panel {
+  width: 260px;
+  padding: 30px;
+  background: rgba(244, 248, 255, 0.5);
+  box-shadow: -1px 1px 10px rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.editor-title {
+  text-align: center;
+  color: #3538cd;
+  font-size: 28px;
+  font-family: Poppins, sans-serif;
+  font-weight: 500;
+}
+
+.editor-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.editor-item img {
+  width: 24px;
+  height: 24px;
+}
+
+.editor-btn,
+#saveToDashboardBtn {
+  background-color: #3538cd;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.editor-btn:hover,
+#saveToDashboardBtn:hover {
+  background-color: #14179c;
+  transform: scale(1.05);
+}
+
+.editor-btn:active,
+#saveToDashboardBtn:active {
+  background-color: #4b4de3;
+}
+
+.download-group {
+  display: flex;
+  gap: 8px;
+}
+
+.color-picker {
+  padding: 6px;
+  border-radius: 8px;
+  border: 2px solid #ddd;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.color-picker:hover {
+  border-color: #4caf50;
+}
+
+/* Panel kanan preview */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background-color: rgba(244, 244, 244, 0.9);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+#content {
+  width: 794px;       /* A4 width px */
+  min-height: 1123px; /* A4 height px */
+  background: white;
+  border: 1px solid #ddd;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  padding: 32px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}

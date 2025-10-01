@@ -12,6 +12,7 @@ class Applicant extends Model
     protected $fillable = [
         'hiring_id',
         'user_id',
+        'curriculum_vitae_user_id',
         'file_applicant',
         'status'
     ];
@@ -27,4 +28,10 @@ class Applicant extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public function curriculumVitaeUser()
+    {
+        return $this->belongsTo(CurriculumVitaeUser::class, 'curriculum_vitae_user_id');
+    }
+
 }

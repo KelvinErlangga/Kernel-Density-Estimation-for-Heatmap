@@ -18,7 +18,6 @@ class CreateHiringsTable extends Migration
             $table->foreignId('personal_company_id')->constrained()->onDelete('cascade');
             $table->string('position_hiring');
             $table->text('address_hiring');
-            $table->string('type_of_work');
             $table->string('work_system');
             $table->string('pola_kerja');
             $table->string('education_hiring');

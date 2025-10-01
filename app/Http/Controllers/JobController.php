@@ -39,13 +39,20 @@ class JobController extends Controller
      */
     public function store(StoreUpdateJobRequest $request)
     {
-        DB::transaction(function () use ($request) {
-            $validated = $request->validated();
+        $validated = $request->validated();
 
-            $newJob = Job::create($validated);
-        });
+        try {
+            DB::transaction(function () use ($validated) {
+                Job::create($validated);
+            });
 
-        return redirect()->route('admin.jobs.index');
+            return redirect()->route('admin.jobs.index')
+                ->with('success', 'Data pekerjaan berhasil ditambahkan!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal menambahkan data pekerjaan: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -68,13 +75,20 @@ class JobController extends Controller
      */
     public function update(StoreUpdateJobRequest $request, Job $job)
     {
-        DB::transaction(function () use ($request, $job) {
-            $validated = $request->validated();
+        $validated = $request->validated();
 
-            $job->update($validated);
-        });
+        try {
+            DB::transaction(function () use ($validated, $job) {
+                $job->update($validated);
+            });
 
-        return redirect()->route('admin.jobs.index');
+            return redirect()->route('admin.jobs.index')
+                ->with('success', 'Data pekerjaan berhasil diubah!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal mengubah data pekerjaan: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -83,13 +97,42 @@ class JobController extends Controller
      * @param  \App\Models\Job  $job
      * @return \Illuminate\Http\Response
      */
+    // public function destroy(Job $job)
+    // {
+    //     DB::transaction(function () use ($job) {
+    //         $job->delete();
+    //     });
+
+    //     return redirect()->route('admin.jobs.index');
+    // }
+
     public function destroy(Job $job)
     {
-        DB::transaction(function () use ($job) {
-            $job->delete();
-        });
+        try {
+            DB::transaction(function () use ($job) {
+                $job->delete(); // soft delete
+            });
 
-        return redirect()->route('admin.jobs.index');
+            return redirect()->route('admin.jobs.index')
+                ->with('success', 'Data pekerjaan berhasil dinonaktifkan.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal menonaktifkan data pekerjaan: ' . $e->getMessage());
+        }
+    }
+
+    public function restore($id)
+    {
+        try {
+            $job = Job::withTrashed()->findOrFail($id);
+            $job->restore();
+
+            return redirect()->route('admin.jobs.index')
+                ->with('success', 'Data pekerjaan berhasil diaktifkan kembali.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal mengaktifkan data pekerjaan: ' . $e->getMessage());
+        }
     }
 
     public function getJobSkills()

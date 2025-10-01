@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -84,18 +84,18 @@
                 @csrf
 
                 @php
-                $personalCurriculumVitae = $curriculumVitaeUser->personalCurriculumVitae;
+                $personalDetail = $curriculumVitaeUser->personalDetail;
                 @endphp
                 <!-- Replace with Laravel's @csrf -->
-                @if($personalCurriculumVitae)
+                @if($personalDetail)
                 <div class="grid grid-cols-4 gap-4">
                     <!-- Foto -->
-                    <div class="col-span-1 flex flex-col items-center">
+                    <div class="col-span-1 flex flex-col items-center"> 
                         <label for="avatar_curriculum_vitae" class="cursor-pointer flex flex-col items-center border border-gray-300 rounded-lg p-4 hover:border-blue-500 transition">
-                            @if($personalCurriculumVitae->avatar_curriculum_vitae)
-                            <img src="{{Storage::url($personalCurriculumVitae->avatar_curriculum_vitae)}}" alt="Tambah Foto" class="mb-2 w-14">
+                            @if($personalDetail->avatar_curriculum_vitae)
+                            <img src="{{Storage::url($personalDetail->avatar_curriculum_vitae)}}" alt="Tambah Foto" class="mb-2 w-14">
                             <span class="text-sm font-medium text-blue-700">Ubah Foto</span>
-                            <input type="file" value="{{$personalCurriculumVitae->avatar_curriculum_vitae}}" id="avatar_curriculum_vitae" name="avatar_curriculum_vitae" class="hidden">
+                            <input type="file" value="{{$personalDetail->avatar_curriculum_vitae}}" id="avatar_curriculum_vitae" name="avatar_curriculum_vitae" class="hidden">
                             @else
                             <img src="{{asset('assets/images/photo-placeholder.png')}}" alt="Tambah Foto" class="mb-2 w-14">
                             <span class="text-sm font-medium text-blue-700">Tambahkan Foto</span>
@@ -111,7 +111,7 @@
                             type="text"
                             name="first_name_curriculum_vitae"
                             placeholder="Nama Depan"
-                            value="{{$personalCurriculumVitae->first_name_curriculum_vitae}}"
+                            value="{{$personalDetail->first_name_curriculum_vitae}}"
                             class="mt-1 block w-full rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none"
                             style="height: 45px; padding: 0 16px"
                             required>
@@ -122,7 +122,7 @@
                             id="last_name_curriculum_vitae"
                             type="text"
                             name="last_name_curriculum_vitae"
-                            value="{{$personalCurriculumVitae->last_name_curriculum_vitae}}"
+                            value="{{$personalDetail->last_name_curriculum_vitae}}"
                             placeholder="Nama Belakang"
                             class="mt-1 block w-full rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none"
                             style="height: 45px; padding: 0 16px">
@@ -133,7 +133,7 @@
                             id="city_curriculum_vitae"
                             type="text"
                             name="city_curriculum_vitae"
-                            value="{{$personalCurriculumVitae->city_curriculum_vitae}}"
+                            value="{{$personalDetail->city_curriculum_vitae}}"
                             placeholder="Kota"
                             class="block w-full rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none"
                             style="height: 45px; padding: 0 16px"
@@ -149,7 +149,7 @@
                             type="text"
                             name="address_curriculum_vitae"
                             placeholder="Alamat"
-                            value="{{$personalCurriculumVitae->address_curriculum_vitae}}"
+                            value="{{$personalDetail->address_curriculum_vitae}}"
                             class="block w-full rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none"
                             style="height: 45px; padding: 0 16px">
                         @error('address_curriculum_vitae')
@@ -162,7 +162,7 @@
                             id="email_curriculum_vitae"
                             type="email"
                             name="email_curriculum_vitae"
-                            value="{{$personalCurriculumVitae->email_curriculum_vitae}}"
+                            value="{{$personalDetail->email_curriculum_vitae}}"
                             placeholder="Alamat Email"
                             class="mt-1 block w-full rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none"
                             style="height: 45px; padding: 0 16px"
@@ -178,7 +178,7 @@
                             type="number"
                             name="phone_curriculum_vitae"
                             placeholder="Nomor Telepon"
-                            value="{{$personalCurriculumVitae->phone_curriculum_vitae}}"
+                            value="{{$personalDetail->phone_curriculum_vitae}}"
                             class="mt-1 block w-full rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none"
                             style="height: 45px; padding: 0 16px"
                             required>
@@ -189,7 +189,7 @@
                     <!-- Ringkasan -->
                     <div class="col-span-4">
                         <div id="editor" class="bg-white rounded border border-gray-300" style="height: 150px;"></div>
-                        <input type="hidden" id="personal_summary" name="personal_summary" value="{{$personalCurriculumVitae->personal_summary}}">
+                        <input type="hidden" id="personal_summary" name="personal_summary" value="{{$personalDetail->personal_summary}}">
                         @error('personal_summary')
                         <div class="text-sm font-thin text-red-500">{{ $message }}</div>
                         @enderror

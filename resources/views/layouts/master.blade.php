@@ -44,18 +44,7 @@
                         </div>
                     </div>
 
-                    <!-- Dropdown Cover Letter -->
-                    <div class="relative">
-                        <button id="cl-dropdown-btn" class="text-gray-700 font-medium hover:text-blue-500 flex items-center focus:outline-none">
-                            Cover Letter
-                            <svg class="h-4 w-4 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        <div id="cl-dropdown-menu" class="absolute hidden bg-white shadow-lg rounded mt-2 py-2 z-50 w-full text-center">
-                            <a href="{{route('pelamar.cover_letter.index')}}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Generate Cover Letter</a>
-                        </div>
-                    </div>
+
 
                     <!-- Dropdown Tentang -->
                     <div class="relative">
@@ -119,7 +108,6 @@
                     <h3 class="text-xl font-bold text-blue-600 mb-5">GENERATE</h3>
                     <ul class="space-y-3">
                         <li><a href="{{route('pelamar.curriculum_vitae.index')}}" class="text-gray-800 hover:text-blue-600">Curriculum Vitae</a></li>
-                        <li><a href="{{route('pelamar.cover_letter.index')}}" class="text-gray-800 hover:text-blue-600">Cover Letter</a></li>
                     </ul>
                 </div>
 
@@ -187,9 +175,6 @@
 
         // Dropdown CV
         toggleDropdown("cv-dropdown-btn", "cv-dropdown-menu");
-
-        // Dropdown Cover Letter
-        toggleDropdown("cl-dropdown-btn", "cl-dropdown-menu");
 
         // Dropdown Tentang
         toggleDropdown("about-dropdown-btn", "about-dropdown-menu");

@@ -24,8 +24,9 @@ class StoreUpdateRecommendedSkillRequest extends FormRequest
     public function rules()
     {
         return [
-            'job_id' => ['required', 'integer'],
-            'skill_id' => ['required', 'integer']
+            'job_id' => ['required', 'integer', 'exists:jobs,id'],
+            'skill_id'   => ['required', 'array', 'min:1'],
+            'skill_id.*' => ['required', 'integer', 'exists:skills,id'],
         ];
     }
 }

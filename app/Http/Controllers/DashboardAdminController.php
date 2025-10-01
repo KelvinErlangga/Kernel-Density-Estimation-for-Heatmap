@@ -15,8 +15,7 @@ class DashboardAdminController extends Controller
     public function index()
     {
         $countTemplateCV = TemplateCurriculumVitae::getCountTemplateCV();
-        $countTemplateCL = TemplateCoverLetter::getCountTemplateCoverLetter();
-
+        
         $skills = Skill::getCountSkill();
 
         $jobs = Job::getCountJob();
@@ -25,6 +24,6 @@ class DashboardAdminController extends Controller
 
         $userPelamar = User::getCountUserPelamar();
 
-        return view('admin.dashboard_admin', compact('countTemplateCV', 'countTemplateCL', 'skills', 'userPelamar', 'jobs', 'recommendedSkills'));
+        return view('admin.dashboard_admin', compact('countTemplateCV', 'skills', 'userPelamar', 'jobs', 'recommendedSkills'));
     }
 }

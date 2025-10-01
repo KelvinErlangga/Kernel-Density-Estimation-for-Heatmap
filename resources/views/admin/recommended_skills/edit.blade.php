@@ -4,8 +4,6 @@
 @section('content')
 <div class="container-fluid">
 
-    <h1 class="h3 mb-4 text-gray-800">Ubah Rekomendasi Keahlian</h1>
-
     <div class="col-12 grid-margin stretch-card">
         <div class="card">
             <div class="card-body">

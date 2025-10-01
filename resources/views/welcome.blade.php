@@ -47,7 +47,7 @@
                     <div class="md:w-1/2 text-center md:text-left">
                         <h1 class="text-4xl lg:text-5xl font-extrabold text-blue-800 leading-tight mb-6">Siap Meningkatkan Kariermu?</h1>
                         <p class="text-lg lg:text-xl text-gray-700 leading-relaxed mb-8">
-                            Kami menyediakan semua yang kamu butuhkan untuk memulai karier dengan percaya diri. Buat CV dan cover letter yang profesional hanya dalam beberapa langkah mudah.
+                            Kami menyediakan semua yang kamu butuhkan untuk memulai karier dengan percaya diri. Buat CV yang profesional hanya dalam beberapa langkah mudah.
                         </p>
                         <a href="{{route('pelamar.curriculum_vitae.index')}}" class="bg-blue-800 hover:bg-blue-700 text-white font-medium text-lg lg:text-xl py-3 px-8 rounded-lg shadow-lg"> Ciptakan CV </a>
                     </div>
@@ -77,9 +77,8 @@
                     <div class="md:w-1/2 text-center md:text-left">
                         <h1 class="text-4xl lg:text-5xl font-extrabold text-blue-800 leading-tight mb-6">Mulai Sekarang, Kejar Karier Impianmu!</h1>
                         <p class="text-lg lg:text-xl text-gray-700 leading-relaxed mb-8">
-                            Jadikan langkah pertamamu menuju karier yang sukses lebih mudah dan percaya diri bersama CVRE Generate! Klik “Buat CV” dan ciptakan CV atau cover letter profesionalmu.
+                            Jadikan langkah pertamamu menuju karier yang sukses lebih mudah dan percaya diri bersama CVRE Generate! Klik “Buat CV” dan ciptakan CV profesionalmu.
                         </p>
-                        <a href="{{route('pelamar.cover_letter.index')}}" class="bg-blue-800 hover:bg-blue-700 text-white font-medium text-lg lg:text-xl py-3 px-8 rounded-lg shadow-lg"> Ciptakan Cover Letter </a>
                     </div>
                     <div class="md:w-1/2 flex justify-end">
                         <img src="{{asset('assets/carousel-banner/banner-3.png')}}" alt="Banner 3" class="w-4/5 lg:w-auto" />
@@ -105,10 +104,6 @@
         <div class="flex-1">
             <h3 class="text-3xl font-bold text-blue-800">1000+</h3>
             <p class="text-gray-600 text-lg">Pengguna diterima di top perusahaan</p>
-        </div>
-        <div class="flex-1">
-            <h3 class="text-3xl font-bold text-blue-800">1200+</h3>
-            <p class="text-gray-600 text-lg">Cover letter telah di-generate</p>
         </div>
     </div>
 </section>
@@ -237,7 +232,7 @@
             <div class="bg-white shadow-md rounded-lg p-6">
                 <img src="{{asset('assets/card-fiture/export-more-file.png')}}" alt="Export More File" class="h-20 mx-auto mb-4" />
                 <h3 class="text-lg font-bold text-blue-800 mb-2">EXPORT MORE FILE</h3>
-                <p class="text-gray-600 text-sm">Dapat menyimpan CV dan Cover Letter dalam format file seperti Word atau PDF sesuai dengan kebutuhan.</p>
+                <p class="text-gray-600 text-sm">Dapat menyimpan CV dalam format file seperti Word atau PDF sesuai dengan kebutuhan.</p>
             </div>
 
             <!-- Security & Privacy -->
@@ -245,57 +240,6 @@
                 <img src="{{asset('assets/card-fiture/security-and-privacy.png')}}" alt="Security Privacy" class="h-20 mx-auto mb-4" />
                 <h3 class="text-lg font-bold text-blue-800 mb-2">SECURITY & PRIVACY</h3>
                 <p class="text-gray-600 text-sm">Mendapatkan perlindungan data dengan enkripsi yang kuat, sehingga informasi pribadi tetap aman dan terlindungi.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Call to Action Cover Letter Section -->
-<section class="py-12 bg-blue-50">
-    <div class="container mx-auto flex flex-col lg:flex-row items-center bg-white shadow-lg rounded-lg p-8">
-        <!-- Text Content -->
-        <div class="lg:w-1/2 text-center lg:text-left">
-            <h2 class="text-4xl font-extrabold text-blue-800 mb-6">Buat Cover Letter Profesionalmu!</h2>
-            <p class="text-lg text-gray-700 mb-8">Tingkatkan peluang kerja Anda dengan cover letter yang menarik dan profesional. Mulai buat cover letter Anda sekarang, dan rasakan perbedaannya!</p>
-            <a href="{{route('pelamar.cover_letter.index')}}" class="bg-blue-800 hover:bg-blue-700 text-white font-medium text-lg py-3 px-16 rounded-lg shadow-lg"> Buat Cover Letter </a>
-        </div>
-
-        <!-- Cover Letter Slider -->
-        <div class="lg:w-1/2 flex justify-center lg:justify-end">
-            <div class="swiper mySwiper w-full max-w-2xl">
-                <div class="swiper-wrapper">
-                    <!-- Loop through images -->
-                    <div class="swiper-slide">
-                        <img src="{{asset('assets/cover-letter/cover-letter-color-1.png')}}" alt="Cover Letter Preview 1" class="rounded-lg shadow-md w-full h-auto max-w-full mx-auto" style="object-fit: cover" />
-                    </div>
-                    <div class="swiper-slide">
-                        <img src="{{asset('assets/cover-letter/cover-letter-color-2.png')}}" alt="Cover Letter Preview 2" class="rounded-lg shadow-md w-full h-auto max-w-full mx-auto" style="object-fit: cover" />
-                    </div>
-                    <div class="swiper-slide">
-                        <img src="{{asset('assets/cover-letter/cover-letter-color-3.png')}}" alt="Cover Letter Preview 3" class="rounded-lg shadow-md w-full h-auto max-w-full mx-auto" style="object-fit: cover" />
-                    </div>
-                    <div class="swiper-slide">
-                        <img src="{{asset('assets/cover-letter/cover-letter-color-4.png')}}" alt="Cover Letter Preview 4" class="rounded-lg shadow-md w-full h-auto max-w-full mx-auto" style="object-fit: cover" />
-                    </div>
-                    <div class="swiper-slide">
-                        <img src="{{asset('assets/cover-letter/cover-letter-color-5.png')}}" alt="Cover Letter Preview 5" class="rounded-lg shadow-md w-full h-auto max-w-full mx-auto" style="object-fit: cover" />
-                    </div>
-                    <div class="swiper-slide">
-                        <img src="{{asset('assets/cover-letter/cover-letter-color-6.png')}}" alt="Cover Letter Preview 6" class="rounded-lg shadow-md w-full h-auto max-w-full mx-auto" style="object-fit: cover" />
-                    </div>
-                    <div class="swiper-slide">
-                        <img src="{{asset('assets/cover-letter/cover-letter-color-7.png')}}" alt="Cover Letter Preview 7" class="rounded-lg shadow-md w-full h-auto max-w-full mx-auto" style="object-fit: cover" />
-                    </div>
-                    <div class="swiper-slide">
-                        <img src="{{asset('assets/cover-letter/cover-letter-color-8.png')}}" alt="Cover Letter Preview 8" class="rounded-lg shadow-md w-full h-auto max-w-full mx-auto" style="object-fit: cover" />
-                    </div>
-                    <div class="swiper-slide">
-                        <img src="{{asset('assets/cover-letter/cover-letter-color-9.png')}}" alt="Cover Letter Preview 9" class="rounded-lg shadow-md w-full h-auto max-w-full mx-auto" style="object-fit: cover" />
-                    </div>
-                    <div class="swiper-slide">
-                        <img src="{{asset('assets/cover-letter/cover-letter-color-10.png')}}" alt="Cover Letter Preview 10" class="rounded-lg shadow-md w-full h-auto max-w-full mx-auto" style="object-fit: cover" />
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -333,7 +277,7 @@
                     <img src="{{asset('assets/icons/checklist.svg')}}" alt="Checklist" class="w-5 h-5 ml-2" />
                 </h3>
                 <p class="text-sm text-gray-500 mb-2">IT Support Di Sumsang</p>
-                <p class="text-sm text-gray-700">Saya dapat membuat CV, Cover Letter, hingga mengirim lamaran langsung ke perusahaan hanya dengan satu platform. Sangat memudahkan sekali.</p>
+                <p class="text-sm text-gray-700">Saya dapat membuat CV hingga mengirim lamaran langsung ke perusahaan hanya dengan satu platform. Sangat memudahkan sekali.</p>
             </div>
             <!-- Card 4 -->
             <div class="bg-white shadow-lg rounded-lg p-6">
@@ -343,7 +287,7 @@
                     <img src="{{asset('assets/icons/checklist.svg')}}" alt="Checklist" class="w-5 h-5 ml-2" />
                 </h3>
                 <p class="text-sm text-gray-500 mb-2">UI/UX Designer Di Sumsang</p>
-                <p class="text-sm text-gray-700">Saya sangat merekomendasikan CVRE untuk membuat CV dan Cover Letter, dengan pilihan template yang rapi dan menarik.</p>
+                <p class="text-sm text-gray-700">Saya sangat merekomendasikan CVRE untuk membuat CV, dengan pilihan template yang rapi dan menarik.</p>
             </div>
         </div>
     </div>

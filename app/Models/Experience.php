@@ -20,9 +20,13 @@ class Experience extends Model
         'end_date'
     ];
 
+    protected $casts = [
+        'description_experience' => 'array',
+    ];
+
     // relasi curriculum vitae user
     public function curriculumVitaeUser()
     {
-        return $this->belongsTo(CurriculumVitaeUser::class);
+        return $this->belongsTo(CurriculumVitaeUser::class, 'curriculum_vitae_user_id');
     }
 }

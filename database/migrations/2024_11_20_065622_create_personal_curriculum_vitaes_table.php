@@ -13,7 +13,7 @@ class CreatePersonalCurriculumVitaesTable extends Migration
      */
     public function up()
     {
-        Schema::create('personal_curriculum_vitaes', function (Blueprint $table) {
+        Schema::create('personal_details', function (Blueprint $table) {
             $table->id();
             $table->foreignId('curriculum_vitae_user_id')->constrained()->onDelete('cascade');
             $table->string('avatar_curriculum_vitae')->nullable();

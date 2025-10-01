@@ -186,9 +186,9 @@ img.background {
 }
 
 .container img {
-  width: 100%;
-  max-width: 350px;
-  height: auto;
+  width: 350px;         /* lebar konsisten */
+  height: 500px;        /* tinggi konsisten */
+  object-fit: cover;    /* biar gambar tetap proporsional */
   display: block;
   margin: 0 auto;
   border-radius: 8px;

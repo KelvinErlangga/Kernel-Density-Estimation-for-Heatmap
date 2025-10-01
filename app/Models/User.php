@@ -9,10 +9,11 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -64,7 +65,8 @@ class User extends Authenticatable implements MustVerifyEmail
     // relasi dengan tabel personal pelamar
     public function personalPelamar()
     {
-        return $this->hasOne(PersonalPelamar::class);
+        // return $this->hasOne(PersonalPelamar::class);
+        return $this->hasOne(PersonalPelamar::class, 'user_id');
     }
 
     // relasi dengan table personal company

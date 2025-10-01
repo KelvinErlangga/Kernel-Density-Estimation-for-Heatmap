@@ -82,7 +82,7 @@ class RegisteredUserController extends Controller
             $user->assignRole('perusahaan');
 
             // data personal perusahaan
-            $user->personalComapany()->create([
+            $user->personalCompany()->create([
                 'user_id' => $user->id,
                 'name_company' => $request->name,
                 'email_company' => $request->email,

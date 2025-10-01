@@ -1,0 +1,301 @@
+.cv-main-layout {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    min-height: 100vh;
+}
+/* ...left-panel, right-panel, dan section CSS seperti yang sudah kamu punya... */
+/* Left Panel */
+.left-panel {
+    width: 189px;
+    height: auto;
+    background-color: #145349;
+    border: 1px solid black;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Profile Section */
+.profile-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    padding-top: 30px;
+}
+
+.profile-img {
+    width: 55px;
+    height: 55px;
+    background-color: #c44949;
+    border-radius: 50%;
+    overflow: hidden; /* Memotong gambar di luar lingkaran */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.profile-img img {
+    width: 100%; /* Memastikan gambar memenuhi kontainer */
+    height: 100%; /* Memastikan gambar memenuhi kontainer */
+    object-fit: cover; /* Memotong gambar jika proporsinya tidak sesuai */
+}
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1px;
+}
+
+.profile-info .name {
+    text-align: center;
+    color: #fafafa;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 20px; /* Sesuaikan line-height untuk spacing */
+    word-wrap: break-word; /* Memastikan teks panjang dapat terpotong */
+    word-break: break-word; /* Memastikan kata panjang terpotong jika perlu */
+    white-space: normal; /* Izinkan teks untuk membungkus ke baris baru */
+    max-width: 80%; /* Pastikan teks tidak melewati batas kontainer */
+}
+
+.profile-info .role {
+    text-align: center;
+    color: #fafafa;
+    font-size: 10px;
+    line-height: 4px;
+    margin-bottom: 20px;
+}
+
+/* Details Section */
+.details-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin-left: 80px;
+}
+
+.details-title {
+    color: #fafafa;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 6px;
+    text-align: left;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 6px;
+}
+
+.detail-item .sub-menu {
+    color: #fafafa;
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.detail-item p {
+    color: #fafafa;
+    font-size: 11px;
+    font-weight: normal;
+    line-height: 1.4; /* biar ada jarak antar baris */
+    margin: 0; /* reset bawaan <p> */
+    white-space: normal; /* teks panjang bisa turun ke bawah */
+    word-wrap: break-word; /* kalau ada kata panjang, otomatis dipecah */
+    max-width: 70%; /* biar tetap di dalam container */
+}
+
+/* Links Section */
+.links-section {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    margin-left: 80px;
+}
+
+.links-title {
+    color: #fafafa;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 16px; /* biar tidak terlalu rapat */
+    text-align: left;
+}
+
+.link-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    word-wrap: break-word; /* wrap otomatis */
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+.link-item p {
+    color: #fafafa;
+    font-size: 10px;
+    font-weight: normal;
+    line-height: 14px;
+    margin: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+/* Skills Section */
+.skills-section {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    margin-left: 80px;
+}
+
+.skills-title {
+    color: #fafafa;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 16px;
+}
+
+.skill-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+.skill-item .sub-menu {
+    color: #fafafa;
+    font-size: 10px;
+    font-weight: normal;
+    line-height: 14px;
+    margin: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+.skill-divider {
+    width: 110px;
+    height: 0;
+    border-top: 2px solid white;
+    opacity: 0.4;
+}
+
+/* Right Panel */
+.right-panel {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #333;
+}
+
+.right-panel h1 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 0px;
+}
+
+.right-panel h2 {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.right-panel h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 5px 0;
+}
+
+.right-panel p {
+    font-size: 12px;
+    margin: 0px 0;
+}
+
+.right-panel ul {
+    padding-left: 20px;
+    margin: 0;
+}
+
+.right-panel ul li {
+    font-size: 12px;
+}
+
+.card {
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+.btn {
+    border-radius: 0.75rem;
+}
+
+.form-control,
+.form-select {
+    border-radius: 0.5rem;
+    box-shadow: none;
+}
+
+label {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.list-group-item {
+    cursor: grab;
+    font-size: 0.9rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fc;
+}
+
+#cv-canvas {
+    border-radius: 0.75rem;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.empty-placeholder {
+    font-style: italic;
+    text-align: center;
+    margin-top: 200px;
+}

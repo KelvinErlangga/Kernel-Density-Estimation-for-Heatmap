@@ -65,7 +65,7 @@
             <form method="POST" action="{{route('pelamar.curriculum_vitae.store')}}" enctype="multipart/form-data">
                 @csrf
                 <div class="container">
-                    <img src="{{Storage::url($templateCV->thumbnail_curriculum_vitae)}}" alt="Template CV 1" />
+                    <img src="{{Storage::url(path: $templateCV->thumbnail_curriculum_vitae)}}" alt="Template CV 1" />
                     <input type="hidden" name="template_curriculum_vitae_id" id="template_curriculum_vitae_id" value="{{$templateCV->id}}">
                     <button type="submit" class="choose-template-btn">Pilih Template</button>
                     <div class="template-name">{{$templateCV->template_curriculum_vitae_name}}</div>

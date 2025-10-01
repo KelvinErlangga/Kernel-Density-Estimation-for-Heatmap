@@ -25,7 +25,9 @@ class StoreTemplateCurriculumVitaeRequest extends FormRequest
     {
         return [
             'template_curriculum_vitae_name' => ['required', 'string', 'max:255'],
-            'thumbnail_curriculum_vitae' => ['required', 'image', 'mimes:png,jpg,jpeg']
+            'thumbnail_curriculum_vitae' => ['required', 'image', 'mimes:png,jpg,jpeg'],
+            'layout_json' => 'nullable|json',
+            'style_json' => 'nullable|string', // <- pastikan ini ada
         ];
     }
 }

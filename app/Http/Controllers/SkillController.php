@@ -39,13 +39,18 @@ class SkillController extends Controller
      */
     public function store(StoreUpdateSkillRequest $request)
     {
-        DB::transaction(function () use ($request) {
-            $validated = $request->validated();
+        $validated = $request->validated();
+        try {
+            DB::transaction(function () use ($validated) {
+                Skill::create($validated);
+            });
 
-            $newSkill = Skill::create($validated);
-        });
-
-        return redirect()->route('admin.skills.index');
+            return redirect()->route('admin.skills.index')
+                ->with('success', 'Data keahlian berhasil ditambahkan!');
+        } catch (\Exception $e) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Gagal menambahkan data keahlian: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -68,13 +73,18 @@ class SkillController extends Controller
      */
     public function update(StoreUpdateSkillRequest $request, Skill $skill)
     {
-        DB::transaction(function () use ($request, $skill) {
-            $validated = $request->validated();
+        $validated = $request->validated();
+        try {
+            DB::transaction(function () use ($validated, $skill) {
+                $skill->update($validated);
+            });
 
-            $skill->update($validated);
-        });
-
-        return redirect()->route('admin.skills.index');
+            return redirect()->route('admin.skills.index')
+                ->with('success', 'Data keahlian berhasil diubah!'); // <-- disini pesan sukses untuk SweetAlert
+        } catch (\Exception $e) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Gagal mengubah data keahlian: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -83,12 +93,38 @@ class SkillController extends Controller
      * @param  \App\Models\Skill  $skill
      * @return \Illuminate\Http\Response
      */
+    // public function destroy(Skill $skill)
+    // {
+    //     DB::transaction(function () use ($skill) {
+    //         $skill->delete();
+    //     });
+
+    //     return redirect()->route('admin.skills.index');
+    // }
+
     public function destroy(Skill $skill)
     {
-        DB::transaction(function () use ($skill) {
+        try {
             $skill->delete();
-        });
+            return redirect()->route('admin.skills.index')
+                ->with('success', 'Data keahlian berhasil dinonaktifkan!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal menonaktifkan data keahlian: ' . $e->getMessage());
+        }
+    }
 
-        return redirect()->route('admin.skills.index');
+    // Restore / Aktifkan kembali
+    public function restore($id)
+    {
+        try {
+            $skill = Skill::withTrashed()->findOrFail($id);
+            $skill->restore();
+            return redirect()->route('admin.skills.index')
+                ->with('success', 'Data keahlian berhasil diaktifkan kembali!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal mengaktifkan data keahlian: ' . $e->getMessage());
+        }
     }
 }

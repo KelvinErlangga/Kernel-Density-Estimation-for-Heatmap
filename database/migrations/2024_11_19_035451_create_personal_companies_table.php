@@ -23,6 +23,10 @@ class CreatePersonalCompaniesTable extends Migration
             $table->string('city_company');
             $table->string('type_of_company');
             $table->text('description_company')->nullable();
+            $table->integer('jumlah_karyawan')->nullable();
+            $table->integer('jumlah_divisi')->nullable();
+            $table->year('tahun_berdiri')->nullable();
+            $table->string('logo')->nullable();
             $table->timestamps();
         });
     }

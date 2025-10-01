@@ -103,35 +103,47 @@
                     <h6 class="m-0 font-weight-bold text-dark">PROFILE</h6>
                 </div>
                 <div class="card-body text-center">
+
                     <!-- Logo Perusahaan -->
-                    <!-- <img src="{{asset('assets/perusahaan/qarea.png')}}" alt="Logo PT QAREA INC" class="mb-3" style="width: 100px; height: auto;"> -->
+                    @if($personalCompany->logo ?? false)
+                        <img src="{{ asset('storage/company_logo/' . $personalCompany->logo) }}"
+                            alt="Logo {{ $personalCompany->name_company }}"
+                            class="mb-3"
+                            style="width: 100px; height: 100px; object-fit: contain; border: 1px solid #ccc; background-color: #f5f5f5; border-radius: 8px;">
+
+                    @else
+                        <div class="mb-3"
+                            style="width: 100px; height: 100px; border: 2px dashed #ccc; display: inline-flex; align-items: center; justify-content: center;">
+                            <span class="text-muted">No Logo</span>
+                        </div>
+                    @endif
+
                     <!-- Nama Perusahaan -->
-                    <h5 class="font-weight-bold">{{$personalCompany->name_company}}</h5>
-                    <p>{{$personalCompany->city_company}}</p>
+                    <h5 class="font-weight-bold mt-3">{{ $personalCompany->name_company }}</h5>
+                    <p>{{ $personalCompany->city_company }}</p>
 
                     <!-- Informasi Detail -->
                     <div class="row text-center">
                         <div class="col-4">
-                            <h4 class="font-weight-bold">1700</h4>
+                            <h4 class="font-weight-bold">{{ $personalCompany->jumlah_karyawan ?? '-' }}</h4>
                             <p>Karyawan</p>
                         </div>
                         <div class="col-4">
-                            <h4 class="font-weight-bold">20</h4>
-                            <p>Devisi</p>
+                            <h4 class="font-weight-bold">{{ $personalCompany->jumlah_divisi ?? '-' }}</h4>
+                            <p>Divisi</p>
                         </div>
                         <div class="col-4">
-                            <h4 class="font-weight-bold">2017</h4>
+                            <h4 class="font-weight-bold">{{ $personalCompany->tahun_berdiri ?? '-' }}</h4>
                             <p>Berdiri</p>
                         </div>
                     </div>
 
                     <!-- Deskripsi Perusahaan -->
                     <p class="mt-3">
-                        Perusahaan yang bergerak di bidang fintech yang selalu berkembang setiap tahun dengan lebih dari 1000 lebih investor tetap.
+                        {{ $personalCompany->description_company ?? 'Belum ada deskripsi perusahaan.' }}
                     </p>
                 </div>
             </div>
-
 
             <!-- Pesan -->
             <div class="card shadow mb-4">

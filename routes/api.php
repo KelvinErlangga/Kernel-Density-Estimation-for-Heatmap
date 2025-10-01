@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HiringController;
+use App\Http\Controllers\JobController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,3 +19,11 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Route::get('/job-skills', [JobController::class, 'getJobSkills']);
+
+// Route::get('/hirings', [HiringController::class, 'all']);        // semua
+Route::get('/hirings/{id}', [HiringController::class, 'show']); // detail
+// Route::get('/hirings/heatmap', [HiringController::class, 'heatmapData']); // khusus lat-lng
+
+Route::get('/lokasi-lowongan', [HiringController::class, 'heatmapData']);

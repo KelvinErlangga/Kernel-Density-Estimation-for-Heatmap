@@ -17,7 +17,10 @@ class PersonalCompany extends Model
         'city_company',
         'type_of_company',
         'name_user_company',
-        'description_company'
+        'description_company',
+        'jumlah_karyawan',
+        'jumlah_divisi',
+        'tahun_berdiri',
     ];
 
     // relasi dengan tabel user
@@ -29,6 +32,6 @@ class PersonalCompany extends Model
     // relasi dengan tabel hiring
     public function hirings()
     {
-        return $this->hasMany(Hiring::class);
+        return $this->hasMany(Hiring::class, 'personal_company_id');
     }
 }
