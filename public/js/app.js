@@ -13,11 +13,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var leaflet__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(leaflet__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var leaflet_heat__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! leaflet.heat */ "./node_modules/leaflet.heat/dist/leaflet-heat.js");
 /* harmony import */ var leaflet_heat__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(leaflet_heat__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var fast_kde__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! fast-kde */ "./node_modules/fast-kde/src/index.js");
-/* harmony import */ var leaflet_dist_leaflet_css__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! leaflet/dist/leaflet.css */ "./node_modules/leaflet/dist/leaflet.css");
-/* harmony import */ var leaflet_dist_images_marker_icon_png__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! leaflet/dist/images/marker-icon.png */ "./node_modules/leaflet/dist/images/marker-icon.png");
-/* harmony import */ var leaflet_dist_images_marker_icon_2x_png__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! leaflet/dist/images/marker-icon-2x.png */ "./node_modules/leaflet/dist/images/marker-icon-2x.png");
-/* harmony import */ var leaflet_dist_images_marker_shadow_png__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! leaflet/dist/images/marker-shadow.png */ "./node_modules/leaflet/dist/images/marker-shadow.png");
+/* harmony import */ var leaflet_dist_leaflet_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! leaflet/dist/leaflet.css */ "./node_modules/leaflet/dist/leaflet.css");
+/* harmony import */ var leaflet_dist_images_marker_icon_png__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! leaflet/dist/images/marker-icon.png */ "./node_modules/leaflet/dist/images/marker-icon.png");
+/* harmony import */ var leaflet_dist_images_marker_icon_2x_png__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! leaflet/dist/images/marker-icon-2x.png */ "./node_modules/leaflet/dist/images/marker-icon-2x.png");
+/* harmony import */ var leaflet_dist_images_marker_shadow_png__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! leaflet/dist/images/marker-shadow.png */ "./node_modules/leaflet/dist/images/marker-shadow.png");
 function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
 function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
@@ -34,10 +33,6 @@ function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) 
 function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
-// NOTE: Pastikan di Blade TIDAK memuat leaflet.js via CDN kalau kamu import dari sini.
-// Kalau Blade masih pakai CDN leaflet.js, hapus tag script CDN-nya agar tidak double instance.
-
-
 
 
 
@@ -47,15 +42,15 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
 
 
 leaflet__WEBPACK_IMPORTED_MODULE_0___default().Icon.Default.mergeOptions({
-  iconRetinaUrl: leaflet_dist_images_marker_icon_2x_png__WEBPACK_IMPORTED_MODULE_5__["default"],
-  iconUrl: leaflet_dist_images_marker_icon_png__WEBPACK_IMPORTED_MODULE_4__["default"],
-  shadowUrl: leaflet_dist_images_marker_shadow_png__WEBPACK_IMPORTED_MODULE_6__["default"]
+  iconRetinaUrl: leaflet_dist_images_marker_icon_2x_png__WEBPACK_IMPORTED_MODULE_4__["default"],
+  iconUrl: leaflet_dist_images_marker_icon_png__WEBPACK_IMPORTED_MODULE_3__["default"],
+  shadowUrl: leaflet_dist_images_marker_shadow_png__WEBPACK_IMPORTED_MODULE_5__["default"]
 });
 
 // ========================= STATE GLOBAL =========================
 var jobs = [];
 var locations = [];
-var mPoints = [];
+var mPoints = []; // titik dalam Web Mercator meters: [x, y]
 var map, heatLayer, markerLayer, nearCircle, nearLayer;
 var currentMode = "default"; // 'default' | 'nearby'
 var USER_HOME = window.USER_DOMICILE || {
@@ -68,7 +63,7 @@ var USER_HOME = window.USER_DOMICILE || {
 // ========================= Helper angka & koordinat =========================
 var toNum = function toNum(v) {
   if (v === null || v === undefined) return NaN;
-  var s = String(v).trim().replace(",", "."); // dukung " -7,123 "
+  var s = String(v).trim().replace(",", ".");
   var n = parseFloat(s);
   return Number.isFinite(n) ? n : NaN;
 };
@@ -93,61 +88,17 @@ var metersToLngLat = function metersToLngLat(x, y) {
   return [lon, lat];
 };
 
-// ========================= Debounce helper =========================
-function debounce(fn) {
-  var ms = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 400;
-  var t;
-  return function () {
-    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-    clearTimeout(t);
-    t = setTimeout(function () {
-      return fn.apply(void 0, args);
-    }, ms);
-  };
-}
-
-// ========================= Popup builders =========================
-function formatRupiah(num) {
-  if (num == null || num === "") return "-";
-  var n = Number(num);
-  if (!Number.isFinite(n)) return String(num);
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0
-  }).format(n);
-}
-function formatRangeRupiah(min, max) {
-  if (min == null && max == null) return "-";
-  if (min != null && max != null) return "".concat(formatRupiah(min), " \u2013 ").concat(formatRupiah(max));
-  return min != null ? "".concat(formatRupiah(min)) : "".concat(formatRupiah(max));
-}
-function formatDateISO(d) {
-  if (!d) return "-";
-  var dt = new Date(d);
-  return isNaN(dt) ? String(d) : dt.toLocaleDateString("id-ID", {
-    year: "numeric",
-    month: "short",
-    day: "numeric"
-  });
-}
+// ========================= Popup builder (sederhana) =========================
 function buildPopup(job) {
-  var _job$position_hiring, _job$jenis_pekerjaan, _ref, _job$work_system, _job$education_hiring, _ref2, _job$pengalaman_minim;
+  var _job$position_hiring, _job$gaji_min, _job$gaji_max;
   var posisi = (_job$position_hiring = job.position_hiring) !== null && _job$position_hiring !== void 0 ? _job$position_hiring : "Lowongan";
-  var jenis = (_job$jenis_pekerjaan = job.jenis_pekerjaan) !== null && _job$jenis_pekerjaan !== void 0 ? _job$jenis_pekerjaan : "-";
-  var sistem = (_ref = (_job$work_system = job.work_system) !== null && _job$work_system !== void 0 ? _job$work_system : job.pola_kerja) !== null && _ref !== void 0 ? _ref : "-";
   var lokasi = [job.kota, job.provinsi].filter(Boolean).join(", ");
-  var gaji = formatRangeRupiah(job.gaji_min, job.gaji_max);
-  var edu = (_job$education_hiring = job.education_hiring) !== null && _job$education_hiring !== void 0 ? _job$education_hiring : "-";
-  var exp = (_ref2 = (_job$pengalaman_minim = job.pengalaman_minimal_tahun) !== null && _job$pengalaman_minim !== void 0 ? _job$pengalaman_minim : job.pengalaman) !== null && _ref2 !== void 0 ? _ref2 : null;
-  var expText = exp == null || exp === "" ? "-" : "".concat(exp, " th");
-  var deadline = formatDateISO(job.deadline_hiring);
-  return "\n    <div style=\"min-width:240px\">\n      <div style=\"font-weight:700;font-size:14px;margin-bottom:6px\">".concat(posisi, "</div>\n      <div style=\"font-size:12px;color:#555;margin-bottom:6px\">").concat(lokasi || "-", "</div>\n      <div style=\"font-size:12px;line-height:1.35\">\n        <div><b>Jenis</b>: ").concat(jenis, "</div>\n        <div><b>Sistem</b>: ").concat(sistem, "</div>\n        <div><b>Gaji</b>: ").concat(gaji, "</div>\n        <div><b>Pendidikan</b>: ").concat(edu, "</div>\n        <div><b>Pengalaman</b>: ").concat(expText, "</div>\n        <div><b>Deadline</b>: ").concat(deadline, "</div>\n      </div>\n      <div style=\"margin-top:8px\">\n        <a href=\"#\" class=\"lihat-detail\" data-id=\"").concat(job.id, "\">Lihat detail</a>\n      </div>\n    </div>");
+  var gajiMin = new Intl.NumberFormat("id-ID").format((_job$gaji_min = job.gaji_min) !== null && _job$gaji_min !== void 0 ? _job$gaji_min : 0);
+  var gajiMax = new Intl.NumberFormat("id-ID").format((_job$gaji_max = job.gaji_max) !== null && _job$gaji_max !== void 0 ? _job$gaji_max : 0);
+  return "\n    <div style=\"min-width:240px\">\n      <div style=\"font-weight:700;font-size:14px;margin-bottom:6px\">".concat(posisi, "</div>\n      <div style=\"font-size:12px;color:#555;margin-bottom:6px\">").concat(lokasi || "-", "</div>\n      <div style=\"font-size:12px;line-height:1.35\">\n        <div><b>Gaji</b>: Rp ").concat(gajiMin, " \u2013 Rp ").concat(gajiMax, "/Bulan</div>\n      </div>\n      <div style=\"margin-top:8px\">\n        <a href=\"#\" class=\"lihat-detail\" data-id=\"").concat(job.id, "\">Lihat detail</a>\n      </div>\n    </div>");
 }
 
-// ========================= KDE recompute =========================
+// ========================= Parameter grid adaptif =========================
 function getAdaptiveParams() {
   var b = map.getBounds();
   var _lngLatToMeters = lngLatToMeters(b.getWest(), b.getSouth()),
@@ -161,20 +112,123 @@ function getAdaptiveParams() {
   var widthM = maxx - minx;
   var heightM = maxy - miny;
   var px = map.getSize();
-  var binsX = Math.max(128, Math.min(1024, Math.round(px.x / 4)));
-  var binsY = Math.max(128, Math.min(1024, Math.round(px.y / 4)));
+  // kisi adaptif (jadi halus di layar besar, tetap aman performa)
+  var binsX = Math.max(96, Math.min(256, Math.round(px.x / 5)));
+  var binsY = Math.max(96, Math.min(256, Math.round(px.y / 5)));
   var cellX = widthM / binsX;
   var cellY = heightM / binsY;
-  var baseFactor = 1.5;
-  var BAND_M = baseFactor * Math.max(cellX, cellY);
-  var buf = BAND_M * 3;
+
+  // bandwidth dalam meter ~ 1.5x ukuran sel (mirip heuristik fast-kde default)
+  var sigmaM = 1.5 * Math.max(cellX, cellY);
   return {
-    extent: [[minx - buf, maxx + buf], [miny - buf, maxy + buf]],
+    extent: [[minx, maxx], [miny, maxy]],
     bins: [binsX, binsY],
-    bandwidth: [BAND_M, BAND_M]
+    cell: [cellX, cellY],
+    sigmaM: sigmaM
   };
 }
+
+// ========================= Util KDE: histogram 2D =========================
+function makeHistogram2D(pointsM, extent, bins) {
+  var _extent$ = _slicedToArray(extent[0], 2),
+    minx = _extent$[0],
+    maxx = _extent$[1];
+  var _extent$2 = _slicedToArray(extent[1], 2),
+    miny = _extent$2[0],
+    maxy = _extent$2[1];
+  var _bins = _slicedToArray(bins, 2),
+    nx = _bins[0],
+    ny = _bins[1];
+  var w = nx,
+    h = ny;
+  var arr = new Float32Array(w * h);
+  var invDx = w / (maxx - minx);
+  var invDy = h / (maxy - miny);
+  var _iterator = _createForOfIteratorHelper(pointsM),
+    _step;
+  try {
+    for (_iterator.s(); !(_step = _iterator.n()).done;) {
+      var _step$value = _slicedToArray(_step.value, 2),
+        x = _step$value[0],
+        y = _step$value[1];
+      var xi = Math.floor((x - minx) * invDx);
+      var yi = Math.floor((y - miny) * invDy);
+      if (xi >= 0 && xi < w && yi >= 0 && yi < h) {
+        arr[yi * w + xi] += 1;
+      }
+    }
+  } catch (err) {
+    _iterator.e(err);
+  } finally {
+    _iterator.f();
+  }
+  return {
+    data: arr,
+    w: w,
+    h: h,
+    minx: minx,
+    miny: miny
+  };
+}
+
+// ========================= Util KDE: kernel gaussian 1D =========================
+function gaussianKernel1D(sigmaPixel) {
+  // batasi radius 3*sigma untuk efisiensi
+  var radius = Math.max(1, Math.ceil(3 * sigmaPixel));
+  var len = 2 * radius + 1;
+  var k = new Float32Array(len);
+  var s2 = sigmaPixel * sigmaPixel;
+  var sum = 0;
+  for (var i = -radius; i <= radius; i++) {
+    var v = Math.exp(-(i * i) / (2 * s2));
+    k[i + radius] = v;
+    sum += v;
+  }
+  // normalisasi
+  for (var _i = 0; _i < len; _i++) k[_i] /= sum;
+  return {
+    k: k,
+    radius: radius
+  };
+}
+
+// ========================= Util KDE: konvolusi separable =========================
+function convolveSeparable(data, w, h, kernel) {
+  var k = kernel.k,
+    radius = kernel.radius;
+  var tmp = new Float32Array(w * h);
+  var out = new Float32Array(w * h);
+
+  // Horizontal
+  for (var y = 0; y < h; y++) {
+    var rowOff = y * w;
+    for (var x = 0; x < w; x++) {
+      var sum = 0;
+      for (var t = -radius; t <= radius; t++) {
+        var xx = Math.min(w - 1, Math.max(0, x + t));
+        sum += data[rowOff + xx] * k[t + radius];
+      }
+      tmp[rowOff + x] = sum;
+    }
+  }
+
+  // Vertical
+  for (var _x = 0; _x < w; _x++) {
+    for (var _y = 0; _y < h; _y++) {
+      var _sum = 0;
+      for (var _t = -radius; _t <= radius; _t++) {
+        var yy = Math.min(h - 1, Math.max(0, _y + _t));
+        _sum += tmp[yy * w + _x] * k[_t + radius];
+      }
+      out[_y * w + _x] = _sum;
+    }
+  }
+  return out;
+}
+
+// ========================= KDE -> HeatLayer =========================
 function recomputeKDE() {
+  var _densVals$qIdx;
   if (!mPoints || !mPoints.length) {
     heatLayer.setLatLngs([]);
     return;
@@ -182,41 +236,63 @@ function recomputeKDE() {
   var _getAdaptiveParams = getAdaptiveParams(),
     extent = _getAdaptiveParams.extent,
     bins = _getAdaptiveParams.bins,
-    bandwidth = _getAdaptiveParams.bandwidth;
-  var d2 = (0,fast_kde__WEBPACK_IMPORTED_MODULE_2__.density2d)(mPoints, {
-    bins: bins,
-    extent: extent,
-    bandwidth: bandwidth
-  });
-  var zmax = 0;
-  var pts = [];
-  var _iterator = _createForOfIteratorHelper(d2),
-    _step;
-  try {
-    for (_iterator.s(); !(_step = _iterator.n()).done;) {
-      var _p = _step.value;
-      if (_p.z > zmax) zmax = _p.z;
-      pts.push(_p);
-    }
-  } catch (err) {
-    _iterator.e(err);
-  } finally {
-    _iterator.f();
+    cell = _getAdaptiveParams.cell,
+    sigmaM = _getAdaptiveParams.sigmaM;
+  var _bins2 = _slicedToArray(bins, 2),
+    nx = _bins2[0],
+    ny = _bins2[1];
+  var _cell = _slicedToArray(cell, 2),
+    cellX = _cell[0],
+    cellY = _cell[1];
+
+  // sigma dalam pixel grid
+  var sigmaPx = sigmaM / Math.max(cellX, cellY);
+  var _makeHistogram2D = makeHistogram2D(mPoints, extent, bins),
+    hist = _makeHistogram2D.data,
+    w = _makeHistogram2D.w,
+    h = _makeHistogram2D.h,
+    minx = _makeHistogram2D.minx,
+    miny = _makeHistogram2D.miny;
+  var kernel = gaussianKernel1D(sigmaPx);
+
+  // Smooth (KDE via konvolusi separable)
+  var density = convolveSeparable(hist, w, h, kernel);
+
+  // Normalisasi & threshold kuantil agar tidak jadi “haze” menyeluruh
+  var dmax = 0;
+  var densVals = [];
+  for (var i = 0; i < density.length; i++) {
+    if (density[i] > dmax) dmax = density[i];
   }
-  var CUTOFF = 0.1;
+  if (dmax <= 0) {
+    heatLayer.setLatLngs([]);
+    return;
+  }
+  for (var _i2 = 0; _i2 < density.length; _i2++) {
+    var v = density[_i2] / dmax;
+    if (v > 0) densVals.push(v);
+  }
+  densVals.sort(function (a, b) {
+    return a - b;
+  });
+  // ambil kuantil 0.80 (hanya top 20% paling padat) + minimum cutoff 0.12
+  var qIdx = Math.floor(densVals.length * 0.8);
+  var q80 = (_densVals$qIdx = densVals[qIdx]) !== null && _densVals$qIdx !== void 0 ? _densVals$qIdx : 0.12;
+  var CUTOFF = Math.max(0.12, q80);
   var heat = [];
-  for (var _i = 0, _pts = pts; _i < _pts.length; _i++) {
-    var p = _pts[_i];
-    var val = zmax ? p.z / zmax : 0;
-    if (val < CUTOFF) continue;
-    var _metersToLngLat = metersToLngLat(p.x, p.y),
-      _metersToLngLat2 = _slicedToArray(_metersToLngLat, 2),
-      lon = _metersToLngLat2[0],
-      lat = _metersToLngLat2[1];
-    var latNum = toNum(lat),
-      lonNum = toNum(lon);
-    if (!validLat(latNum) || !validLon(lonNum)) continue;
-    heat.push([latNum, lonNum, val]);
+  for (var iy = 0; iy < h; iy++) {
+    for (var ix = 0; ix < w; ix++) {
+      var _v = density[iy * w + ix] / dmax;
+      if (_v < CUTOFF) continue; // buang nilai kecil
+      var gx = minx + (ix + 0.5) * cellX;
+      var gy = miny + (iy + 0.5) * cellY;
+      var _metersToLngLat = metersToLngLat(gx, gy),
+        _metersToLngLat2 = _slicedToArray(_metersToLngLat, 2),
+        lon = _metersToLngLat2[0],
+        lat = _metersToLngLat2[1];
+      if (!validLat(lat) || !validLon(lon)) continue;
+      heat.push([lat, lon, _v]);
+    }
   }
   heatLayer.setLatLngs(heat);
 }
@@ -224,7 +300,7 @@ function recomputeKDE() {
 // ========================= Marker interaktif =========================
 function updateMarkers() {
   markerLayer.clearLayers();
-  var MARKER_ZOOM_THRESHOLD = 15;
+  var MARKER_ZOOM_THRESHOLD = 15; // turunkan supaya marker muncul lebih cepat
   if (map.getZoom() < MARKER_ZOOM_THRESHOLD) return;
   var bounds = map.getBounds();
   var visibleJobs = jobs.filter(function (j) {
@@ -248,20 +324,18 @@ function renderRekomendasi(list) {
     container.innerHTML = "<p class=\"text-center text-muted\">Tidak ada rekomendasi lowongan</p>";
     return;
   }
-
-  // Prioritaskan match query
   if (highlightQuery) {
     list.sort(function (a, b) {
       var _a$position_hiring, _b$position_hiring;
       var aMatch = ((_a$position_hiring = a.position_hiring) !== null && _a$position_hiring !== void 0 ? _a$position_hiring : "").toLowerCase().includes(highlightQuery.toLowerCase());
       var bMatch = ((_b$position_hiring = b.position_hiring) !== null && _b$position_hiring !== void 0 ? _b$position_hiring : "").toLowerCase().includes(highlightQuery.toLowerCase());
-      return bMatch - aMatch; // true=1
+      return Number(bMatch) - Number(aMatch);
     });
   }
   container.innerHTML = list.map(function (job) {
-    var _job$personal_company, _job$personal_company2, _job$personal_company3, _job$position_hiring2, _job$personal_company4, _job$personal_company5, _job$gaji_min, _job$gaji_max;
-    var dist = Number.isFinite(toNum(job.distance_km)) ? "<small class=\"d-block text-muted\">\u2248 ".concat(toNum(job.distance_km).toFixed(1), " km dari Anda</small>") : "";
-    return "\n        <div class=\"card mb-3 border job-card\" style=\"cursor:pointer;\" onclick=\"showJobDetail('".concat(job.id, "')\" tabindex=\"0\">\n          <div class=\"d-flex p-3\">\n            <img src=\"").concat((_job$personal_company = job.personal_company) !== null && _job$personal_company !== void 0 && _job$personal_company.logo ? "/storage/company_logo/" + job.personal_company.logo : "/images/default-company.png", "\"\n                 alt=\"Logo ").concat((_job$personal_company2 = (_job$personal_company3 = job.personal_company) === null || _job$personal_company3 === void 0 ? void 0 : _job$personal_company3.name_company) !== null && _job$personal_company2 !== void 0 ? _job$personal_company2 : "Perusahaan", "\"\n                 style=\"width:70px;height:70px;object-fit:contain;border-radius:6px;border:1px solid #ccc;background:#f5f5f5;\" class=\"mr-3\">\n            <div>\n              <h6 class=\"font-weight-bold mb-1\">").concat((_job$position_hiring2 = job.position_hiring) !== null && _job$position_hiring2 !== void 0 ? _job$position_hiring2 : "-", "</h6>\n              <small class=\"d-block text-muted\">").concat((_job$personal_company4 = (_job$personal_company5 = job.personal_company) === null || _job$personal_company5 === void 0 ? void 0 : _job$personal_company5.name_company) !== null && _job$personal_company4 !== void 0 ? _job$personal_company4 : "-", "</small>\n              <small class=\"d-block\">").concat([job.kota, job.provinsi].filter(Boolean).join(", "), "</small>\n              ").concat(dist, "\n              <small class=\"d-block text-dark\">Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_min = job.gaji_min) !== null && _job$gaji_min !== void 0 ? _job$gaji_min : 0), " - Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_max = job.gaji_max) !== null && _job$gaji_max !== void 0 ? _job$gaji_max : 0), "/Bulan</small>\n              <small class=\"text-muted\">Diposting ").concat(new Date(job.created_at).toLocaleDateString("id-ID"), "</small>\n            </div>\n          </div>\n        </div>");
+    var _job$personal_company, _job$personal_company2, _job$personal_company3, _job$position_hiring2, _job$personal_company4, _job$personal_company5, _job$gaji_min2, _job$gaji_max2;
+    var dist = Number.isFinite(toNum(job.distance_km)) ? "<small class=\"d-block text-muted\">\u2248 ".concat(toNum(job.distance_km).toFixed(1), " km dari lokasi Anda</small>") : "";
+    return "\n      <div class=\"card mb-3 border job-card\" style=\"cursor:pointer;\" onclick=\"showJobDetail('".concat(job.id, "')\" tabindex=\"0\">\n        <div class=\"d-flex p-3\">\n          <img src=\"").concat((_job$personal_company = job.personal_company) !== null && _job$personal_company !== void 0 && _job$personal_company.logo ? "/storage/company_logo/" + job.personal_company.logo : "/images/default-company.png", "\"\n               alt=\"Logo ").concat((_job$personal_company2 = (_job$personal_company3 = job.personal_company) === null || _job$personal_company3 === void 0 ? void 0 : _job$personal_company3.name_company) !== null && _job$personal_company2 !== void 0 ? _job$personal_company2 : "Perusahaan", "\"\n               style=\"width:70px;height:70px;object-fit:contain;border-radius:6px;border:1px solid #ccc;background:#f5f5f5;\" class=\"mr-3\">\n          <div>\n            <h6 class=\"font-weight-bold mb-1\">").concat((_job$position_hiring2 = job.position_hiring) !== null && _job$position_hiring2 !== void 0 ? _job$position_hiring2 : "-", "</h6>\n            <small class=\"d-block text-muted\">").concat((_job$personal_company4 = (_job$personal_company5 = job.personal_company) === null || _job$personal_company5 === void 0 ? void 0 : _job$personal_company5.name_company) !== null && _job$personal_company4 !== void 0 ? _job$personal_company4 : "-", "</small>\n            <small class=\"d-block\">").concat([job.kota, job.provinsi].filter(Boolean).join(", "), "</small>\n            ").concat(dist, "\n            <small class=\"d-block text-dark\">Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_min2 = job.gaji_min) !== null && _job$gaji_min2 !== void 0 ? _job$gaji_min2 : 0), " - Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_max2 = job.gaji_max) !== null && _job$gaji_max2 !== void 0 ? _job$gaji_max2 : 0), "/Bulan</small>\n            <small class=\"text-muted\">Diposting ").concat(new Date(job.created_at).toLocaleDateString("id-ID"), "</small>\n          </div>\n        </div>\n      </div>");
   }).join("");
 }
 
@@ -276,14 +350,14 @@ function _fetchData() {
       params,
       mode,
       hasHome,
-      _ref11,
+      _ref9,
       _opts$radiusKm,
       radiusKm,
       res,
       preview,
       rawData,
       rawJobs,
-      _ref14,
+      _ref12,
       _opts$radiusKm2,
       _radiusKm,
       bb,
@@ -300,7 +374,7 @@ function _fetchData() {
           params.set("mode", mode);
           hasHome = Number.isFinite(USER_HOME === null || USER_HOME === void 0 ? void 0 : USER_HOME.lat) && Number.isFinite(USER_HOME === null || USER_HOME === void 0 ? void 0 : USER_HOME.lon);
           if (mode === "nearby" && hasHome) {
-            radiusKm = Number((_ref11 = (_opts$radiusKm = opts.radiusKm) !== null && _opts$radiusKm !== void 0 ? _opts$radiusKm : USER_HOME.radiusKmDefault) !== null && _ref11 !== void 0 ? _ref11 : 60);
+            radiusKm = Number((_ref9 = (_opts$radiusKm = opts.radiusKm) !== null && _opts$radiusKm !== void 0 ? _opts$radiusKm : USER_HOME.radiusKmDefault) !== null && _ref9 !== void 0 ? _ref9 : 60);
             params.set("origin_lat", String(USER_HOME.lat));
             params.set("origin_lon", String(USER_HOME.lon));
             params.set("radius_km", String(radiusKm));
@@ -349,10 +423,10 @@ function _fetchData() {
           locations = jobs.map(function (j) {
             return [j.lat, j.lon];
           });
-          mPoints = locations.map(function (_ref12) {
-            var _ref13 = _slicedToArray(_ref12, 2),
-              lat = _ref13[0],
-              lon = _ref13[1];
+          mPoints = locations.map(function (_ref10) {
+            var _ref11 = _slicedToArray(_ref10, 2),
+              lat = _ref11[0],
+              lon = _ref11[1];
             return lngLatToMeters(lon, lat);
           });
 
@@ -363,23 +437,20 @@ function _fetchData() {
             });
           }
 
-          // --- ⬇️ overlay radius: SELALU dibersihkan lalu digambar ulang ---
+          // --- overlay radius: bersihkan/gambar ulang ---
           if (mode === "nearby" && hasHome) {
-            _radiusKm = Number((_ref14 = (_opts$radiusKm2 = opts.radiusKm) !== null && _opts$radiusKm2 !== void 0 ? _opts$radiusKm2 : USER_HOME.radiusKmDefault) !== null && _ref14 !== void 0 ? _ref14 : 60); // bersihkan overlay lama
+            _radiusKm = Number((_ref12 = (_opts$radiusKm2 = opts.radiusKm) !== null && _opts$radiusKm2 !== void 0 ? _opts$radiusKm2 : USER_HOME.radiusKmDefault) !== null && _ref12 !== void 0 ? _ref12 : 60);
             if (nearLayer) nearLayer.clearLayers();
             nearCircle = leaflet__WEBPACK_IMPORTED_MODULE_0___default().circle([USER_HOME.lat, USER_HOME.lon], {
               radius: _radiusKm * 1000,
-              // km -> meter
               color: "#1d4ed8",
               weight: 1,
-              fillOpacity: 0.08
+              fillOpacity: 0.08,
+              pane: "overlayPane"
             });
             nearLayer.addLayer(nearCircle);
-
-            // zoom mengikuti lingkaran (kalau radius dikecilkan -> zoom masuk; dibesarkan -> zoom keluar)
             map.fitBounds(nearCircle.getBounds().pad(0.15));
           } else {
-            // mode default: hilangkan overlay radius & optionally fit ke data lowongan
             if (nearLayer) nearLayer.clearLayers();
             nearCircle = null;
             if (jobs.length) {
@@ -401,7 +472,7 @@ function _fetchData() {
   return _fetchData.apply(this, arguments);
 }
 document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee8() {
-  var scrollToRekomendasiHeader, doSearchManual, fetchSuggestions, renderSuggestions, hideSuggestions, pane, $input, $reset, $suggestions, $btnSearch, $wrap, doSuggest, modeSelect;
+  var scrollToRekomendasiHeader, doSearchManual, fetchSuggestions, renderSuggestions, hideSuggestions, paneHeat, paneMarkers, $input, $reset, $suggestions, $btnSearch, $wrap, doSuggest, modeSelect;
   return _regeneratorRuntime().wrap(function _callee8$(_context8) {
     while (1) switch (_context8.prev = _context8.next) {
       case 0:
@@ -414,7 +485,7 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
           });
         };
         doSearchManual = /*#__PURE__*/function () {
-          var _ref5 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee2() {
+          var _ref3 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee2() {
             var query, container, counter;
             return _regeneratorRuntime().wrap(function _callee2$(_context2) {
               while (1) switch (_context2.prev = _context2.next) {
@@ -448,11 +519,11 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
             }, _callee2);
           }));
           return function doSearchManual() {
-            return _ref5.apply(this, arguments);
+            return _ref3.apply(this, arguments);
           };
         }();
         fetchSuggestions = /*#__PURE__*/function () {
-          var _ref6 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3(q) {
+          var _ref4 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3(q) {
             var res, data;
             return _regeneratorRuntime().wrap(function _callee3$(_context3) {
               while (1) switch (_context3.prev = _context3.next) {
@@ -498,8 +569,8 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
               }
             }, _callee3, null, [[3, 15]]);
           }));
-          return function fetchSuggestions(_x2) {
-            return _ref6.apply(this, arguments);
+          return function fetchSuggestions(_x3) {
+            return _ref4.apply(this, arguments);
           };
         }();
         renderSuggestions = function renderSuggestions(list) {
@@ -553,27 +624,44 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
         leaflet__WEBPACK_IMPORTED_MODULE_0___default().tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution: "&copy; OpenStreetMap contributors"
         }).addTo(map);
+
+        // Panes agar heat di bawah marker
+        if (!map.getPane("heat")) {
+          paneHeat = map.createPane("heat");
+          paneHeat.style.zIndex = 450;
+          paneHeat.style.pointerEvents = "none";
+        }
         if (!map.getPane("markers")) {
-          pane = map.createPane("markers");
-          pane.style.zIndex = 650;
+          paneMarkers = map.createPane("markers");
+          paneMarkers.style.zIndex = 650;
         }
         heatLayer = leaflet__WEBPACK_IMPORTED_MODULE_0___default().heatLayer([], {
-          radius: 25,
-          blur: 15,
+          pane: "heat",
+          radius: 40,
+          blur: 18,
           maxZoom: 17,
-          minOpacity: 0.06
+          minOpacity: 0.2,
+          // penting: biar area low density benar2 transparan
+          // gradient non-ungu (opsional)
+          gradient: {
+            0.0: "transparent",
+            0.25: "#4c6ef5",
+            0.5: "#2dd4bf",
+            0.75: "#f59e0b",
+            1.0: "#ef4444"
+          }
         }).addTo(map);
-        markerLayer = leaflet__WEBPACK_IMPORTED_MODULE_0___default().layerGroup().addTo(map);
-
-        // Layer khusus untuk radius domisili (agar gampang dibersihkan)
+        markerLayer = leaflet__WEBPACK_IMPORTED_MODULE_0___default().layerGroup([], {
+          pane: "markers"
+        }).addTo(map);
         nearLayer = leaflet__WEBPACK_IMPORTED_MODULE_0___default().layerGroup().addTo(map);
 
         // Fetch awal sesuai mode (default)
-        _context8.next = 14;
+        _context8.next = 15;
         return fetchData("", {
           mode: currentMode
         });
-      case 14:
+      case 15:
         map.on("zoomend moveend", function () {
           recomputeKDE();
           updateMarkers();
@@ -584,8 +672,8 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
           var link = e.popup.getElement().querySelector(".lihat-detail");
           if (!link) return;
           link.addEventListener("click", /*#__PURE__*/function () {
-            var _ref4 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(evt) {
-              var id, makeBulletList, r, job, target, btn, _job$personal_company6, _job$position_hiring3, _job$company_name, _job$kota, _job$type_of_company, _job$gaji_min2, _job$gaji_max2, makeCommaList, _target;
+            var _ref2 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(evt) {
+              var id, makeBulletList, makeCommaList, r, job, target, btn, _job$personal_company6, _job$position_hiring3, _job$company_name, _job$kota, _job$type_of_company, _job$gaji_min3, _job$gaji_max3, _target;
               return _regeneratorRuntime().wrap(function _callee$(_context) {
                 while (1) switch (_context.prev = _context.next) {
                   case 0:
@@ -601,7 +689,16 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
                         return "<li>".concat(p, "</li>");
                       }).join(""), "</ul>") : "<p>-</p>";
                     };
-                    _context.next = 6;
+                    makeCommaList = function makeCommaList(text) {
+                      if (!text) return "<p>-</p>";
+                      var parts = String(text).split(",").map(function (p) {
+                        return p.trim();
+                      }).filter(Boolean);
+                      return parts.length ? "<ul class=\"pl-3 mb-0\">".concat(parts.map(function (p) {
+                        return "<li>".concat(p, "</li>");
+                      }).join(""), "</ul>") : "<p>-</p>";
+                    };
+                    _context.next = 7;
                     return fetch("/pelamar/hirings/".concat(id), {
                       credentials: "same-origin",
                       headers: {
@@ -609,56 +706,45 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
                         Accept: "application/json"
                       }
                     });
-                  case 6:
+                  case 7:
                     r = _context.sent;
                     if (r.ok) {
-                      _context.next = 9;
+                      _context.next = 10;
                       break;
                     }
                     throw new Error("HTTP ".concat(r.status));
-                  case 9:
-                    _context.next = 11;
+                  case 10:
+                    _context.next = 12;
                     return r.json();
-                  case 11:
+                  case 12:
                     job = _context.sent;
                     target = document.getElementById("job-detail");
                     btn = "";
                     if (job.is_closed) btn = "<p class=\"text-danger mt-3\">Lowongan Ditutup</p>";else if (job.has_applied) btn = "<p class=\"text-success mt-3\">Sudah Melamar</p>";else btn = "<button class=\"btn btn-primary mt-3\" onclick=\"openApplicationModal('".concat(job.id, "')\">Kirim Lamaran</button>");
                     if (target) {
-                      // helper list dengan pemisah koma
-                      makeCommaList = function makeCommaList(text) {
-                        if (!text) return "<p>-</p>";
-                        var parts = String(text).split(",").map(function (p) {
-                          return p.trim();
-                        }).filter(Boolean);
-                        if (!parts.length) return "<p>-</p>";
-                        return "<ul class=\"pl-3 mb-0\">".concat(parts.map(function (p) {
-                          return "<li>".concat(p, "</li>");
-                        }).join(""), "</ul>");
-                      };
-                      target.innerHTML = "\n                            <div class=\"d-flex align-items-center mb-4\">\n                                <img src=\"".concat((_job$personal_company6 = job.personal_company_logo) !== null && _job$personal_company6 !== void 0 ? _job$personal_company6 : "/images/default-company.png", "\"\n                                    style=\"width:70px;height:70px;object-fit:contain;border-radius:8px;border:1px solid #ccc;background:#f5f5f5;\" class=\"mr-3\">\n                                <div>\n                                    <h5 class=\"font-weight-bold mb-1\">").concat((_job$position_hiring3 = job.position_hiring) !== null && _job$position_hiring3 !== void 0 ? _job$position_hiring3 : "-", "</h5>\n                                    <small class=\"text-muted\">").concat((_job$company_name = job.company_name) !== null && _job$company_name !== void 0 ? _job$company_name : "-", "</small>\n                                </div>\n                            </div>\n\n                            <ul class=\"list-unstyled mb-4\">\n                                <li class=\"d-flex align-items-center mb-2\">\n                                    <i class=\"fas fa-map-marker-alt mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                                    <span>").concat((_job$kota = job.kota) !== null && _job$kota !== void 0 ? _job$kota : "").concat(job.provinsi ? ", " + job.provinsi : "", "</span>\n                                </li>\n                                <li class=\"d-flex align-items-center mb-2\">\n                                    <i class=\"fas fa-building mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                                    <span>").concat((_job$type_of_company = job.type_of_company) !== null && _job$type_of_company !== void 0 ? _job$type_of_company : "-", "</span>\n                                </li>\n                                <li class=\"d-flex align-items-center mb-2\">\n                                    <i class=\"fas fa-money-bill-wave mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                                    <span>Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_min2 = job.gaji_min) !== null && _job$gaji_min2 !== void 0 ? _job$gaji_min2 : 0), " -\n                                        Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_max2 = job.gaji_max) !== null && _job$gaji_max2 !== void 0 ? _job$gaji_max2 : 0), " / Bulan</span>\n                                </li>\n                                <li class=\"d-flex align-items-center\">\n                                    <i class=\"fas fa-clock mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                                    <span>Batas Waktu: ").concat(job.deadline_hiring ? new Date(job.deadline_hiring).toLocaleDateString("id-ID", {
+                      target.innerHTML = "\n              <div class=\"d-flex align-items-center mb-4\">\n                <img src=\"".concat((_job$personal_company6 = job.personal_company_logo) !== null && _job$personal_company6 !== void 0 ? _job$personal_company6 : "/images/default-company.png", "\"\n                     style=\"width:70px;height:70px;object-fit:contain;border-radius:8px;border:1px solid #ccc;background:#f5f5f5;\" class=\"mr-3\">\n                <div>\n                  <h5 class=\"font-weight-bold mb-1\">").concat((_job$position_hiring3 = job.position_hiring) !== null && _job$position_hiring3 !== void 0 ? _job$position_hiring3 : "-", "</h5>\n                  <small class=\"text-muted\">").concat((_job$company_name = job.company_name) !== null && _job$company_name !== void 0 ? _job$company_name : "-", "</small>\n                </div>\n              </div>\n              <ul class=\"list-unstyled mb-4\">\n                <li class=\"d-flex align-items-center mb-2\">\n                  <i class=\"fas fa-map-marker-alt mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>").concat((_job$kota = job.kota) !== null && _job$kota !== void 0 ? _job$kota : "").concat(job.provinsi ? ", " + job.provinsi : "", "</span>\n                </li>\n                <li class=\"d-flex align-items-center mb-2\">\n                  <i class=\"fas fa-building mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>").concat((_job$type_of_company = job.type_of_company) !== null && _job$type_of_company !== void 0 ? _job$type_of_company : "-", "</span>\n                </li>\n                <li class=\"d-flex align-items-center mb-2\">\n                  <i class=\"fas fa-money-bill-wave mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_min3 = job.gaji_min) !== null && _job$gaji_min3 !== void 0 ? _job$gaji_min3 : 0), " -\n                        Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_max3 = job.gaji_max) !== null && _job$gaji_max3 !== void 0 ? _job$gaji_max3 : 0), " / Bulan</span>\n                </li>\n                <li class=\"d-flex align-items-center\">\n                  <i class=\"fas fa-clock mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>Batas Waktu: ").concat(job.deadline_hiring ? new Date(job.deadline_hiring).toLocaleDateString("id-ID", {
                         day: "2-digit",
                         month: "long",
                         year: "numeric"
-                      }) : "-", "</span>\n                                </li>\n                            </ul>\n\n                            <div class=\"mb-3\">\n                                <h6 class=\"font-weight-bold\">Deskripsi Pekerjaan</h6>\n                                ").concat(makeBulletList(job.description_hiring), "\n                            </div>\n\n                            <div class=\"mb-3\">\n                                <h6 class=\"font-weight-bold\">Kualifikasi</h6>\n                                ").concat(makeBulletList(job.kualifikasi), "\n                            </div>\n\n                            <div class=\"mb-3\">\n                                <h6 class=\"font-weight-bold\">Keterampilan Teknis</h6>\n                                ").concat(makeCommaList(job.keterampilan_teknis), "\n                            </div>\n\n                            <div class=\"mb-3\">\n                                <h6 class=\"font-weight-bold\">Keterampilan Non-Teknis</h6>\n                                ").concat(makeCommaList(job.keterampilan_non_teknis), "\n                            </div>\n\n                            ").concat(btn, "\n                        ");
+                      }) : "-", "</span>\n                </li>\n              </ul>\n              <div class=\"mb-3\">\n                <h6 class=\"font-weight-bold\">Deskripsi Pekerjaan</h6>\n                ").concat(makeBulletList(job.description_hiring), "\n              </div>\n              <div class=\"mb-3\">\n                <h6 class=\"font-weight-bold\">Kualifikasi</h6>\n                ").concat(makeBulletList(job.kualifikasi), "\n              </div>\n              <div class=\"mb-3\">\n                <h6 class=\"font-weight-bold\">Keterampilan Teknis</h6>\n                ").concat(makeCommaList(job.keterampilan_teknis), "\n              </div>\n              <div class=\"mb-3\">\n                <h6 class=\"font-weight-bold\">Keterampilan Non-Teknis</h6>\n                ").concat(makeCommaList(job.keterampilan_non_teknis), "\n              </div>\n              ").concat(btn, "\n            ");
                     }
                     if (window.scrollToDetailHeader) window.scrollToDetailHeader();
-                    _context.next = 24;
+                    _context.next = 25;
                     break;
-                  case 19:
-                    _context.prev = 19;
+                  case 20:
+                    _context.prev = 20;
                     _context.t0 = _context["catch"](2);
                     console.error("[detail] gagal:", _context.t0);
                     _target = document.getElementById("job-detail");
                     if (_target) _target.innerHTML = '<div class="text-danger">Gagal memuat detail lowongan</div>';
-                  case 24:
+                  case 25:
                   case "end":
                     return _context.stop();
                 }
-              }, _callee, null, [[2, 19]]);
+              }, _callee, null, [[2, 20]]);
             }));
-            return function (_x) {
-              return _ref4.apply(this, arguments);
+            return function (_x2) {
+              return _ref2.apply(this, arguments);
             };
           }());
         });
@@ -676,8 +762,8 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
         doSuggest = function (fn) {
           var t;
           return function () {
-            for (var _len2 = arguments.length, a = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-              a[_key2] = arguments[_key2];
+            for (var _len = arguments.length, a = new Array(_len), _key = 0; _key < _len; _key++) {
+              a[_key] = arguments[_key];
             }
             clearTimeout(t);
             t = setTimeout(function () {
@@ -700,7 +786,7 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
         }
         if ($reset) {
           $reset.addEventListener("click", /*#__PURE__*/function () {
-            var _ref8 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5(e) {
+            var _ref6 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5(e) {
               return _regeneratorRuntime().wrap(function _callee5$(_context5) {
                 while (1) switch (_context5.prev = _context5.next) {
                   case 0:
@@ -719,8 +805,8 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
                 }
               }, _callee5);
             }));
-            return function (_x3) {
-              return _ref8.apply(this, arguments);
+            return function (_x4) {
+              return _ref6.apply(this, arguments);
             };
           }());
         }
@@ -747,7 +833,6 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
         // ========================= Toggle Mode Lokasi (Dropdown) =========================
         modeSelect = document.getElementById("mode-select");
         if (modeSelect) {
-          // set currentMode awal dari select
           currentMode = modeSelect.value;
           modeSelect.addEventListener("change", /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee6() {
             var header;
@@ -755,8 +840,6 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
               while (1) switch (_context6.prev = _context6.next) {
                 case 0:
                   currentMode = modeSelect.value;
-
-                  // validasi koordinat
                   if (!(currentMode === "nearby" && !(Number.isFinite(USER_HOME === null || USER_HOME === void 0 ? void 0 : USER_HOME.lat) && Number.isFinite(USER_HOME === null || USER_HOME === void 0 ? void 0 : USER_HOME.lon)))) {
                     _context6.next = 6;
                     break;
@@ -785,14 +868,14 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
           })));
         }
         document.addEventListener("HEATMAP:radius-change", /*#__PURE__*/function () {
-          var _ref10 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee7(e) {
+          var _ref8 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee7(e) {
             var modeSelect, km, isNearbySelected;
             return _regeneratorRuntime().wrap(function _callee7$(_context7) {
               while (1) switch (_context7.prev = _context7.next) {
                 case 0:
                   modeSelect = document.getElementById("mode-select");
-                  km = e.detail && Number(e.detail.radiusKm); // Apakah user saat ini berada/ingin berada di nearby?
-                  isNearbySelected = modeSelect && modeSelect.value === "nearby" || currentMode === "nearby"; // Jika radius tidak valid (anggap reset), dan memang sedang nearby -> kembali ke default.
+                  km = e.detail && Number(e.detail.radiusKm);
+                  isNearbySelected = modeSelect && modeSelect.value === "nearby" || currentMode === "nearby";
                   if (Number.isFinite(km)) {
                     _context7.next = 10;
                     break;
@@ -803,7 +886,6 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
                   }
                   currentMode = "default";
                   if (modeSelect) modeSelect.value = "default";
-                  // fetch default + bersihkan circle (fetchData default juga remove circle)
                   _context7.next = 9;
                   return fetchData("", {
                     mode: "default"
@@ -811,14 +893,10 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
                 case 9:
                   return _context7.abrupt("return");
                 case 10:
-                  // Jika dropdown sedang "default", JANGAN paksa ke nearby (user memang mau default).
-                  // Tapi kalau dropdown bukan default (atau sebelumnya nearby), barulah set nearby.
                   if (!isNearbySelected) {
                     if (modeSelect) modeSelect.value = "nearby";
                     currentMode = "nearby";
                   }
-
-                  // Refresh data & gambar circle dengan radius terbaru
                   _context7.next = 13;
                   return fetchData("", {
                     mode: "nearby",
@@ -830,22 +908,22 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
               }
             }, _callee7);
           }));
-          return function (_x4) {
-            return _ref10.apply(this, arguments);
+          return function (_x5) {
+            return _ref8.apply(this, arguments);
           };
         }());
-        _context8.next = 38;
+        _context8.next = 39;
         break;
-      case 34:
-        _context8.prev = 34;
+      case 35:
+        _context8.prev = 35;
         _context8.t0 = _context8["catch"](0);
         console.error("❌ Error:", _context8.t0);
         alert("Gagal memuat data heatmap. Cek konsol.");
-      case 38:
+      case 39:
       case "end":
         return _context8.stop();
     }
-  }, _callee8, null, [[0, 34]]);
+  }, _callee8, null, [[0, 35]]);
 })));
 
 /***/ }),
@@ -15941,1244 +16019,6 @@ module.exports = function (list, options) {
     lastIdentifiers = newLastIdentifiers;
   };
 };
-
-/***/ }),
-
-/***/ "./node_modules/d3-color/src/color.js":
-/*!********************************************!*\
-  !*** ./node_modules/d3-color/src/color.js ***!
-  \********************************************/
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   Color: () => (/* binding */ Color),
-/* harmony export */   Rgb: () => (/* binding */ Rgb),
-/* harmony export */   brighter: () => (/* binding */ brighter),
-/* harmony export */   darker: () => (/* binding */ darker),
-/* harmony export */   "default": () => (/* binding */ color),
-/* harmony export */   hsl: () => (/* binding */ hsl),
-/* harmony export */   hslConvert: () => (/* binding */ hslConvert),
-/* harmony export */   rgb: () => (/* binding */ rgb),
-/* harmony export */   rgbConvert: () => (/* binding */ rgbConvert)
-/* harmony export */ });
-/* harmony import */ var _define_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./define.js */ "./node_modules/d3-color/src/define.js");
-
-
-function Color() {}
-
-var darker = 0.7;
-var brighter = 1 / darker;
-
-var reI = "\\s*([+-]?\\d+)\\s*",
-    reN = "\\s*([+-]?(?:\\d*\\.)?\\d+(?:[eE][+-]?\\d+)?)\\s*",
-    reP = "\\s*([+-]?(?:\\d*\\.)?\\d+(?:[eE][+-]?\\d+)?)%\\s*",
-    reHex = /^#([0-9a-f]{3,8})$/,
-    reRgbInteger = new RegExp(`^rgb\\(${reI},${reI},${reI}\\)$`),
-    reRgbPercent = new RegExp(`^rgb\\(${reP},${reP},${reP}\\)$`),
-    reRgbaInteger = new RegExp(`^rgba\\(${reI},${reI},${reI},${reN}\\)$`),
-    reRgbaPercent = new RegExp(`^rgba\\(${reP},${reP},${reP},${reN}\\)$`),
-    reHslPercent = new RegExp(`^hsl\\(${reN},${reP},${reP}\\)$`),
-    reHslaPercent = new RegExp(`^hsla\\(${reN},${reP},${reP},${reN}\\)$`);
-
-var named = {
-  aliceblue: 0xf0f8ff,
-  antiquewhite: 0xfaebd7,
-  aqua: 0x00ffff,
-  aquamarine: 0x7fffd4,
-  azure: 0xf0ffff,
-  beige: 0xf5f5dc,
-  bisque: 0xffe4c4,
-  black: 0x000000,
-  blanchedalmond: 0xffebcd,
-  blue: 0x0000ff,
-  blueviolet: 0x8a2be2,
-  brown: 0xa52a2a,
-  burlywood: 0xdeb887,
-  cadetblue: 0x5f9ea0,
-  chartreuse: 0x7fff00,
-  chocolate: 0xd2691e,
-  coral: 0xff7f50,
-  cornflowerblue: 0x6495ed,
-  cornsilk: 0xfff8dc,
-  crimson: 0xdc143c,
-  cyan: 0x00ffff,
-  darkblue: 0x00008b,
-  darkcyan: 0x008b8b,
-  darkgoldenrod: 0xb8860b,
-  darkgray: 0xa9a9a9,
-  darkgreen: 0x006400,
-  darkgrey: 0xa9a9a9,
-  darkkhaki: 0xbdb76b,
-  darkmagenta: 0x8b008b,
-  darkolivegreen: 0x556b2f,
-  darkorange: 0xff8c00,
-  darkorchid: 0x9932cc,
-  darkred: 0x8b0000,
-  darksalmon: 0xe9967a,
-  darkseagreen: 0x8fbc8f,
-  darkslateblue: 0x483d8b,
-  darkslategray: 0x2f4f4f,
-  darkslategrey: 0x2f4f4f,
-  darkturquoise: 0x00ced1,
-  darkviolet: 0x9400d3,
-  deeppink: 0xff1493,
-  deepskyblue: 0x00bfff,
-  dimgray: 0x696969,
-  dimgrey: 0x696969,
-  dodgerblue: 0x1e90ff,
-  firebrick: 0xb22222,
-  floralwhite: 0xfffaf0,
-  forestgreen: 0x228b22,
-  fuchsia: 0xff00ff,
-  gainsboro: 0xdcdcdc,
-  ghostwhite: 0xf8f8ff,
-  gold: 0xffd700,
-  goldenrod: 0xdaa520,
-  gray: 0x808080,
-  green: 0x008000,
-  greenyellow: 0xadff2f,
-  grey: 0x808080,
-  honeydew: 0xf0fff0,
-  hotpink: 0xff69b4,
-  indianred: 0xcd5c5c,
-  indigo: 0x4b0082,
-  ivory: 0xfffff0,
-  khaki: 0xf0e68c,
-  lavender: 0xe6e6fa,
-  lavenderblush: 0xfff0f5,
-  lawngreen: 0x7cfc00,
-  lemonchiffon: 0xfffacd,
-  lightblue: 0xadd8e6,
-  lightcoral: 0xf08080,
-  lightcyan: 0xe0ffff,
-  lightgoldenrodyellow: 0xfafad2,
-  lightgray: 0xd3d3d3,
-  lightgreen: 0x90ee90,
-  lightgrey: 0xd3d3d3,
-  lightpink: 0xffb6c1,
-  lightsalmon: 0xffa07a,
-  lightseagreen: 0x20b2aa,
-  lightskyblue: 0x87cefa,
-  lightslategray: 0x778899,
-  lightslategrey: 0x778899,
-  lightsteelblue: 0xb0c4de,
-  lightyellow: 0xffffe0,
-  lime: 0x00ff00,
-  limegreen: 0x32cd32,
-  linen: 0xfaf0e6,
-  magenta: 0xff00ff,
-  maroon: 0x800000,
-  mediumaquamarine: 0x66cdaa,
-  mediumblue: 0x0000cd,
-  mediumorchid: 0xba55d3,
-  mediumpurple: 0x9370db,
-  mediumseagreen: 0x3cb371,
-  mediumslateblue: 0x7b68ee,
-  mediumspringgreen: 0x00fa9a,
-  mediumturquoise: 0x48d1cc,
-  mediumvioletred: 0xc71585,
-  midnightblue: 0x191970,
-  mintcream: 0xf5fffa,
-  mistyrose: 0xffe4e1,
-  moccasin: 0xffe4b5,
-  navajowhite: 0xffdead,
-  navy: 0x000080,
-  oldlace: 0xfdf5e6,
-  olive: 0x808000,
-  olivedrab: 0x6b8e23,
-  orange: 0xffa500,
-  orangered: 0xff4500,
-  orchid: 0xda70d6,
-  palegoldenrod: 0xeee8aa,
-  palegreen: 0x98fb98,
-  paleturquoise: 0xafeeee,
-  palevioletred: 0xdb7093,
-  papayawhip: 0xffefd5,
-  peachpuff: 0xffdab9,
-  peru: 0xcd853f,
-  pink: 0xffc0cb,
-  plum: 0xdda0dd,
-  powderblue: 0xb0e0e6,
-  purple: 0x800080,
-  rebeccapurple: 0x663399,
-  red: 0xff0000,
-  rosybrown: 0xbc8f8f,
-  royalblue: 0x4169e1,
-  saddlebrown: 0x8b4513,
-  salmon: 0xfa8072,
-  sandybrown: 0xf4a460,
-  seagreen: 0x2e8b57,
-  seashell: 0xfff5ee,
-  sienna: 0xa0522d,
-  silver: 0xc0c0c0,
-  skyblue: 0x87ceeb,
-  slateblue: 0x6a5acd,
-  slategray: 0x708090,
-  slategrey: 0x708090,
-  snow: 0xfffafa,
-  springgreen: 0x00ff7f,
-  steelblue: 0x4682b4,
-  tan: 0xd2b48c,
-  teal: 0x008080,
-  thistle: 0xd8bfd8,
-  tomato: 0xff6347,
-  turquoise: 0x40e0d0,
-  violet: 0xee82ee,
-  wheat: 0xf5deb3,
-  white: 0xffffff,
-  whitesmoke: 0xf5f5f5,
-  yellow: 0xffff00,
-  yellowgreen: 0x9acd32
-};
-
-(0,_define_js__WEBPACK_IMPORTED_MODULE_0__["default"])(Color, color, {
-  copy(channels) {
-    return Object.assign(new this.constructor, this, channels);
-  },
-  displayable() {
-    return this.rgb().displayable();
-  },
-  hex: color_formatHex, // Deprecated! Use color.formatHex.
-  formatHex: color_formatHex,
-  formatHex8: color_formatHex8,
-  formatHsl: color_formatHsl,
-  formatRgb: color_formatRgb,
-  toString: color_formatRgb
-});
-
-function color_formatHex() {
-  return this.rgb().formatHex();
-}
-
-function color_formatHex8() {
-  return this.rgb().formatHex8();
-}
-
-function color_formatHsl() {
-  return hslConvert(this).formatHsl();
-}
-
-function color_formatRgb() {
-  return this.rgb().formatRgb();
-}
-
-function color(format) {
-  var m, l;
-  format = (format + "").trim().toLowerCase();
-  return (m = reHex.exec(format)) ? (l = m[1].length, m = parseInt(m[1], 16), l === 6 ? rgbn(m) // #ff0000
-      : l === 3 ? new Rgb((m >> 8 & 0xf) | (m >> 4 & 0xf0), (m >> 4 & 0xf) | (m & 0xf0), ((m & 0xf) << 4) | (m & 0xf), 1) // #f00
-      : l === 8 ? rgba(m >> 24 & 0xff, m >> 16 & 0xff, m >> 8 & 0xff, (m & 0xff) / 0xff) // #ff000000
-      : l === 4 ? rgba((m >> 12 & 0xf) | (m >> 8 & 0xf0), (m >> 8 & 0xf) | (m >> 4 & 0xf0), (m >> 4 & 0xf) | (m & 0xf0), (((m & 0xf) << 4) | (m & 0xf)) / 0xff) // #f000
-      : null) // invalid hex
-      : (m = reRgbInteger.exec(format)) ? new Rgb(m[1], m[2], m[3], 1) // rgb(255, 0, 0)
-      : (m = reRgbPercent.exec(format)) ? new Rgb(m[1] * 255 / 100, m[2] * 255 / 100, m[3] * 255 / 100, 1) // rgb(100%, 0%, 0%)
-      : (m = reRgbaInteger.exec(format)) ? rgba(m[1], m[2], m[3], m[4]) // rgba(255, 0, 0, 1)
-      : (m = reRgbaPercent.exec(format)) ? rgba(m[1] * 255 / 100, m[2] * 255 / 100, m[3] * 255 / 100, m[4]) // rgb(100%, 0%, 0%, 1)
-      : (m = reHslPercent.exec(format)) ? hsla(m[1], m[2] / 100, m[3] / 100, 1) // hsl(120, 50%, 50%)
-      : (m = reHslaPercent.exec(format)) ? hsla(m[1], m[2] / 100, m[3] / 100, m[4]) // hsla(120, 50%, 50%, 1)
-      : named.hasOwnProperty(format) ? rgbn(named[format]) // eslint-disable-line no-prototype-builtins
-      : format === "transparent" ? new Rgb(NaN, NaN, NaN, 0)
-      : null;
-}
-
-function rgbn(n) {
-  return new Rgb(n >> 16 & 0xff, n >> 8 & 0xff, n & 0xff, 1);
-}
-
-function rgba(r, g, b, a) {
-  if (a <= 0) r = g = b = NaN;
-  return new Rgb(r, g, b, a);
-}
-
-function rgbConvert(o) {
-  if (!(o instanceof Color)) o = color(o);
-  if (!o) return new Rgb;
-  o = o.rgb();
-  return new Rgb(o.r, o.g, o.b, o.opacity);
-}
-
-function rgb(r, g, b, opacity) {
-  return arguments.length === 1 ? rgbConvert(r) : new Rgb(r, g, b, opacity == null ? 1 : opacity);
-}
-
-function Rgb(r, g, b, opacity) {
-  this.r = +r;
-  this.g = +g;
-  this.b = +b;
-  this.opacity = +opacity;
-}
-
-(0,_define_js__WEBPACK_IMPORTED_MODULE_0__["default"])(Rgb, rgb, (0,_define_js__WEBPACK_IMPORTED_MODULE_0__.extend)(Color, {
-  brighter(k) {
-    k = k == null ? brighter : Math.pow(brighter, k);
-    return new Rgb(this.r * k, this.g * k, this.b * k, this.opacity);
-  },
-  darker(k) {
-    k = k == null ? darker : Math.pow(darker, k);
-    return new Rgb(this.r * k, this.g * k, this.b * k, this.opacity);
-  },
-  rgb() {
-    return this;
-  },
-  clamp() {
-    return new Rgb(clampi(this.r), clampi(this.g), clampi(this.b), clampa(this.opacity));
-  },
-  displayable() {
-    return (-0.5 <= this.r && this.r < 255.5)
-        && (-0.5 <= this.g && this.g < 255.5)
-        && (-0.5 <= this.b && this.b < 255.5)
-        && (0 <= this.opacity && this.opacity <= 1);
-  },
-  hex: rgb_formatHex, // Deprecated! Use color.formatHex.
-  formatHex: rgb_formatHex,
-  formatHex8: rgb_formatHex8,
-  formatRgb: rgb_formatRgb,
-  toString: rgb_formatRgb
-}));
-
-function rgb_formatHex() {
-  return `#${hex(this.r)}${hex(this.g)}${hex(this.b)}`;
-}
-
-function rgb_formatHex8() {
-  return `#${hex(this.r)}${hex(this.g)}${hex(this.b)}${hex((isNaN(this.opacity) ? 1 : this.opacity) * 255)}`;
-}
-
-function rgb_formatRgb() {
-  const a = clampa(this.opacity);
-  return `${a === 1 ? "rgb(" : "rgba("}${clampi(this.r)}, ${clampi(this.g)}, ${clampi(this.b)}${a === 1 ? ")" : `, ${a})`}`;
-}
-
-function clampa(opacity) {
-  return isNaN(opacity) ? 1 : Math.max(0, Math.min(1, opacity));
-}
-
-function clampi(value) {
-  return Math.max(0, Math.min(255, Math.round(value) || 0));
-}
-
-function hex(value) {
-  value = clampi(value);
-  return (value < 16 ? "0" : "") + value.toString(16);
-}
-
-function hsla(h, s, l, a) {
-  if (a <= 0) h = s = l = NaN;
-  else if (l <= 0 || l >= 1) h = s = NaN;
-  else if (s <= 0) h = NaN;
-  return new Hsl(h, s, l, a);
-}
-
-function hslConvert(o) {
-  if (o instanceof Hsl) return new Hsl(o.h, o.s, o.l, o.opacity);
-  if (!(o instanceof Color)) o = color(o);
-  if (!o) return new Hsl;
-  if (o instanceof Hsl) return o;
-  o = o.rgb();
-  var r = o.r / 255,
-      g = o.g / 255,
-      b = o.b / 255,
-      min = Math.min(r, g, b),
-      max = Math.max(r, g, b),
-      h = NaN,
-      s = max - min,
-      l = (max + min) / 2;
-  if (s) {
-    if (r === max) h = (g - b) / s + (g < b) * 6;
-    else if (g === max) h = (b - r) / s + 2;
-    else h = (r - g) / s + 4;
-    s /= l < 0.5 ? max + min : 2 - max - min;
-    h *= 60;
-  } else {
-    s = l > 0 && l < 1 ? 0 : h;
-  }
-  return new Hsl(h, s, l, o.opacity);
-}
-
-function hsl(h, s, l, opacity) {
-  return arguments.length === 1 ? hslConvert(h) : new Hsl(h, s, l, opacity == null ? 1 : opacity);
-}
-
-function Hsl(h, s, l, opacity) {
-  this.h = +h;
-  this.s = +s;
-  this.l = +l;
-  this.opacity = +opacity;
-}
-
-(0,_define_js__WEBPACK_IMPORTED_MODULE_0__["default"])(Hsl, hsl, (0,_define_js__WEBPACK_IMPORTED_MODULE_0__.extend)(Color, {
-  brighter(k) {
-    k = k == null ? brighter : Math.pow(brighter, k);
-    return new Hsl(this.h, this.s, this.l * k, this.opacity);
-  },
-  darker(k) {
-    k = k == null ? darker : Math.pow(darker, k);
-    return new Hsl(this.h, this.s, this.l * k, this.opacity);
-  },
-  rgb() {
-    var h = this.h % 360 + (this.h < 0) * 360,
-        s = isNaN(h) || isNaN(this.s) ? 0 : this.s,
-        l = this.l,
-        m2 = l + (l < 0.5 ? l : 1 - l) * s,
-        m1 = 2 * l - m2;
-    return new Rgb(
-      hsl2rgb(h >= 240 ? h - 240 : h + 120, m1, m2),
-      hsl2rgb(h, m1, m2),
-      hsl2rgb(h < 120 ? h + 240 : h - 120, m1, m2),
-      this.opacity
-    );
-  },
-  clamp() {
-    return new Hsl(clamph(this.h), clampt(this.s), clampt(this.l), clampa(this.opacity));
-  },
-  displayable() {
-    return (0 <= this.s && this.s <= 1 || isNaN(this.s))
-        && (0 <= this.l && this.l <= 1)
-        && (0 <= this.opacity && this.opacity <= 1);
-  },
-  formatHsl() {
-    const a = clampa(this.opacity);
-    return `${a === 1 ? "hsl(" : "hsla("}${clamph(this.h)}, ${clampt(this.s) * 100}%, ${clampt(this.l) * 100}%${a === 1 ? ")" : `, ${a})`}`;
-  }
-}));
-
-function clamph(value) {
-  value = (value || 0) % 360;
-  return value < 0 ? value + 360 : value;
-}
-
-function clampt(value) {
-  return Math.max(0, Math.min(1, value || 0));
-}
-
-/* From FvD 13.37, CSS Color Module Level 3 */
-function hsl2rgb(h, m1, m2) {
-  return (h < 60 ? m1 + (m2 - m1) * h / 60
-      : h < 180 ? m2
-      : h < 240 ? m1 + (m2 - m1) * (240 - h) / 60
-      : m1) * 255;
-}
-
-
-/***/ }),
-
-/***/ "./node_modules/d3-color/src/define.js":
-/*!*********************************************!*\
-  !*** ./node_modules/d3-color/src/define.js ***!
-  \*********************************************/
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* export default binding */ __WEBPACK_DEFAULT_EXPORT__),
-/* harmony export */   extend: () => (/* binding */ extend)
-/* harmony export */ });
-/* harmony default export */ function __WEBPACK_DEFAULT_EXPORT__(constructor, factory, prototype) {
-  constructor.prototype = factory.prototype = prototype;
-  prototype.constructor = constructor;
-}
-
-function extend(parent, definition) {
-  var prototype = Object.create(parent.prototype);
-  for (var key in definition) prototype[key] = definition[key];
-  return prototype;
-}
-
-
-/***/ }),
-
-/***/ "./node_modules/fast-kde/src/accessor.js":
-/*!***********************************************!*\
-  !*** ./node_modules/fast-kde/src/accessor.js ***!
-  \***********************************************/
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   accessor: () => (/* binding */ accessor)
-/* harmony export */ });
-function accessor(x, fallback) {
-  return x == null ? fallback
-    : typeof x === 'function' ? x
-    : d => d[x];
-}
-
-
-/***/ }),
-
-/***/ "./node_modules/fast-kde/src/bin1d.js":
-/*!********************************************!*\
-  !*** ./node_modules/fast-kde/src/bin1d.js ***!
-  \********************************************/
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   bin1d: () => (/* binding */ bin1d)
-/* harmony export */ });
-function bin1d(data, x, weight, lo, hi, n) {
-  const grid = new Float64Array(n);
-  const delta = (n - 1) / (hi - lo);
-
-  for (let i = 0; i < data.length; ++i) {
-    const d = data[i];
-    const xi = x(d, i, data);
-    const wi = weight(d, i, data);
-
-    // skip NaN and Infinite values
-    if (!(Number.isFinite(xi) && Number.isFinite(wi))) {
-      continue;
-    }
-
-    const p = (xi - lo) * delta;
-    const u = Math.floor(p);
-    const v = u + 1;
-
-    if (0 <= u && v < n) {
-      grid[u] += (v - p) * wi;
-      grid[v] += (p - u) * wi;
-    } else if (u === -1) {
-      grid[v] += (p - u) * wi;
-    } else if (v === n) {
-      grid[u] += (v - p) * wi;
-    }
-  }
-
-  return grid;
-}
-
-
-/***/ }),
-
-/***/ "./node_modules/fast-kde/src/bin2d.js":
-/*!********************************************!*\
-  !*** ./node_modules/fast-kde/src/bin2d.js ***!
-  \********************************************/
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   bin2d: () => (/* binding */ bin2d)
-/* harmony export */ });
-function bin2d(data, x, y, w, x0, x1, xn, y0, y1, yn) {
-  const grid = new Float64Array(xn * yn);
-  const xdelta = (xn - 1) / (x1 - x0);
-  const ydelta = (yn - 1) / (y1 - y0);
-
-  for (let i = 0; i < data.length; ++i) {
-    const d = data[i];
-    const xi = x(d, i, data);
-    const yi = y(d, i, data);
-    const wi = w(d, i, data);
-
-    // skip NaN and Infinite values
-    if (!(Number.isFinite(xi) && Number.isFinite(yi) && Number.isFinite(wi))) {
-      continue;
-    }
-
-    const xp = (xi - x0) * xdelta;
-    const xu = Math.floor(xp);
-    const xv = xu + 1;
-    const yp = (yi - y0) * ydelta;
-    const yu = Math.floor(yp);
-    const yv = yu + 1;
-
-    if (0 <= xu && xv < xn) {
-      if (0 <= yu && yv < yn) {
-        grid[xu + yu * xn] += (xv - xp) * (yv - yp) * wi;
-        grid[xu + yv * xn] += (xv - xp) * (yp - yu) * wi;
-        grid[xv + yu * xn] += (xp - xu) * (yv - yp) * wi;
-        grid[xv + yv * xn] += (xp - xu) * (yp - yu) * wi;
-      } else if (yu === -1) {
-        grid[xu + yv * xn] += (xv - xp) * (yp - yu) * wi;
-        grid[xv + yv * xn] += (xp - xu) * (yp - yu) * wi;
-      } else if (yv === yn) {
-        grid[xv + yu * xn] += (xp - xu) * (yv - yp) * wi;
-        grid[xu + yu * xn] += (xv - xp) * (yv - yp) * wi;
-      }
-    } else if (xu === -1) {
-      if (0 <= yu && yv < yn) {
-        grid[xv + yu * xn] += (xp - xu) * (yv - yp) * wi;
-        grid[xv + yv * xn] += (xp - xu) * (yp - yu) * wi;
-      } else if (yu === -1) {
-        grid[xv + yv * xn] += (xp - xu) * (yp - yu) * wi;
-      } else if (yv === yn) {
-        grid[xv + yu * xn] += (xp - xu) * (yv - yp) * wi;
-      }
-    } else if (xv === xn) {
-      if (0 <= yu && yv < yn) {
-        grid[xu + yu * xn] += (xv - xp) * (yv - yp) * wi;
-        grid[xu + yv * xn] += (xv - xp) * (yp - yu) * wi;
-      } else if (yu === -1) {
-        grid[xu + yv * xn] += (xv - xp) * (yp - yu) * wi;
-      } else if (yv === yn) {
-        grid[xu + yu * xn] += (xv - xp) * (yv - yp) * wi;
-      }
-    }
-  }
-
-  return grid;
-}
-
-
-/***/ }),
-
-/***/ "./node_modules/fast-kde/src/density1d.js":
-/*!************************************************!*\
-  !*** ./node_modules/fast-kde/src/density1d.js ***!
-  \************************************************/
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   density1d: () => (/* binding */ density1d)
-/* harmony export */ });
-/* harmony import */ var _accessor_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./accessor.js */ "./node_modules/fast-kde/src/accessor.js");
-/* harmony import */ var _bin1d_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./bin1d.js */ "./node_modules/fast-kde/src/bin1d.js");
-/* harmony import */ var _deriche_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./deriche.js */ "./node_modules/fast-kde/src/deriche.js");
-/* harmony import */ var _extent_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./extent.js */ "./node_modules/fast-kde/src/extent.js");
-/* harmony import */ var _nrd_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./nrd.js */ "./node_modules/fast-kde/src/nrd.js");
-
-
-
-
-
-
-function density1d(data, options = {}) {
-  const { adjust = 1, pad = 3, bins = 512 } = options;
-  const x = (0,_accessor_js__WEBPACK_IMPORTED_MODULE_0__.accessor)(options.x, x => x);
-  const w = (0,_accessor_js__WEBPACK_IMPORTED_MODULE_0__.accessor)(options.weight, () => 1 / data.length);
-
-  let bandwidth = options.bandwidth ?? adjust * (0,_nrd_js__WEBPACK_IMPORTED_MODULE_4__.nrd)(data, x);
-
-  const [lo, hi] = options.extent ?? (0,_extent_js__WEBPACK_IMPORTED_MODULE_3__.extent)(data, x, pad * bandwidth);
-  const grid = (0,_bin1d_js__WEBPACK_IMPORTED_MODULE_1__.bin1d)(data, x, w, lo, hi, bins);
-  const delta = (hi - lo) / (bins - 1);
-  const neg = grid.some(v => v < 0);
-
-  let config = (0,_deriche_js__WEBPACK_IMPORTED_MODULE_2__.dericheConfig)(bandwidth / delta, neg);
-  let result;
-
-  function* points(x = 'x', y = 'y') {
-    const result = estimator.grid();
-    const scale = 1 / delta;
-    for (let i = 0; i < bins; ++i) {
-      yield {
-        [x]: lo + i * delta,
-        [y]: result[i] * scale
-      };
-    }
-  }
-
-  const estimator = {
-    [Symbol.iterator]: points,
-    points,
-    grid: () => result || (result = (0,_deriche_js__WEBPACK_IMPORTED_MODULE_2__.dericheConv1d)(config, grid, bins)),
-    extent: () => [lo, hi],
-    bandwidth(_) {
-      if (arguments.length) {
-        if (_ !== bandwidth) {
-          bandwidth = _;
-          result = null;
-          config = (0,_deriche_js__WEBPACK_IMPORTED_MODULE_2__.dericheConfig)(bandwidth / delta, neg);
-        }
-        return estimator;
-      } else {
-        return bandwidth;
-      }
-    }
-  };
-
-  return estimator;
-}
-
-
-/***/ }),
-
-/***/ "./node_modules/fast-kde/src/density2d.js":
-/*!************************************************!*\
-  !*** ./node_modules/fast-kde/src/density2d.js ***!
-  \************************************************/
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   density2d: () => (/* binding */ density2d)
-/* harmony export */ });
-/* harmony import */ var _accessor_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./accessor.js */ "./node_modules/fast-kde/src/accessor.js");
-/* harmony import */ var _bin2d_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./bin2d.js */ "./node_modules/fast-kde/src/bin2d.js");
-/* harmony import */ var _deriche_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./deriche.js */ "./node_modules/fast-kde/src/deriche.js");
-/* harmony import */ var _extent_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./extent.js */ "./node_modules/fast-kde/src/extent.js");
-/* harmony import */ var _heatmap_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./heatmap.js */ "./node_modules/fast-kde/src/heatmap.js");
-/* harmony import */ var _nrd_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./nrd.js */ "./node_modules/fast-kde/src/nrd.js");
-
-
-
-
-
-
-
-function density2d(data, options = {}) {
-  const { adjust = 1, pad = 3, bins = [256, 256] } = options;
-  const x = (0,_accessor_js__WEBPACK_IMPORTED_MODULE_0__.accessor)(options.x, d => d[0]);
-  const y = (0,_accessor_js__WEBPACK_IMPORTED_MODULE_0__.accessor)(options.y, d => d[1]);
-  const w = (0,_accessor_js__WEBPACK_IMPORTED_MODULE_0__.accessor)(options.weight, () => 1 / data.length);
-
-  let [
-    bwX = adjust * (0,_nrd_js__WEBPACK_IMPORTED_MODULE_5__.nrd)(data, x),
-    bwY = adjust * (0,_nrd_js__WEBPACK_IMPORTED_MODULE_5__.nrd)(data, y)
-  ] = number2(options.bandwidth);
-
-  const [
-    [x0, x1] = (0,_extent_js__WEBPACK_IMPORTED_MODULE_3__.extent)(data, x, pad * bwX),
-    [y0, y1] = (0,_extent_js__WEBPACK_IMPORTED_MODULE_3__.extent)(data, y, pad * bwY)
-  ] = number2_2(options.extent);
-
-  const [binsX, binsY] = number2(bins);
-
-  const grid = (0,_bin2d_js__WEBPACK_IMPORTED_MODULE_1__.bin2d)(data, x, y, w, x0, x1, binsX, y0, y1, binsY);
-  const deltaX = (x1 - x0) / (binsX - 1);
-  const deltaY = (y1 - y0) / (binsY - 1);
-  const neg = grid.some(v => v < 0);
-
-  let configX = (0,_deriche_js__WEBPACK_IMPORTED_MODULE_2__.dericheConfig)(bwX / deltaX, neg);
-  let configY = (0,_deriche_js__WEBPACK_IMPORTED_MODULE_2__.dericheConfig)(bwY / deltaY, neg);
-  let result;
-
-  function* points(x = 'x', y = 'y', z = 'z') {
-    const result = estimator.grid();
-    const scale = 1 / (deltaX * deltaY);
-    for (let k = 0, j = 0; j < binsY; ++j) {
-      for (let i = 0; i < binsX; ++i, ++k) {
-        yield {
-          [x]: x0 + i * deltaX,
-          [y]: y0 + j * deltaY,
-          [z]: result[k] * scale
-        };
-      }
-    }
-  }
-
-  const estimator = {
-    [Symbol.iterator]: points,
-    points,
-    grid: () => result || (result = (0,_deriche_js__WEBPACK_IMPORTED_MODULE_2__.dericheConv2d)(configX, configY, grid, [binsX, binsY])),
-    extent: () => [ [x0, x1], [y0, y1] ],
-    heatmap: ({ color, clamp, canvas, maxColors } = {}) =>
-      (0,_heatmap_js__WEBPACK_IMPORTED_MODULE_4__.heatmap)(estimator.grid(), binsX, binsY, color, clamp, canvas, maxColors),
-    bandwidth(_) {
-      if (arguments.length) {
-        const [_0, _1] = number2(_);
-        if (_0 !== bwX) {
-          result = null;
-          configX = (0,_deriche_js__WEBPACK_IMPORTED_MODULE_2__.dericheConfig)((bwX = _0) / deltaX, neg);
-        }
-        if (_1 !== bwY) {
-          result = null;
-          configY = (0,_deriche_js__WEBPACK_IMPORTED_MODULE_2__.dericheConfig)((bwY = _1) / deltaY, neg);
-        }
-        return estimator;
-      } else {
-        return [bwX, bwY];
-      }
-    }
-  };
-
-  return estimator;
-}
-
-function number2(_) {
-  return _ == null ? [undefined, undefined]
-    : typeof _ === 'number' ? [_, _]
-    : _;
-}
-
-function number2_2(_) {
-  return _ == null ? [undefined, undefined]
-    : typeof _[0] === 'number' ? [_, _]
-    : _;
-}
-
-
-/***/ }),
-
-/***/ "./node_modules/fast-kde/src/deriche.js":
-/*!**********************************************!*\
-  !*** ./node_modules/fast-kde/src/deriche.js ***!
-  \**********************************************/
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   dericheConfig: () => (/* binding */ dericheConfig),
-/* harmony export */   dericheConv1d: () => (/* binding */ dericheConv1d),
-/* harmony export */   dericheConv2d: () => (/* binding */ dericheConv2d),
-/* harmony export */   dericheInitZeroPad: () => (/* binding */ dericheInitZeroPad)
-/* harmony export */ });
-// Deriche's approximation of Gaussian smoothing
-// Adapted from Getreuer's C implementation (BSD license)
-// https://www.ipol.im/pub/art/2013/87/gaussian_20131215.tgz
-// http://dev.ipol.im/~getreuer/code/doc/gaussian_20131215_doc/gaussian__conv__deriche_8c.html
-
-function dericheConfig(sigma, negative = false) {
-  // compute causal filter coefficients
-  const a = new Float64Array(5);
-  const bc = new Float64Array(4);
-  dericheCausalCoeff(a, bc, sigma);
-
-  // numerator coefficients of the anticausal filter
-  const ba = Float64Array.of(
-    0,
-    bc[1] - a[1] * bc[0],
-    bc[2] - a[2] * bc[0],
-    bc[3] - a[3] * bc[0],
-    -a[4] * bc[0]
-  );
-
-  // impulse response sums
-  const accum_denom = 1.0 + a[1] + a[2] + a[3] + a[4];
-  const sum_causal = (bc[0] + bc[1] + bc[2] + bc[3]) / accum_denom;
-  const sum_anticausal = (ba[1] + ba[2] + ba[3] + ba[4]) / accum_denom;
-
-  // coefficients object
-  return {
-    sigma,
-    negative,
-    a,
-    b_causal: bc,
-    b_anticausal: ba,
-    sum_causal,
-    sum_anticausal
-  };
-}
-
-function dericheCausalCoeff(a_out, b_out, sigma) {
-  const K = 4;
-
-  const alpha = Float64Array.of(
-    0.84, 1.8675,
-    0.84, -1.8675,
-    -0.34015, -0.1299,
-    -0.34015, 0.1299
-  );
-
-  const x1 = Math.exp(-1.783 / sigma);
-  const x2 = Math.exp(-1.723 / sigma);
-  const y1 = 0.6318 / sigma;
-  const y2 = 1.997 / sigma;
-  const beta = Float64Array.of(
-    -x1 * Math.cos( y1), x1 * Math.sin( y1),
-    -x1 * Math.cos(-y1), x1 * Math.sin(-y1),
-    -x2 * Math.cos( y2), x2 * Math.sin( y2),
-    -x2 * Math.cos(-y2), x2 * Math.sin(-y2)
-  );
-
-  const denom = sigma * 2.5066282746310007;
-
-  // initialize b/a = alpha[0] / (1 + beta[0] z^-1)
-  const b = Float64Array.of(alpha[0], alpha[1], 0, 0, 0, 0, 0, 0);
-  const a = Float64Array.of(1, 0, beta[0], beta[1], 0, 0, 0, 0, 0, 0);
-
-  let j, k;
-
-  for (k = 2; k < 8; k += 2) {
-    // add kth term, b/a += alpha[k] / (1 + beta[k] z^-1)
-    b[k]     = beta[k] * b[k - 2] - beta[k + 1] * b[k - 1];
-    b[k + 1] = beta[k] * b[k - 1] + beta[k + 1] * b[k - 2];
-    for (j = k - 2; j > 0; j -= 2) {
-      b[j]     += beta[k] * b[j - 2] - beta[k + 1] * b[j - 1];
-      b[j + 1] += beta[k] * b[j - 1] + beta[k + 1] * b[j - 2];
-    }
-    for (j = 0; j <= k; j += 2) {
-      b[j]     += alpha[k] * a[j]     - alpha[k + 1] * a[j + 1];
-      b[j + 1] += alpha[k] * a[j + 1] + alpha[k + 1] * a[j];
-    }
-
-    a[k + 2] = beta[k] * a[k]     - beta[k + 1] * a[k + 1];
-    a[k + 3] = beta[k] * a[k + 1] + beta[k + 1] * a[k];
-    for (j = k; j > 0; j -= 2) {
-      a[j]     += beta[k] * a[j - 2] - beta[k + 1] * a[j - 1];
-      a[j + 1] += beta[k] * a[j - 1] + beta[k + 1] * a[j - 2];
-    }
-  }
-
-  for (k = 0; k < K; ++k) {
-    j = k << 1;
-    b_out[k] = b[j] / denom;
-    a_out[k + 1] = a[j + 2];
-  }
-}
-
-function dericheConv2d(cx, cy, grid, [nx, ny]) {
-  // allocate buffers
-  const yc = new Float64Array(Math.max(nx, ny)); // causal
-  const ya = new Float64Array(Math.max(nx, ny)); // anticausal
-  const h = new Float64Array(5);
-  const d = new Float64Array(grid.length);
-
-  // convolve rows
-  for (let row = 0, r0 = 0; row < ny; ++row, r0 += nx) {
-    const dx = d.subarray(r0);
-    dericheConv1d(cx, grid.subarray(r0), nx, 1, yc, ya, h, dx);
-  }
-
-  // convolve columns
-  for (let c0 = 0; c0 < nx; ++c0) {
-    const dy = d.subarray(c0);
-    dericheConv1d(cy, dy, ny, nx, yc, ya, h, dy);
-  }
-
-  return d;
-}
-
-function dericheConv1d(
-  c, src, N,
-  stride = 1,
-  y_causal = new Float64Array(N),
-  y_anticausal = new Float64Array(N),
-  h = new Float64Array(5),
-  d = y_causal,
-  init = dericheInitZeroPad
-) {
-  const stride_2 = stride * 2;
-  const stride_3 = stride * 3;
-  const stride_4 = stride * 4;
-  const stride_N = stride * N;
-  let i, n;
-
-  // initialize causal filter on the left boundary
-  init(
-    y_causal, src, N, stride,
-    c.b_causal, 3, c.a, 4, c.sum_causal, h, c.sigma
-  );
-
-  // filter the interior samples using a 4th order filter. Implements:
-  // for n = K, ..., N - 1,
-  //   y^+(n) = \sum_{k=0}^{K-1} b^+_k src(n - k)
-  //          - \sum_{k=1}^K a_k y^+(n - k)
-  // variable i tracks the offset to the nth sample of src, it is
-  // updated together with n such that i = stride * n.
-  for (n = 4, i = stride_4; n < N; ++n, i += stride) {
-    y_causal[n] = c.b_causal[0] * src[i]
-      + c.b_causal[1] * src[i - stride]
-      + c.b_causal[2] * src[i - stride_2]
-      + c.b_causal[3] * src[i - stride_3]
-      - c.a[1] * y_causal[n - 1]
-      - c.a[2] * y_causal[n - 2]
-      - c.a[3] * y_causal[n - 3]
-      - c.a[4] * y_causal[n - 4];
-  }
-
-  // initialize the anticausal filter on the right boundary
-  init(
-    y_anticausal, src, N, -stride,
-    c.b_anticausal, 4, c.a, 4, c.sum_anticausal, h, c.sigma
-  );
-
-  // similar to the causal filter above, the following implements:
-  // for n = K, ..., N - 1,
-  //   y^-(n) = \sum_{k=1}^K b^-_k src(N - n - 1 - k)
-  //          - \sum_{k=1}^K a_k y^-(n - k)
-  // variable i is updated such that i = stride * (N - n - 1).
-  for (n = 4, i = stride_N - stride * 5; n < N; ++n, i -= stride) {
-    y_anticausal[n] = c.b_anticausal[1] * src[i + stride]
-      + c.b_anticausal[2] * src[i + stride_2]
-      + c.b_anticausal[3] * src[i + stride_3]
-      + c.b_anticausal[4] * src[i + stride_4]
-      - c.a[1] * y_anticausal[n - 1]
-      - c.a[2] * y_anticausal[n - 2]
-      - c.a[3] * y_anticausal[n - 3]
-      - c.a[4] * y_anticausal[n - 4];
-  }
-
-  // sum the causal and anticausal responses to obtain the final result
-  if (c.negative) {
-    // do not threshold if the input grid includes negatively weighted values
-    for (n = 0, i = 0; n < N; ++n, i += stride) {
-      d[i] = y_causal[n] + y_anticausal[N - n - 1];
-    }
-  } else {
-    // threshold to prevent small negative values due to floating point error
-    for (n = 0, i = 0; n < N; ++n, i += stride) {
-      d[i] = Math.max(0, y_causal[n] + y_anticausal[N - n - 1]);
-    }
-  }
-
-  return d;
-}
-
-function dericheInitZeroPad(
-  dest, src, N, stride, b, p, a, q,
-  sum, h, sigma, tol = 0.5
-) {
-  const stride_N = Math.abs(stride) * N;
-  const off = stride < 0 ? stride_N + stride : 0;
-  let i, n, m;
-
-  // compute the first q taps of the impulse response, h_0, ..., h_{q-1}
-  for (n = 0; n < q; ++n) {
-    h[n] = (n <= p) ? b[n] : 0;
-    for (m = 1; m <= q && m <= n; ++m) {
-      h[n] -= a[m] * h[n - m];
-    }
-  }
-
-  // compute dest_m = sum_{n=1}^m h_{m-n} src_n, m = 0, ..., q-1
-  // note: q == 4
-  for (m = 0; m < q; ++m) {
-    for (dest[m] = 0, n = 1; n <= m; ++n) {
-      i = off + stride * n;
-      if (i >= 0 && i < stride_N) {
-        dest[m] += h[m - n] * src[i];
-      }
-    }
-  }
-
-  const cur = src[off];
-  const max_iter = Math.ceil(sigma * 10);
-  for (n = 0; n < max_iter; ++n) {
-    /* dest_m = dest_m + h_{n+m} src_{-n} */
-    for (m = 0; m < q; ++m) {
-      dest[m] += h[m] * cur;
-    }
-
-    sum -= Math.abs(h[0]);
-    if (sum <= tol) break;
-
-    /* Compute the next impulse response tap, h_{n+q} */
-    h[q] = (n + q <= p) ? b[n + q] : 0;
-    for (m = 1; m <= q; ++m) {
-      h[q] -= a[m] * h[q - m];
-    }
-
-    /* Shift the h array for the next iteration */
-    for (m = 0; m < q; ++m) {
-      h[m] = h[m + 1];
-    }
-  }
-
-  return;
-}
-
-
-/***/ }),
-
-/***/ "./node_modules/fast-kde/src/extent.js":
-/*!*********************************************!*\
-  !*** ./node_modules/fast-kde/src/extent.js ***!
-  \*********************************************/
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   extent: () => (/* binding */ extent)
-/* harmony export */ });
-function extent(data, x, pad = 0) {
-  const n = data.length;
-  let lo;
-  let hi;
-  for (let i = 0; i < n; ++i) {
-    const v = x(data[i], i, data);
-    if (v != null) {
-      if (lo === undefined) {
-        if (v >= v) lo = hi = v;
-      } else {
-        if (v < lo) lo = v;
-        if (v > hi) hi = v;
-      }
-    }
-  }
-  return [lo - pad, hi + pad];
-}
-
-
-/***/ }),
-
-/***/ "./node_modules/fast-kde/src/heatmap.js":
-/*!**********************************************!*\
-  !*** ./node_modules/fast-kde/src/heatmap.js ***!
-  \**********************************************/
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   heatmap: () => (/* binding */ heatmap),
-/* harmony export */   opacityMap: () => (/* binding */ opacityMap)
-/* harmony export */ });
-/* harmony import */ var d3_color__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! d3-color */ "./node_modules/d3-color/src/color.js");
-
-
-function heatmap(
-  grid,
-  w,
-  h,
-  color = opacityMap(0, 0, 0),
-  [lo, hi] = [min(grid, 0), max(grid, 0)],
-  canvas = createCanvas(w, h),
-  paletteSize = 256
-) {
-  const norm = 1 / (hi - lo);
-  const ctx = canvas.getContext('2d');
-  const img = ctx.getImageData(0, 0, w, h);
-  const pix = img.data;
-  const size = paletteSize - 1;
-  const palette = buildPalette(size, color);
-
-  for (let j = 0, k = 0; j < h; ++j) {
-    for (let i = 0, row = (h - j - 1) * w; i < w; ++i, k += 4) {
-      const v = Math.min(1, Math.max(grid[i + row] - lo, 0) * norm);
-      const c = (size * v) << 2;
-      pix[k + 0] = palette[c + 0];
-      pix[k + 1] = palette[c + 1];
-      pix[k + 2] = palette[c + 2];
-      pix[k + 3] = palette[c + 3];
-    }
-  }
-
-  ctx.putImageData(img, 0, 0);
-  return canvas;
-}
-
-function buildPalette(size, interp) {
-  const p = new Uint8ClampedArray(4 * (size + 1));
-  for (let i = 0; i <= size; ++i) {
-    const v = interp(i / size);
-    const {r, g, b, opacity = 1} = typeof v === 'string' ? (0,d3_color__WEBPACK_IMPORTED_MODULE_0__.rgb)(v) : v;
-    const k = i << 2;
-    p[k + 0] = r;
-    p[k + 1] = g;
-    p[k + 2] = b;
-    p[k + 3] = (255 * opacity) | 0;
-  }
-  return p;
-}
-
-function createCanvas(w, h) {
-  if (typeof document !== 'undefined') {
-    // eslint-disable-next-line no-undef
-    const c = document.createElement('canvas');
-    c.setAttribute('width', w);
-    c.setAttribute('height', h);
-    return c;
-  }
-  throw 'Can not create a canvas instance, provide a canvas as a parameter.';
-}
-
-function max(array, v) {
-  const n = array.length;
-  for (let i = 0; i < n; ++i) {
-    if (array[i] > v) v = array[i];
-  }
-  return v;
-}
-
-function min(array, v) {
-  const n = array.length;
-  for (let i = 0; i < n; ++i) {
-    if (array[i] < v) v = array[i];
-  }
-  return v;
-}
-
-function opacityMap(r, g, b) {
-  return opacity => ({ r, g, b, opacity });
-}
-
-
-/***/ }),
-
-/***/ "./node_modules/fast-kde/src/index.js":
-/*!********************************************!*\
-  !*** ./node_modules/fast-kde/src/index.js ***!
-  \********************************************/
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   density1d: () => (/* reexport safe */ _density1d_js__WEBPACK_IMPORTED_MODULE_0__.density1d),
-/* harmony export */   density2d: () => (/* reexport safe */ _density2d_js__WEBPACK_IMPORTED_MODULE_1__.density2d),
-/* harmony export */   nrd: () => (/* reexport safe */ _nrd_js__WEBPACK_IMPORTED_MODULE_2__.nrd),
-/* harmony export */   opacityMap: () => (/* reexport safe */ _heatmap_js__WEBPACK_IMPORTED_MODULE_3__.opacityMap)
-/* harmony export */ });
-/* harmony import */ var _density1d_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./density1d.js */ "./node_modules/fast-kde/src/density1d.js");
-/* harmony import */ var _density2d_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./density2d.js */ "./node_modules/fast-kde/src/density2d.js");
-/* harmony import */ var _nrd_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./nrd.js */ "./node_modules/fast-kde/src/nrd.js");
-/* harmony import */ var _heatmap_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./heatmap.js */ "./node_modules/fast-kde/src/heatmap.js");
-
-
-
-
-
-
-/***/ }),
-
-/***/ "./node_modules/fast-kde/src/nrd.js":
-/*!******************************************!*\
-  !*** ./node_modules/fast-kde/src/nrd.js ***!
-  \******************************************/
-/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   nrd: () => (/* binding */ nrd)
-/* harmony export */ });
-// Scott, D. W. (1992) Multivariate Density Estimation:
-// Theory, Practice, and Visualization. Wiley.
-function nrd(data, x) {
-  const values = data.map(x).filter(v => v != null && v >= v);
-  values.sort((a, b) => a - b);
-  const sd = stdev(values);
-  const q1 = quantile(values, 0.25);
-  const q3 = quantile(values, 0.75);
-
-  const n = values.length,
-        h = (q3 - q1) / 1.34,
-        v = Math.min(sd, h) || sd || Math.abs(q1) || 1;
-
-  return 1.06 * v * Math.pow(n, -0.2);
-}
-
-function stdev(values) {
-  const n = values.length;
-  let count = 0;
-  let delta;
-  let mean = 0;
-  let sum = 0;
-  for (let i = 0; i < n; ++i) {
-    const value = values[i];
-    delta = value - mean;
-    mean += delta / ++count;
-    sum += delta * (value - mean);
-  }
-  return count > 1 ? Math.sqrt(sum / (count - 1)) : NaN;
-}
-
-function quantile(values, p) {
-  const n = values.length;
-
-  if (!n) return NaN;
-  if ((p = +p) <= 0 || n < 2) return values[0];
-  if (p >= 1) return values[n - 1];
-
-  const i = (n - 1) * p;
-  const i0 = Math.floor(i);
-  const v0 = values[i0];
-  return v0 + (values[i0 + 1] - v0) * (i - i0);
-}
-
 
 /***/ })
 

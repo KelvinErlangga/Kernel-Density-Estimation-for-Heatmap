@@ -88,7 +88,7 @@ $s = $style['experiences'] ?? [];
                               data-id="{{ $expId }}"
                               data-field="end_date"
                               data-placeholder="Tanggal Selesai">
-                            {{ $exp->end_date }}
+                            {{ $exp->end_date ?? 'Sekarang' }}
                         </span>
                     </span>
 
@@ -119,7 +119,6 @@ $s = $style['experiences'] ?? [];
                          data-placeholder="Deskripsi pengalaman kerja"
                          style="{{ inlineStyle(array_merge($s['description'] ?? [], [
                              'border' => '1px dashed #ccc',
-                             'padding' => '4px 6px',
                              'border-radius' => '4px'
                          ])) }}">
                         {!! $raw !!}

@@ -21,7 +21,7 @@ L.Icon.Default.mergeOptions({
 let jobs = [];
 let locations = [];
 let mPoints = [];
-let map, heatLayer, markerLayer, nearCircle;
+let map, heatLayer, markerLayer, nearCircle, nearLayer;
 let currentMode = "default"; // 'default' | 'nearby'
 const USER_HOME = window.USER_DOMICILE || {
     lat: null,
@@ -211,61 +211,64 @@ function renderRekomendasi(list, highlightQuery = "") {
         return;
     }
 
+    // Prioritaskan match query
     if (highlightQuery) {
         list.sort((a, b) => {
-            const A = (a.position_hiring ?? "")
+            const aMatch = (a.position_hiring ?? "")
                 .toLowerCase()
-                .includes(highlightQuery.toLowerCase())
-                ? -1
-                : 0;
-            const B = (b.position_hiring ?? "")
+                .includes(highlightQuery.toLowerCase());
+            const bMatch = (b.position_hiring ?? "")
                 .toLowerCase()
-                .includes(highlightQuery.toLowerCase())
-                ? -1
-                : 0;
-            return A - B;
+                .includes(highlightQuery.toLowerCase());
+            return bMatch - aMatch; // true=1
         });
     }
 
     container.innerHTML = list
-        .map(
-            (job) => `
+        .map((job) => {
+            const dist = Number.isFinite(toNum(job.distance_km))
+                ? `<small class="d-block text-muted">≈ ${toNum(
+                      job.distance_km
+                  ).toFixed(1)} km dari lokasi Anda</small>`
+                : "";
+
+            return `
         <div class="card mb-3 border job-card" style="cursor:pointer;" onclick="showJobDetail('${
             job.id
         }')" tabindex="0">
-            <div class="d-flex p-3">
-                <img src="${
-                    job.personal_company?.logo
-                        ? "/storage/company_logo/" + job.personal_company.logo
-                        : "/images/default-company.png"
-                }"
-                     alt="Logo ${
-                         job.personal_company?.name_company ?? "Perusahaan"
-                     }"
-                     style="width:70px;height:70px;object-fit:contain;border-radius:6px;border:1px solid #ccc;background:#f5f5f5;" class="mr-3">
-                <div>
-                    <h6 class="font-weight-bold mb-1">${
-                        job.position_hiring ?? "-"
-                    }</h6>
-                    <small class="d-block text-muted">${
-                        job.personal_company?.name_company ?? "-"
-                    }</small>
-                    <small class="d-block">${[job.kota, job.provinsi]
-                        .filter(Boolean)
-                        .join(", ")}</small>
-                    <small class="d-block text-dark">Rp ${new Intl.NumberFormat(
-                        "id-ID"
-                    ).format(job.gaji_min ?? 0)} - Rp ${new Intl.NumberFormat(
+          <div class="d-flex p-3">
+            <img src="${
+                job.personal_company?.logo
+                    ? "/storage/company_logo/" + job.personal_company.logo
+                    : "/images/default-company.png"
+            }"
+                 alt="Logo ${
+                     job.personal_company?.name_company ?? "Perusahaan"
+                 }"
+                 style="width:70px;height:70px;object-fit:contain;border-radius:6px;border:1px solid #ccc;background:#f5f5f5;" class="mr-3">
+            <div>
+              <h6 class="font-weight-bold mb-1">${
+                  job.position_hiring ?? "-"
+              }</h6>
+              <small class="d-block text-muted">${
+                  job.personal_company?.name_company ?? "-"
+              }</small>
+              <small class="d-block">${[job.kota, job.provinsi]
+                  .filter(Boolean)
+                  .join(", ")}</small>
+              ${dist}
+              <small class="d-block text-dark">Rp ${new Intl.NumberFormat(
+                  "id-ID"
+              ).format(job.gaji_min ?? 0)} - Rp ${new Intl.NumberFormat(
                 "id-ID"
             ).format(job.gaji_max ?? 0)}/Bulan</small>
-                    <small class="text-muted">Diposting ${new Date(
-                        job.created_at
-                    ).toLocaleDateString("id-ID")}</small>
-                </div>
+              <small class="text-muted">Diposting ${new Date(
+                  job.created_at
+              ).toLocaleDateString("id-ID")}</small>
             </div>
-        </div>
-    `
-        )
+          </div>
+        </div>`;
+        })
         .join("");
 }
 
@@ -275,17 +278,18 @@ async function fetchData(query = "", opts = {}) {
     params.set("min_score", "2");
     if (query && query.trim() !== "") params.set("q", query.trim());
 
-    const mode = opts.mode || currentMode;
+    const mode = opts.mode || currentMode || "default";
     params.set("mode", mode);
-    if (
-        mode === "nearby" &&
-        Number.isFinite(USER_HOME?.lat) &&
-        Number.isFinite(USER_HOME?.lon)
-    ) {
-        params.set(
-            "radius_km",
-            String(opts.radiusKm || USER_HOME.radiusKmDefault || 60)
+
+    const hasHome =
+        Number.isFinite(USER_HOME?.lat) && Number.isFinite(USER_HOME?.lon);
+    if (mode === "nearby" && hasHome) {
+        const radiusKm = Number(
+            opts.radiusKm ?? USER_HOME.radiusKmDefault ?? 60
         );
+        params.set("origin_lat", String(USER_HOME.lat));
+        params.set("origin_lon", String(USER_HOME.lon));
+        params.set("radius_km", String(radiusKm));
     }
 
     const res = await fetch(`/pelamar/heatmap/data?${params.toString()}`, {
@@ -295,7 +299,6 @@ async function fetchData(query = "", opts = {}) {
             Accept: "application/json",
         },
     });
-
     if (!res.ok) {
         const preview = await res.text();
         console.error(
@@ -309,6 +312,7 @@ async function fetchData(query = "", opts = {}) {
     const rawData = await res.json();
     if (!Array.isArray(rawData)) throw new Error("Data tidak valid");
 
+    // Normalisasi & filter koordinat
     const rawJobs = rawData.map((d) => ({
         ...d,
         lat: toNum(d.latitude),
@@ -318,34 +322,44 @@ async function fetchData(query = "", opts = {}) {
     locations = jobs.map((j) => [j.lat, j.lon]);
     mPoints = locations.map(([lat, lon]) => lngLatToMeters(lon, lat));
 
-    // Recenter jika mode NEARBY & koordinat user valid
-    if (
-        mode === "nearby" &&
-        Number.isFinite(USER_HOME?.lat) &&
-        Number.isFinite(USER_HOME?.lon)
-    ) {
-        map.setView([USER_HOME.lat, USER_HOME.lon], 11);
+    // Urutkan jarak saat nearby (jika backend kirim distance_km)
+    if (mode === "nearby") {
+        jobs.sort(
+            (a, b) =>
+                (toNum(a.distance_km) || 1e9) - (toNum(b.distance_km) || 1e9)
+        );
+    }
 
-        // gambar cincin radius (opsional)
-        if (nearCircle) nearCircle.remove();
+    // --- ⬇️ overlay radius: SELALU dibersihkan lalu digambar ulang ---
+    if (mode === "nearby" && hasHome) {
+        const radiusKm = Number(
+            opts.radiusKm ?? USER_HOME.radiusKmDefault ?? 60
+        );
+
+        // bersihkan overlay lama
+        if (nearLayer) nearLayer.clearLayers();
         nearCircle = L.circle([USER_HOME.lat, USER_HOME.lon], {
-            radius: (opts.radiusKm || USER_HOME.radiusKmDefault || 60) * 1000,
+            radius: radiusKm * 1000, // km -> meter
             color: "#1d4ed8",
             weight: 1,
-            fillOpacity: 0.05,
-        }).addTo(map);
+            fillOpacity: 0.08,
+        });
+        nearLayer.addLayer(nearCircle);
+
+        // zoom mengikuti lingkaran (kalau radius dikecilkan -> zoom masuk; dibesarkan -> zoom keluar)
+        map.fitBounds(nearCircle.getBounds().pad(0.15));
     } else {
-        if (nearCircle) {
-            nearCircle.remove();
-            nearCircle = null;
-        }
-        // optional: sesuaikan tampilan berdasarkan data
+        // mode default: hilangkan overlay radius & optionally fit ke data lowongan
+        if (nearLayer) nearLayer.clearLayers();
+        nearCircle = null;
+
         if (jobs.length) {
             const bb = L.latLngBounds(locations);
             map.fitBounds(bb.pad(0.2));
         }
     }
 
+    // render panel & peta
     renderRekomendasi(jobs);
     recomputeKDE();
     updateMarkers();
@@ -366,12 +380,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         heatLayer = L.heatLayer([], {
-            radius: 25,
+            radius: 35,
             blur: 15,
             maxZoom: 17,
             minOpacity: 0.06,
         }).addTo(map);
         markerLayer = L.layerGroup().addTo(map);
+
+        // Layer khusus untuk radius domisili (agar gampang dibersihkan)
+        nearLayer = L.layerGroup().addTo(map);
 
         // Fetch awal sesuai mode (default)
         await fetchData("", { mode: currentMode });
@@ -710,6 +727,37 @@ document.addEventListener("DOMContentLoaded", async () => {
                     });
             });
         }
+
+        document.addEventListener("HEATMAP:radius-change", async (e) => {
+            const modeSelect = document.getElementById("mode-select");
+            const km = e.detail && Number(e.detail.radiusKm);
+
+            // Apakah user saat ini berada/ingin berada di nearby?
+            const isNearbySelected =
+                (modeSelect && modeSelect.value === "nearby") ||
+                currentMode === "nearby";
+
+            // Jika radius tidak valid (anggap reset), dan memang sedang nearby -> kembali ke default.
+            if (!Number.isFinite(km)) {
+                if (isNearbySelected) {
+                    currentMode = "default";
+                    if (modeSelect) modeSelect.value = "default";
+                    // fetch default + bersihkan circle (fetchData default juga remove circle)
+                    await fetchData("", { mode: "default" });
+                }
+                return;
+            }
+
+            // Jika dropdown sedang "default", JANGAN paksa ke nearby (user memang mau default).
+            // Tapi kalau dropdown bukan default (atau sebelumnya nearby), barulah set nearby.
+            if (!isNearbySelected) {
+                if (modeSelect) modeSelect.value = "nearby";
+                currentMode = "nearby";
+            }
+
+            // Refresh data & gambar circle dengan radius terbaru
+            await fetchData("", { mode: "nearby", radiusKm: km });
+        });
     } catch (err) {
         console.error("❌ Error:", err);
         alert("Gagal memuat data heatmap. Cek konsol.");

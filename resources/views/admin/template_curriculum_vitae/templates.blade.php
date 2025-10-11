@@ -1,111 +1,3 @@
-@extends('admin.master_admin')
-@section('title', 'Tambah Template CV | CVRE GENERATE')
-
-@section('content')
-<div class="container-fluid">
-
-    <div class="col-12 grid-margin stretch-card">
-        <div class="card">
-            <div class="card-body">
-
-                <h5 class="mb-4 text-center text-primary font-weight-bold">
-                    Form Tambah Template CV
-                </h5>
-
-                <form method="POST" action="{{ route('admin.template_curriculum_vitae.store') }}" enctype="multipart/form-data" id="templateForm">
-                    @csrf
-                    <div class="row">
-                        <!-- Panel Kiri -->
-                        <div class="col-md-4">
-                            <h6 class="mb-3">Pilih Jenis Template CV</h6>
-                            <div class="form-group">
-                                <select class="form-control" name="template_type" id="template_type" required>
-                                    <option value="">-- Pilih Jenis Template --</option>
-                                    <option value="ats">CV ATS</option>
-                                    <option value="kreatif">CV Kreatif</option>
-                                </select>
-                            </div>
-
-                            <h6 class="mt-4 mb-2">Komponen CV</h6>
-                            <small class="text-muted d-block mb-2">(Drag ke kanan untuk menyusun)</small>
-
-                            <!-- Komponen ATS -->
-                            <ul id="available-fields-ats" class="list-group template-fields d-none">
-                                <li class="list-group-item" data-key="personal_detail-ats">Detail Pribadi</li>
-                                <li class="list-group-item" data-key="experiences-ats">Pengalaman Kerja</li>
-                                <li class="list-group-item" data-key="educations-ats">Pendidikan</li>
-                                <li class="list-group-item" data-key="languages-ats">Bahasa</li>
-                                <li class="list-group-item" data-key="skills-ats">Keahlian</li>
-                                <li class="list-group-item" data-key="organizations-ats">Organisasi</li>
-                                <li class="list-group-item" data-key="achievements-ats">Prestasi</li>
-                                <li class="list-group-item" data-key="links-ats">Link Informasi</li>
-                                <li class="list-group-item" data-key="custom-ats">Section Bebas</li>
-                            </ul>
-
-                            <!-- Komponen Kreatif -->
-                            <ul id="available-fields-kreatif" class="list-group template-fields d-none">
-                                <li class="list-group-item" data-key="personal_detail-kreatif">Detail Pribadi</li>
-                                <li class="list-group-item" data-key="experiences-kreatif">Pengalaman Kerja</li>
-                                <li class="list-group-item" data-key="educations-kreatif">Pendidikan</li>
-                                <li class="list-group-item" data-key="languages-kreatif">Bahasa</li>
-                                <li class="list-group-item" data-key="skills-kreatif">Keahlian</li>
-                                <li class="list-group-item" data-key="organizations-kreatif">Organisasi</li>
-                                <li class="list-group-item" data-key="achievements-kreatif">Prestasi</li>
-                                <li class="list-group-item" data-key="links-kreatif">Link Informasi</li>
-                            </ul>
-
-                            <p class="small text-muted mt-3">
-                                <strong>Catatan:</strong> Komponen hanya bisa ditambahkan sekali. Hapus dari canvas untuk mengaktifkan kembali.
-                            </p>
-                        </div>
-
-                        <!-- Panel Kanan -->
-                        <div class="col-md-8">
-                            <h6 class="mb-3">Preview Template CV</h6>
-                            <div id="cv-canvas" class="bg-white p-4" style="min-height:600px; max-width:820px; margin:auto;">
-                                <div id="cv-canvas-inner">
-                                    <p class="empty-placeholder text-muted">
-                                        (Seret komponen dari kiri ke area ini)
-                                    </p>
-                                </div>
-                            </div>
-
-                            <input type="hidden" name="layout_json" id="layout_json">
-                            <input type="hidden" name="style_json" id="style_json">
-                        </div>
-                    </div>
-
-                    <div class="row mt-4">
-                        <!-- Nama Template -->
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="template_curriculum_vitae_name">Nama Template</label>
-                                <input type="text" class="form-control" name="template_curriculum_vitae_name"
-                                       value="{{ old('template_curriculum_vitae_name') }}" placeholder="Masukkan Nama Template" required>
-                            </div>
-                        </div>
-
-                        <!-- Thumbnail -->
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="thumbnail_curriculum_vitae">Thumbnail Template CV</label>
-                                <input type="file" class="form-control" name="thumbnail_curriculum_vitae" required>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="text-right">
-                        <button type="submit" class="btn btn-primary btn-lg mt-3">
-                            <i class="fas fa-save mr-1"></i> Simpan Template
-                        </button>
-                    </div>
-                </form>
-
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Templates CV ATS (sample HTML untuk preview) -->
 <template id="tpl-personal_detail-ats">
     <div class="cv-section" data-key="personal_detail" style="position:relative; padding:12px 0;">
@@ -221,35 +113,6 @@
         <hr>
     </div>
 </template>
-<!-- Section Bebas (ATS) -->
-<template id="tpl-custom-ats">
-  <!-- data-key WAJIB base name tanpa suffix -->
-  <div class="cv-section" data-key="custom" style="position:relative; padding:8px 0;">
-    <button type="button" class="remove-section btn btn-sm btn-danger" title="Hapus section"
-            style="position:absolute; right:0; top:0;">×</button>
-
-    <!-- Judul bebas -->
-    <h4 contenteditable="true"
-        class="editable"
-        data-section="customs"
-        data-field="title_custom"
-        style="margin:0 0 6px 0; border-bottom:2px solid #111; padding-bottom:6px;">
-      JUDUL SECTION (klik untuk ubah)
-    </h4>
-
-    <!-- Isi bebas: bisa paragraf, list, dsb -->
-    <div contenteditable="true"
-         class="editable"
-         data-section="customs"
-         data-field="content_custom"
-         style="font-size:14px; line-height:1.5; text-align:justify;">
-      Tulis apa saja di sini. Tekan Enter untuk baris baru.
-    </div>
-
-    <hr style="margin-top:8px;">
-  </div>
-</template>
-
 <!-- End of Templates CV ATS (sample HTML untuk preview) -->
 
 <!-- Templates CV Kreatif (sample HTML untuk preview) -->
@@ -427,9 +290,6 @@
     </div>
 </template>
 <!-- End of Templates CV Kreatif -->
-
-
-@endsection
 
 @push('styles')
 <style>
@@ -662,232 +522,203 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // update layout JSON: ambil urutan komponen di panel kiri dan kanan
     function updateLayoutJSON() {
-  const layout = [];
-  const mainLayout = canvas.querySelector('.cv-main-layout');
+        const layout = [];
+        const mainLayout = canvas.querySelector('.cv-main-layout');
+        if (mainLayout) {
+            const leftPanel = mainLayout.querySelector('.left-panel');
+            const rightPanel = mainLayout.querySelector('.right-panel');
+            if (leftPanel) {
+                leftPanel.querySelectorAll('.cv-section').forEach(sec => {
+                    const key = sec.dataset.key;
+                    layout.push({ key, panel: 'left' });
+                });
+            }
+            if (rightPanel) {
+                rightPanel.querySelectorAll('.cv-section').forEach(sec => {
+                    const key = sec.dataset.key;
+                    layout.push({ key, panel: 'right' });
+                });
+            }
+        } else {
+            // fallback: satu panel
+            canvas.querySelectorAll('.cv-section').forEach(sec => {
+                const key = sec.dataset.key;
+                layout.push({ key });
+            });
+        }
 
-  if (mainLayout) {
-    const leftPanel  = mainLayout.querySelector('.left-panel');
-    const rightPanel = mainLayout.querySelector('.right-panel');
-    if (leftPanel) {
-      leftPanel.querySelectorAll('.cv-section').forEach(sec => {
-        const key = sec.dataset.key; // termasuk "custom"
-        layout.push({ key, panel: 'left' });
-      });
+        layoutInput.value = JSON.stringify(layout);
+        // ...existing code for style_json...
+        const baseStyles = {
+            // ...existing code...
+            "page": {
+                "width": "100%",
+                "margin": "0 auto",
+                "padding": "0 48px",
+                "max-width": "800px",
+                "box-sizing": "border-box"
+            },
+            "links": {
+                "h3": {
+                    "color": "#111111",
+                    "margin": "0 0 6px 0",
+                    "font-size": "18px",
+                    "text-align": "center",
+                    "border-bottom": "1px solid #111",
+                    "padding-bottom": "6px"
+                },
+                "hr": { "margin-top": "6px" },
+                "ul": { "color": "#000000", "font-size": "14px" }
+            },
+            "skills": {
+                "h3": {
+                    "color": "#111111",
+                    "margin": "0 0 6px 0",
+                    "font-size": "18px",
+                    "text-align": "center",
+                    "border-bottom": "1px solid #111",
+                    "padding-bottom": "6px"
+                },
+                "hr": { "margin-top": "6px" },
+                "ul": {
+                    "color": "#000000",
+                    "columns": "2",
+                    "font-size": "14px",
+                    "margin-top": "6px"
+                }
+            },
+            "languages": {
+                "h3": {
+                    "color": "#111111",
+                    "margin": "0 0 6px 0",
+                    "font-size": "18px",
+                    "text-align": "center",
+                    "border-bottom": "1px solid #111",
+                    "padding-bottom": "6px"
+                },
+                "hr": { "margin-top": "6px" },
+                "ul": {
+                    "color": "#000000",
+                    "font-size": "14px",
+                    "margin-top": "6px"
+                }
+            },
+            "educations": {
+                "h3": {
+                    "color": "#111111",
+                    "margin": "0 0 6px 0",
+                    "font-size": "18px",
+                    "text-align": "center",
+                    "border-bottom": "1px solid #111",
+                    "padding-bottom": "6px"
+                },
+                "hr": { "margin-top": "6px" },
+                "ul": { "margin-top": "6px" },
+                "div": { "color": "#000000", "font-size": "14px" },
+                "date": { "color": "#666", "float": "right", "font-size": "12px" },
+                "field": { "margin-top": "6px" }
+            },
+            "experiences": {
+                "h3": {
+                    "color": "#111111",
+                    "margin": "0 0 6px 0",
+                    "font-size": "18px",
+                    "text-align": "center",
+                    "border-bottom": "1px solid #111",
+                    "padding-bottom": "6px"
+                },
+                "hr": { "margin-top": "6px" },
+                "li": { "text-align": "justify", "margin-bottom": "6px" },
+                "ul": {
+                    "color": "#000000",
+                    "font-size": "14px",
+                    "margin-top": "8px",
+                    "line-height": "1.5",
+                    "padding-left": "20px",
+                    "margin-bottom": "8px",
+                    "list-style-type": "disc"
+                },
+                "div": { "color": "#000000", "font-size": "14px", "margin-bottom": "10px" },
+                "date": { "color": "555555", "float": "right", "font-size": "12px" },
+                "meta": { "overflow": "hidden", "margin-bottom": "4px" },
+                "position": { "float": "left", "font-style": "italic" }
+            },
+            "achievements": {
+                "h3": {
+                    "color": "#111111",
+                    "margin": "0 0 6px 0",
+                    "font-size": "18px",
+                    "text-align": "center",
+                    "border-bottom": "1px solid #111",
+                    "padding-bottom": "6px"
+                },
+                "hr": { "margin-top": "6px" },
+                "ul": { "color": "#000000", "font-size": "14px" }
+            },
+            "organizations": {
+                "h3": {
+                    "color": "#111111",
+                    "margin": "0 0 6px 0",
+                    "font-size": "18px",
+                    "text-align": "center",
+                    "border-bottom": "1px solid #111",
+                    "padding-bottom": "6px"
+                },
+                "hr": { "margin-top": "6px" },
+                "ul": { "margin-top": "6px" },
+                "div": { "color": "#000000", "font-size": "14px" }
+            },
+            "personal_detail": {
+                "hr": {
+                    "width": "80%",
+                    "border": "0",
+                    "margin": "12px auto",
+                    "border-top": "1px solid #ddd"
+                },
+                "row": {
+                    "display": "flex",
+                    "flex-wrap": "wrap",
+                    "text-align": "center",
+                    "align-items": "center",
+                    "margin-bottom": "8px",
+                    "justify-content": "center"
+                },
+                "info": {
+                    "color": "#000000",
+                    "display": "inline-block",
+                    "font-size": "12px",
+                    "text-align": "center",
+                    "line-height": "1.4",
+                    "margin-bottom": "4px"
+                },
+                "name": {
+                    "color": "#000000",
+                    "margin": "0 0 8px 0",
+                    "font-size": "28px",
+                    "text-align": "center",
+                    "font-weight": "700",
+                    "line-height": "1.05",
+                    "text-transform": "uppercase"
+                },
+                "summary": {
+                    "color": "#333333",
+                    "margin": "12px 0",
+                    "font-size": "13px",
+                    "text-align": "justify"
+                },
+                "container": {
+                    "width": "100%",
+                    "margin": "0 auto",
+                    "display": "block",
+                    "padding": "0 12px",
+                    "max-width": "760px",
+                    "box-sizing": "border-box",
+                    "text-align": "center"
+                }
+            }
+        };
+        document.getElementById("style_json").value = JSON.stringify(baseStyles);
     }
-    if (rightPanel) {
-      rightPanel.querySelectorAll('.cv-section').forEach(sec => {
-        const key = sec.dataset.key;
-        layout.push({ key, panel: 'right' });
-      });
-    }
-  } else {
-    // fallback: satu panel (ATS)
-    canvas.querySelectorAll('.cv-section').forEach(sec => {
-      const key = sec.dataset.key;
-      layout.push({ key });
-    });
-  }
-
-  layoutInput.value = JSON.stringify(layout);
-
-  // ===== Styles (tambahan: custom) =====
-  const baseStyles = {
-    "page": {
-      "width": "100%",
-      "margin": "0 auto",
-      "padding": "0 48px",
-      "max-width": "800px",
-      "box-sizing": "border-box"
-    },
-
-    "links": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "ul": { "color": "#000000", "font-size": "14px" }
-    },
-
-    "skills": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "ul": {
-        "color": "#000000",
-        "columns": "2",
-        "font-size": "14px",
-        "margin-top": "6px"
-      }
-    },
-
-    "languages": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "ul": {
-        "color": "#000000",
-        "font-size": "14px",
-        "margin-top": "6px"
-      }
-    },
-
-    "educations": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "ul": { "margin-top": "6px" },
-      "div": { "color": "#000000", "font-size": "14px" },
-      "date": { "color": "#666666", "float": "right", "font-size": "12px" },
-      "field": { "margin-top": "6px" }
-    },
-
-    "experiences": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "li": { "text-align": "justify", "margin-bottom": "6px" },
-      "ul": {
-        "color": "#000000",
-        "font-size": "14px",
-        "margin-top": "8px",
-        "line-height": "1.5",
-        "padding-left": "20px",
-        "margin-bottom": "8px",
-        "list-style-type": "disc"
-      },
-      "div": { "color": "#000000", "font-size": "14px", "margin-bottom": "10px" },
-      "date": { "color": "#555555", "float": "right", "font-size": "12px" },
-      "meta": { "overflow": "hidden", "margin-bottom": "4px" },
-      "position": { "float": "left", "font-style": "italic" }
-    },
-
-    "achievements": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "ul": { "color": "#000000", "font-size": "14px" }
-    },
-
-    "organizations": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "ul": { "margin-top": "6px" },
-      "div": { "color": "#000000", "font-size": "14px" }
-    },
-
-    "personal_detail": {
-      "hr": {
-        "width": "80%",
-        "border": "0",
-        "margin": "12px auto",
-        "border-top": "1px solid #ddd"
-      },
-      "row": {
-        "display": "flex",
-        "flex-wrap": "wrap",
-        "text-align": "center",
-        "align-items": "center",
-        "margin-bottom": "8px",
-        "justify-content": "center"
-      },
-      "info": {
-        "color": "#000000",
-        "display": "inline-block",
-        "font-size": "12px",
-        "text-align": "center",
-        "line-height": "1.4",
-        "margin-bottom": "4px"
-      },
-      "name": {
-        "color": "#000000",
-        "margin": "0 0 8px 0",
-        "font-size": "28px",
-        "text-align": "center",
-        "font-weight": "700",
-        "line-height": "1.05",
-        "text-transform": "uppercase"
-      },
-      "summary": {
-        "color": "#333333",
-        "margin": "12px 0",
-        "font-size": "13px",
-        "text-align": "justify"
-      },
-      "container": {
-        "width": "100%",
-        "margin": "0 auto",
-        "display": "block",
-        "padding": "0 12px",
-        "max-width": "760px",
-        "box-sizing": "border-box",
-        "text-align": "center"
-      }
-    },
-
-    // ===== NEW: Section Bebas =====
-    "custom": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "content": {
-        "font-size": "14px",
-        "line-height": "1.5",
-        "text-align": "justify"
-      },
-      "container": {}
-    }
-  };
-
-  document.getElementById("style_json").value = JSON.stringify(baseStyles);
-}
-
 
     // sebelum submit pastikan update
     form.addEventListener('submit', function(e) {

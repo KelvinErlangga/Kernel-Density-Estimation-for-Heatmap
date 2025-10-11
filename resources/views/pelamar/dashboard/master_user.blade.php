@@ -11,14 +11,24 @@
 
     <title>@yield('title')</title>
 
-    <!-- Custom fonts for this template-->
+    <!-- Font Awesome -->
     <link href="{{asset('vendor/fontawesome-free/css/all.min.css')}}" rel="stylesheet" type="text/css" />
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet" />
+
+    <!-- Google Fonts - Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="icon" href="{{asset('assets/icons/logo.svg')}}" type="image/x-icon">
 
-    <!-- Custom styles for this template-->
+    <!-- Custom styles -->
     <link href="{{asset('css/sb-admin-2.min.css')}}" rel="stylesheet">
+
+    <!-- Override font to Poppins -->
+    <style>
+        body, html {
+            font-family: 'Poppins', sans-serif !important;
+        }
+    </style>
+
     @stack('style')
 </head>
 
@@ -56,7 +66,7 @@
             <!-- Nav Item - Heatmap Lowongan -->
             <li class="nav-item active">
                 <a class="nav-link text-dark" href="{{route('pelamar.dashboard.heatmap.index')}}">
-                    <i class="fas fa-fw fa-briefcase text-dark"></i>
+                    <i class="fas fa-fw fa-map text-dark"></i>
                     <span>Heatmap Lowongan</span>
                 </a>
             </li>
@@ -64,34 +74,40 @@
             <!-- Divider -->
             <hr class="sidebar-divider" />
 
-            <!-- Nav Item - Pages Collapse Menu -->
+            <!-- Nav Item - Kelola -->
             <li class="nav-item">
-                <a class="nav-link collapsed text-dark" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+                <a class="nav-link collapsed text-dark" href="#" data-toggle="collapse" data-target="#collapseTwo"
+                   aria-expanded="true" aria-controls="collapseTwo">
                     <i class="fas fa-fw fa-sliders-h text-dark"></i>
                     <span>Kelola</span>
                 </a>
                 <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
                     <div class="bg-white collapse-inner rounded">
-                        <a class="collapse-item text-dark" href="{{route('pelamar.dashboard.curriculum_vitae.index')}}"> <i class="fas fa-fw fa-id-card text-dark"></i> Curriculum Vitae </a>
+                        <a class="collapse-item text-dark" href="{{route('pelamar.dashboard.curriculum_vitae.index')}}">
+                            <i class="fas fa-fw fa-id-card text-dark"></i> Curriculum Vitae
+                        </a>
                     </div>
                 </div>
             </li>
 
-            <!-- Nav Item - Utilities Collapse Menu -->
+            <!-- Nav Item - Pengaturan -->
             <li class="nav-item">
-                <a class="nav-link collapsed text-dark" href="#" data-toggle="collapse" data-target="#collapseUtilities" aria-expanded="true" aria-controls="collapseUtilities">
+                <a class="nav-link collapsed text-dark" href="#" data-toggle="collapse" data-target="#collapseUtilities"
+                   aria-expanded="true" aria-controls="collapseUtilities">
                     <i class="fas fa-fw fa-cogs text-dark"></i>
                     <span>Pengaturan</span>
                 </a>
                 <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities" data-parent="#accordionSidebar">
                     <div class="bg-white collapse-inner rounded">
-                        <a class="collapse-item text-dark" href="{{route('pelamar.dashboard.akun.index')}}"> <i class="fas fa-fw fa-user text-dark"></i> Akun </a>
+                        <a class="collapse-item text-dark" href="{{route('pelamar.dashboard.akun.index')}}">
+                            <i class="fas fa-fw fa-user text-dark"></i> Akun
+                        </a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <a class="collapse-item text-dark" href="route('logout')" onclick="event.preventDefault();
-                                                this.closest('form').submit();"> <i class="fas fa-fw fa-sign-out-alt text-dark">
-
-                                </i> Keluar </a>
+                            <a class="collapse-item text-dark" href="route('logout')"
+                               onclick="event.preventDefault(); this.closest('form').submit();">
+                                <i class="fas fa-fw fa-sign-out-alt text-dark"></i> Keluar
+                            </a>
                         </form>
                     </div>
                 </div>
@@ -100,7 +116,7 @@
             <!-- Divider -->
             <hr class="sidebar-divider d-none d-md-block" />
 
-            <!-- Sidebar Toggler (Sidebar) -->
+            <!-- Sidebar Toggler -->
             <div class="text-center d-none d-md-inline">
                 <button class="rounded-circle border-0" id="sidebarToggle"></button>
             </div>
@@ -108,11 +124,11 @@
         <!-- End of Sidebar -->
 
         <!-- Content Wrapper -->
-        <div id="content-wrapper" class="d-flex flex-column" style="background-color: #f5f8ff">
+        <div id="content-wrapper" class="d-flex flex-column" style="background-color:#f5f8ff">
             <!-- Main Content -->
             <div id="content">
                 <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 shadow">
                     <!-- Sidebar Toggle (Topbar) -->
                     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
                         <i class="fa fa-bars"></i>
@@ -120,30 +136,19 @@
 
                     <!-- Topbar Navbar -->
                     <ul class="navbar-nav ml-auto">
-                        <!-- Nav Item - Alerts -->
-                        {{-- <li class="nav-item dropdown no-arrow mx-1">
-                            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-bell fa-fw"></i>
-                            </a>
-                        </li>
-
-                        <!-- Nav Item - Messages -->
-                        <li class="nav-item dropdown no-arrow mx-1">
-                            <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-envelope fa-fw"></i>
-                            </a>
-                        </li> --}}
-
                         <div class="topbar-divider d-none d-sm-block"></div>
-
-                        <!-- Nav Item - User Information -->
+                        <!-- User Info -->
                         <li class="nav-item dropdown no-arrow">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Hi, {{Auth::user()->name}}</span>
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">
+                                    Hi, {{Auth::user()->name}}
+                                </span>
                                 <img class="img-profile rounded-circle" src="{{asset('assets/img/undraw_profile.svg')}}" />
                             </a>
-                            <!-- Dropdown - User Information -->
-                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
+                            <!-- Dropdown -->
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                 aria-labelledby="userDropdown">
                                 <a class="dropdown-item" href="#">
                                     <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
                                     Profile
@@ -162,6 +167,8 @@
                     </ul>
                 </nav>
                 <!-- End of Topbar -->
+
+                <!-- Page Content -->
                 @yield('content')
             </div>
             <!-- End of Main Content -->
@@ -174,13 +181,12 @@
                     </div>
                 </div>
             </footer>
-            <!-- End of Footer -->
         </div>
         <!-- End of Content Wrapper -->
     </div>
     <!-- End of Page Wrapper -->
 
-    <!-- Scroll to Top Button-->
+    <!-- Scroll to Top -->
     <a class="scroll-to-top rounded" href="#page-top">
         <i class="fas fa-angle-up"></i>
     </a>
@@ -190,7 +196,7 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Ready to Leave?</h5>
+                    <h5 class="modal-title">Ready to Leave?</h5>
                     <button class="close" type="button" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">×</span>
                     </button>
@@ -200,31 +206,28 @@
                     <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <a class="btn btn-primary" href="route('logout')" onclick="event.preventDefault();
-                                                this.closest('form').submit();">Logout</a>
+                        <a class="btn btn-primary" href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">
+                            Logout
+                        </a>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
     <script src="https://cdn.datatables.net/2.0.3/js/dataTables.js"></script>
     <script src="https://cdn.datatables.net/2.0.3/js/dataTables.bootstrap5.js"></script>
-
     <script>
         new DataTable("#dataTables");
     </script>
 
-    <!-- Bootstrap -->
     <script src="{{asset('vendor/jquery/jquery.min.js')}}"></script>
     <script src="{{asset('vendor/bootstrap/js/bootstrap.bundle.min.js')}}"></script>
     <script src="{{asset('vendor/jquery-easing/jquery.easing.min.js')}}"></script>
-
-    <!-- Custom scripts for all pages-->
     <script src="{{asset('js/sb-admin-2.min.js')}}"></script>
 
     @stack('scripts')
 </body>
-
 </html>

@@ -16,6 +16,7 @@ use App\Models\CurriculumVitaeUser;
 use App\Models\Education;
 use App\Models\Experience;
 use App\Models\Organization;
+use App\Models\CustomSection;
 use App\Models\PersonalDetail;
 use App\Models\TemplateCurriculumVitae;
 use Illuminate\Http\Request;
@@ -64,6 +65,81 @@ class CurriculumVitaeUserController extends Controller
 
         return redirect()->route('pelamar.curriculum_vitae.profile.index', $newCVUser);
         // return redirect()->route('pelamar.curriculum_vitae.preview.index', $newCVUser);
+    }
+
+    // 1) Buat section baru (default: Text Section)
+    public function addCustomSection(Request $request, CurriculumVitaeUser $curriculumVitaeUser)
+    {
+        $type = $request->input('type', 'custom_text'); // sekarang cuma 'custom_text'
+        $nextOrder = (int) $curriculumVitaeUser->customSections()->max('sort_order') + 1;
+
+        $section = $curriculumVitaeUser->customSections()->create([
+            'section_key'   => $type,
+            'section_title' => $request->input('title', 'Text section'),
+            'subtitle'      => $request->input('subtitle'),
+            'payload'       => ['body' => 'Your skills, certifications, interests, and more.'],
+            'sort_order'    => $nextOrder,
+        ]);
+
+        // balikin HTML partial biar langsung di-inject ke preview
+        $html = view('pelamar.curriculum_vitae.preview.sections.custom_text', [
+            'cv'      => $curriculumVitaeUser,
+            'section' => $section
+        ])->render();
+
+        return response()->json([
+            'success' => true,
+            'id'      => $section->id,
+            'html'    => $html,
+        ]);
+    }
+
+    // 2) Update inline (judul / isi)
+    public function updateCustomSection(Request $request, CurriculumVitaeUser $curriculumVitaeUser, CustomSection $section)
+    {
+        abort_unless($section->curriculum_vitae_user_id === $curriculumVitaeUser->id, 403);
+
+        $field = $request->input('field');
+        $value = $request->input('value');
+
+        if ($field === 'section_title') {
+            $section->section_title = $value;
+        } elseif (str_starts_with($field, 'payload.')) {
+            $path = substr($field, 8); // setelah 'payload.'
+            $payload = $section->payload ?? [];
+            data_set($payload, $path, $value);
+            $section->payload = $payload;
+        } elseif ($field === 'subtitle') {
+            $section->subtitle = $value;
+        }
+
+        $section->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    // 3) Hapus section
+    public function deleteCustomSection(CurriculumVitaeUser $curriculumVitaeUser, CustomSection $section)
+    {
+        abort_unless($section->curriculum_vitae_user_id === $curriculumVitaeUser->id, 403);
+        $section->delete();
+        return response()->json(['success' => true]);
+    }
+
+    // 4) Reorder section (khusus custom)
+    public function reorderCustomSections(Request $request, CurriculumVitaeUser $curriculumVitaeUser)
+    {
+        $ids = $request->input('ids', []); // array of custom section IDs in new order
+
+        DB::transaction(function () use ($ids, $curriculumVitaeUser) {
+            foreach ($ids as $i => $id) {
+                $curriculumVitaeUser->customSections()
+                    ->where('id', $id)
+                    ->update(['sort_order' => $i + 1]);
+            }
+        });
+
+        return response()->json(['success' => true]);
     }
 
     // tampil form input profile
@@ -774,14 +850,160 @@ class CurriculumVitaeUserController extends Controller
                 return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
             }
         }
-
-
-
         return response()->json(['success' => false, 'message' => 'Section tidak dikenali'], 400);
     }
 
+    // Daftar custom section yg diminta template + status isi/belum untuk CV user
+    public function customIndex(CurriculumVitaeUser $curriculumVitaeUser)
+    {
+        $tpl = $curriculumVitaeUser->templateCurriculumVitae;
+        $layout = $tpl?->layout_json ?? [];
 
+        // Ambil hanya section yang key-nya diawali "custom"
+        $customConfigs = collect($layout)->filter(function ($it) {
+            $key = $it['key'] ?? '';
+            return is_string($key) && Str::startsWith($key, 'custom');
+        })->values();
 
+        // existing records by section_key
+        $existing = $curriculumVitaeUser->customSections()->get()->keyBy('section_key');
+
+        return view('pelamar.curriculum_vitae.custom.index', [
+            'curriculumVitaeUser' => $curriculumVitaeUser,
+            'customConfigs' => $customConfigs,
+            'existing' => $existing,
+        ]);
+    }
+
+    // Form create untuk 1 section_key custom (sesuai layout_json)
+    public function customCreate(CurriculumVitaeUser $curriculumVitaeUser, string $section_key)
+    {
+        $tpl = $curriculumVitaeUser->templateCurriculumVitae;
+        $layout = $tpl?->layout_json ?? [];
+        $config = collect($layout)->firstWhere('key', $section_key);
+
+        if (!$config) {
+            abort(404, 'Section tidak ditemukan di template.');
+        }
+
+        // prefer title/subtitle di layout_json; fallback ke null
+        $defaultTitle = $config['title'] ?? ($config['section_title'] ?? null);
+        $defaultSubtitle = $config['subtitle'] ?? null;
+
+        return view('pelamar.curriculum_vitae.custom.create', [
+            'curriculumVitaeUser' => $curriculumVitaeUser,
+            'sectionKey' => $section_key,
+            'defaultTitle' => $defaultTitle,
+            'defaultSubtitle' => $defaultSubtitle,
+        ]);
+    }
+
+    // Simpan/Upsert isi custom section untuk 1 section_key
+    public function customStore(Request $request, CurriculumVitaeUser $curriculumVitaeUser, string $section_key)
+    {
+        $validated = $request->validate([
+            'section_title' => ['nullable', 'string', 'max:255'],
+            'subtitle'      => ['nullable', 'string', 'max:255'],
+            'items'         => ['nullable', 'array'],
+            'items.*.title' => ['nullable', 'string', 'max:255'],
+            'items.*.meta'  => ['nullable', 'string', 'max:255'],
+            'items.*.desc'  => ['nullable', 'string'], // boleh HTML
+        ]);
+
+        // Normalisasi payload
+        $payload = ['items' => []];
+        foreach (($validated['items'] ?? []) as $it) {
+            if (!empty($it['title']) || !empty($it['meta']) || !empty($it['desc'])) {
+                $payload['items'][] = [
+                    'title' => $it['title'] ?? null,
+                    'meta'  => $it['meta'] ?? null,
+                    'desc'  => $it['desc'] ?? null,
+                ];
+            }
+        }
+
+        // Upsert by (cv_user_id, section_key)
+        CustomSection::updateOrCreate(
+            [
+                'curriculum_vitae_user_id' => $curriculumVitaeUser->id,
+                'section_key' => $section_key,
+            ],
+            [
+                'section_title' => $validated['section_title'] ?? null,
+                'subtitle'      => $validated['subtitle'] ?? null,
+                'payload'       => $payload,
+            ]
+        );
+
+        return redirect()
+            ->route('pelamar.curriculum_vitae.custom.index', $curriculumVitaeUser->id)
+            ->with('success', 'Custom section disimpan.');
+    }
+
+    public function customEdit(CurriculumVitaeUser $curriculumVitaeUser, CustomSection $custom_section)
+    {
+        // pastikan milik CV ini
+        abort_if($custom_section->curriculum_vitae_user_id !== $curriculumVitaeUser->id, 404);
+
+        $tpl = $curriculumVitaeUser->templateCurriculumVitae;
+        $layout = $tpl?->layout_json ?? [];
+        $config = collect($layout)->firstWhere('key', $custom_section->section_key);
+
+        $defaultTitle = $config['title'] ?? ($config['section_title'] ?? null);
+        $defaultSubtitle = $config['subtitle'] ?? null;
+
+        return view('pelamar.curriculum_vitae.custom.edit', [
+            'curriculumVitaeUser' => $curriculumVitaeUser,
+            'customSection' => $custom_section,
+            'defaultTitle' => $defaultTitle,
+            'defaultSubtitle' => $defaultSubtitle,
+        ]);
+    }
+
+    public function customUpdate(Request $request, CurriculumVitaeUser $curriculumVitaeUser, CustomSection $custom_section)
+    {
+        abort_if($custom_section->curriculum_vitae_user_id !== $curriculumVitaeUser->id, 404);
+
+        $validated = $request->validate([
+            'section_title' => ['nullable', 'string', 'max:255'],
+            'subtitle'      => ['nullable', 'string', 'max:255'],
+            'items'         => ['nullable', 'array'],
+            'items.*.title' => ['nullable', 'string', 'max:255'],
+            'items.*.meta'  => ['nullable', 'string', 'max:255'],
+            'items.*.desc'  => ['nullable', 'string'],
+        ]);
+
+        $payload = ['items' => []];
+        foreach (($validated['items'] ?? []) as $it) {
+            if (!empty($it['title']) || !empty($it['meta']) || !empty($it['desc'])) {
+                $payload['items'][] = [
+                    'title' => $it['title'] ?? null,
+                    'meta'  => $it['meta'] ?? null,
+                    'desc'  => $it['desc'] ?? null,
+                ];
+            }
+        }
+
+        $custom_section->update([
+            'section_title' => $validated['section_title'] ?? null,
+            'subtitle'      => $validated['subtitle'] ?? null,
+            'payload'       => $payload,
+        ]);
+
+        return redirect()
+            ->route('pelamar.curriculum_vitae.custom.index', $curriculumVitaeUser->id)
+            ->with('success', 'Custom section diperbarui.');
+    }
+
+    public function customDestroy(CurriculumVitaeUser $curriculumVitaeUser, CustomSection $custom_section)
+    {
+        abort_if($custom_section->curriculum_vitae_user_id !== $curriculumVitaeUser->id, 404);
+        $custom_section->delete();
+
+        return redirect()
+            ->route('pelamar.curriculum_vitae.custom.index', $curriculumVitaeUser->id)
+            ->with('success', 'Custom section dihapus.');
+    }
 
     public function saveCv(Request $request)
     {

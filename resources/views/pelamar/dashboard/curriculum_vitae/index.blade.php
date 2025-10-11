@@ -2,77 +2,108 @@
 @section('title', 'Curriculum Vitae | CVRE GENERATE')
 
 @push('style')
-<link href="{{asset('css/sb-admin-2.css')}}" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/swiper/swiper-bundle.min.css" rel="stylesheet" />
-
 <style>
-    a:hover {
-        text-decoration: none;
-        /* Menghilangkan garis bawah saat di-hover */
+    :root{
+        --card-radius:16px;
+        --soft-shadow:0 10px 24px rgba(19,26,53,.08);
+        --soft-border:#e9edf4;
+    }
+
+    .card{
+        border:1px solid var(--soft-border);
+        border-radius:var(--card-radius);
+        box-shadow:var(--soft-shadow);
+    }
+
+    /* Buat CV Baru */
+    .cv-add{
+        cursor:pointer;
+        height:370px; width:220px;
+        border:2px dashed #3b82f6;
+        border-radius:var(--card-radius);
+        background:#f9fafc;
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        transition:.3s;
+        margin-right: 20px;
+    }
+    .cv-add:hover{ background:#eff6ff; box-shadow:var(--soft-shadow); }
+    .cv-add i{ font-size:2.5rem; margin-bottom:.5rem; color:#1f2937; }
+    .cv-add h6{ font-weight:600; color:#1f2937; }
+
+    /* CV Card */
+    .cv-card{
+        border:1px solid var(--soft-border);
+        border-radius:var(--card-radius);
+        overflow:hidden;
+        background:#fff;
+        transition:.2s;
+        margin-right: 20px;
+    }
+    .cv-card img{ width:100%; height:auto; object-fit:cover; }
+    .cv-card:hover{ box-shadow:var(--soft-shadow); transform:translateY(-2px); }
+
+    .cv-meta{
+        padding:.5rem .75rem;
+        background:#f9fafc;
+        font-size:.85rem;
+        font-weight:600;
+        text-align:center;
+    }
+
+    .cv-actions{
+        display:flex;
+        justify-content:center;
+        gap:.5rem;
+        padding:.6rem;
+        background:#fff;
+    }
+    .cv-actions .btn{
+        border-radius:8px;
+        font-size:.85rem;
+        padding:.3rem .8rem;
     }
 </style>
 @endpush
 
 @section('content')
-<div class="container-fluid">
-    <!-- Page Heading -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h5 class="mb-0 font-weight-bold text-primary">Dashboard / Kelola / <span class="text-dark">Curiculum Vitae</span></h5>
-    </div>
+<div class="container-fluid mt-4">
 
-    <!-- Content Row -->
-    <div class="row">
-        <div class="col-xl-12 col-lg-7">
-            <div class="card shadow mb-4">
-                <section class="p-8">
-                    <h6 class="font-weight-bold text-dark">Mulai Buat Curiculum Vitae</h6>
-                    <div class="d-flex align-items-start mt-3">
-                        <a href="{{route('pelamar.curriculum_vitae.index')}}">
-                            <div
-                                class="swiper-slide text-center border border-dashed border-primary me-3 mr-3 bg-light d-flex flex-column align-items-center justify-content-center shadow-sm"
-                                style="cursor: pointer; height: 275px; width: 200px; transition: all 0.3s ease"
-                                onmouseover="this.classList.add('shadow-lg', 'text-primary')"
-                                onmouseout="this.classList.remove('shadow-lg', 'text-primary')">
-                                <i class="fas fa-plus fa-3x text-dark mb-2"></i>
-                                <h6 class="fw-bold text-dark text-center m-2">Buat Curriculum Vitae</h6>
-                            </div>
-                        </a>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h6 class="font-weight-bold text-dark mb-3">Mulai Buat Curriculum Vitae</h6>
+            <div class="d-flex align-items-start gap-3 flex-wrap">
 
-                        <!-- CV Slider -->
-                        <div class="swiper mySwiper w-full">
-                            <div class="swiper-wrapper">
-                                <!-- Loop through images -->
-                                @foreach($curriculumVitaes as $cv)
-                                <div class="swiper-slide">
-                                    <img src="{{Storage::url($cv->templateCV->thumbnail_curriculum_vitae)}}" alt="CV Preview 1" class="rounded-lg shadow-md w-100 h-auto" style="object-fit: cover" />
-                                    <div class="overlay">
-                                        <span>{{$cv->templateCV->template_curriculum_vitae_name}}</span>
-                                    </div>
-                                    <div class="hover-buttons">
-                                        <form action="{{route('pelamar.curriculum_vitae.store')}}" method="POST">
-                                            @csrf
-                                            <input type="hidden" name="template_curriculum_vitae_id" id="template_curriculum_vitae_id" value="{{$cv->templateCV->id}}">
-
-                                            <button class="btn btn-danger">
-                                                Edit CV
-                                            </button>
-                                        </form>
-
-                                        <form action="{{route('pelamar.dashboard.curriculum_vitae.delete', $cv->id)}}" method="POST">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn btn-danger">
-                                                Hapus CV
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                                @endforeach
-                            </div>
-                        </div>
+                <!-- Buat CV Baru -->
+                <a href="{{route('pelamar.curriculum_vitae.index')}}" class="text-decoration-none">
+                    <div class="cv-add">
+                        <i class="fas fa-plus"></i>
+                        <h6>Buat CV Baru</h6>
                     </div>
-                </section>
+                </a>
+
+                <!-- CV Preview -->
+                @foreach($curriculumVitaes as $cv)
+                <div class="cv-card" style="width:220px;">
+                    <img src="{{Storage::url($cv->templateCV->thumbnail_curriculum_vitae)}}" alt="CV Preview">
+                    <div class="cv-meta">
+                        {{ $cv->templateCV->template_curriculum_vitae_name }}
+                    </div>
+                    <div class="cv-actions">
+                        <form action="{{route('pelamar.curriculum_vitae.store')}}" method="POST">
+                            @csrf
+                            <input type="hidden" name="template_curriculum_vitae_id" value="{{$cv->templateCV->id}}">
+                            <button class="btn btn-outline-primary btn-sm">Edit</button>
+                        </form>
+                        <form action="{{route('pelamar.dashboard.curriculum_vitae.delete', $cv->id)}}" method="POST" class="delete-form">
+                            @csrf
+                            @method('DELETE')
+                            <button type="button" class="btn btn-danger btn-sm btn-delete">Hapus</button>
+                        </form>
+                    </div>
+                </div>
+                @endforeach
+
             </div>
         </div>
     </div>
@@ -80,21 +111,37 @@
 @endsection
 
 @push('scripts')
-<!-- Swiper JS -->
-<script src="https://cdn.jsdelivr.net/npm/swiper/swiper-bundle.min.js"></script>
-
-<!-- Swiper.js Initialization -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
-        // Call to Action CV Section Swiper
-        const ctaSwiper = new Swiper(".mySwiper", {
-            slidesPerView: 4,
-            spaceBetween: 30,
-            loop: true,
-            autoplay: {
-                delay: 6000,
-            },
+document.addEventListener("DOMContentLoaded", () => {
+    // konfirmasi hapus
+    document.querySelectorAll(".btn-delete").forEach(btn => {
+        btn.addEventListener("click", e => {
+            e.preventDefault();
+            let form = btn.closest("form");
+            Swal.fire({
+                title: 'Yakin hapus CV ini?',
+                text: "Data tidak bisa dikembalikan!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
         });
     });
+
+    @if(session('success'))
+        Swal.fire({ icon: 'success', title: 'Berhasil', text: "{{ session('success') }}", timer:2000, showConfirmButton:false });
+    @endif
+    @if(session('error'))
+        Swal.fire({ icon: 'error', title: 'Gagal', text: "{{ session('error') }}" });
+    @endif
+});
 </script>
 @endpush

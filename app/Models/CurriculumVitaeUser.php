@@ -17,6 +17,8 @@ class CurriculumVitaeUser extends Model
         'pdf_filename',
     ];
 
+    protected $guarded = [];
+
     // get all cv
     public static function getCurriculumVitaeUser($userId)
     {
@@ -88,5 +90,22 @@ class CurriculumVitaeUser extends Model
     public function links()
     {
         return $this->hasMany(SocialMedia::class);
+    }
+
+    public function customs()
+    {
+        return $this->hasMany(CustomSection::class)
+            ->orderBy('sort_order');
+    }
+
+    public function template()
+    {
+        return $this->belongsTo(TemplateCurriculumVitae::class, 'template_curriculum_vitae_id');
+    }
+
+    public function customSections()
+    {
+        return $this->hasMany(\App\Models\CustomSection::class)
+            ->orderBy('sort_order');
     }
 }

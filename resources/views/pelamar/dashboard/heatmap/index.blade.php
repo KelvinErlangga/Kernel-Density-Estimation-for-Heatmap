@@ -43,6 +43,7 @@
         padding:.35rem .6rem;
         display:flex; align-items:center; gap:.6rem;
         white-space:nowrap;
+        margin-top: 10px;
     }
     .mode-wrap label{margin:0;color:var(--muted);font-size:.9rem}
     .mode-wrap .form-select{
@@ -60,6 +61,7 @@
         border-radius:999px;
         display:inline-flex; align-items:center; gap:.45rem;
         white-space:nowrap;
+        margin: 10px;
     }
     .chip .dot{
         width:8px;height:8px;border-radius:50%;
@@ -74,6 +76,7 @@
         border-radius:12px;
         padding:.35rem .6rem;
         display:flex; align-items:center; gap:.6rem;
+        margin-top: 10px;
     }
     .radius-wrap .radius-range{ width:160px; }
     .radius-wrap .radius-badge{

@@ -3,63 +3,112 @@
 
 @push('style')
 <style>
-    .addr-suggest {
-        position: absolute;
-        z-index: 1050;
-        width: 100%;
-        max-height: 220px;
-        overflow-y: auto;
-        display: none;
+    :root{
+        --card-radius:16px;
+        --soft-shadow:0 10px 24px rgba(19, 26, 53, .08);
+        --soft-border:#e9edf4;
+        --muted:#6b7280;
+        --chip-bg:#f3f6ff;
     }
-    .addr-suggest .list-group-item { cursor: pointer; }
+
+    .card{
+        border:1px solid var(--soft-border);
+        border-radius:var(--card-radius);
+        box-shadow:var(--soft-shadow);
+    }
+    .card-header{
+        background:#fff;
+        border-bottom:1px solid var(--soft-border);
+        border-top-left-radius:var(--card-radius);
+        border-top-right-radius:var(--card-radius);
+    }
+    .form-container{
+        border:1px solid var(--soft-border);
+        border-radius:var(--card-radius);
+        padding:2rem;
+        background:#fff;
+        box-shadow:var(--soft-shadow);
+    }
+    .form-container h4{
+        font-size:1.4rem;
+        font-weight:700;
+        margin-bottom:1.5rem;
+    }
+    .form-control{
+        background:#f7f8fb;
+        border:1px solid var(--soft-border);
+        border-radius:12px;
+        height:46px;
+    }
+    .form-control:focus{
+        border-color:#3b82f6;
+        box-shadow:0 0 0 .15rem rgba(59,130,246,.25);
+    }
+    .addr-suggest{
+        border:1px solid var(--soft-border);
+        border-radius:12px;
+        background:#fff;
+        overflow:hidden;
+        max-height:220px;
+        overflow-y:auto;
+        position:absolute;
+        z-index:1050;
+        display:none;
+    }
+    .addr-suggest .list-group-item{
+        border:0;
+        padding:.75rem 1rem;
+        font-weight:500;
+        cursor:pointer;
+    }
+    .addr-suggest .list-group-item:hover{
+        background:#f5f7ff;
+        color:#1d4ed8;
+    }
 </style>
 @endpush
 
 @section('content')
 <div class="container-fluid">
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h5 class="mb-0 font-weight-bold text-primary">Dashboard / Pengaturan / <span class="text-dark">Akun</span></h5>
-    </div>
-
     <div class="row">
         <div class="col-lg-12">
-            <div class="card shadow mb-4">
-                <div class="card-body m-10">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
                     <div class="row">
                         <!-- Sidebar -->
-                        <div class="col-md-4 text-center">
+                        <div class="col-md-4 text-center border-end">
                             <img src="{{asset('assets/akun/profil.png')}}" alt="Profile Picture"
                                  class="img-fluid rounded-circle mb-3 mx-auto d-block" style="width: 150px" />
                             <h5 class="font-weight-bold mb-2">{{Auth::user()->name}}</h5>
-                            <ul class="nav flex-column mt-8">
-                                <li class="nav-item"><a class="nav-link active text-primary font-weight-bold m-3" href="#">Akun</a><hr /></li>
-                                <li class="nav-item"><a class="nav-link text-secondary m-3" href="#">Aktivitas</a><hr /></li>
-                                <li class="nav-item"><a class="nav-link text-secondary m-3" href="#">Lainnya</a><hr /></li>
+                            <ul class="nav flex-column mt-4">
+                                <li class="nav-item"><a class="nav-link active text-primary fw-bold py-2" href="#">Akun</a></li>
+                                <li class="nav-item"><a class="nav-link text-secondary py-2" href="#">Bahasa</a></li>
+                                {{-- <li class="nav-item"><a class="nav-link text-secondary py-2" href="#">Lainnya</a></li> --}}
                             </ul>
                         </div>
 
                         <!-- Form Edit Akun -->
                         <div class="col-md-8">
-                            <div class="form-container" style="border: 1px solid; padding: 50px; border-radius: 8px">
-                                <h4 class="mb-4 text-center font-weight-bold" style="font-size: 1.725rem; color: black">Akun</h4>
+                            <div class="form-container">
+                                <h4 class="text-center">Akun</h4>
 
                                 <form action="{{ route('pelamar.updateProfile') }}" method="POST" id="akunForm" autocomplete="off">
                                     @csrf
                                     @method('PUT')
 
-                                    <div class="form-group">
+                                    <div class="form-group mb-3">
                                         <label for="name">Nama</label>
                                         <input type="text" class="form-control editable" id="name" name="name_pelamar"
                                             value="{{ Auth::user()->personalPelamar->name_pelamar ?? '' }}" readonly />
                                     </div>
 
-                                    <div class="form-group">
+                                    <div class="form-group mb-3">
                                         <label for="phone">Nomor Handphone</label>
                                         <input type="text" class="form-control editable" id="phone" name="phone_pelamar"
                                             value="{{ Auth::user()->personalPelamar->phone_pelamar ?? '' }}" readonly />
                                     </div>
 
-                                    <div class="form-group">
+                                    <div class="form-group mb-3">
                                         <label for="city">Kota</label>
                                         <input type="text" class="form-control editable" id="city" name="city_pelamar"
                                             value="{{ Auth::user()->personalPelamar->city_pelamar ?? '' }}" readonly />
@@ -70,7 +119,7 @@
                                         $latInit = Auth::user()->personalPelamar->latitude ?? '';
                                         $lonInit = Auth::user()->personalPelamar->longitude ?? '';
                                     @endphp
-                                    <div class="form-group position-relative">
+                                    <div class="form-group mb-3 position-relative">
                                         <label for="alamat_domisili">Alamat Domisili (lengkap)</label>
                                         <input type="text"
                                                class="form-control editable"
@@ -79,14 +128,13 @@
                                                value="{{ Auth::user()->personalPelamar->alamat_domisili ?? '' }}"
                                                placeholder="Contoh: Jalan Raya Darmo No. 1, Wonokromo, Surabaya"
                                                readonly />
-
                                         <ul id="alamat_suggestions" class="list-group addr-suggest"></ul>
 
                                         <div class="d-flex align-items-center gap-2 mt-2">
                                             <button type="button" id="btn-geocode" class="btn btn-outline-primary btn-sm" style="display:none;">
                                                 Deteksi Lokasi
                                             </button>
-                                            <small id="geo-preview" class="text-muted ml-2">
+                                            <small id="geo-preview" class="text-muted">
                                                 {{ ($latInit && $lonInit) ? "Koordinat: $latInit, $lonInit" : "Koordinat belum terdeteksi" }}
                                             </small>
                                         </div>
@@ -95,13 +143,13 @@
                                         <input type="hidden" id="longitude" name="longitude" value="{{ $lonInit }}">
                                     </div>
 
-                                    <div class="form-group">
+                                    <div class="form-group mb-3">
                                         <label for="dob">Tanggal Lahir</label>
                                         <input type="date" class="form-control editable" id="dob" name="date_of_birth_pelamar"
                                             value="{{ Auth::user()->personalPelamar->date_of_birth_pelamar ?? '' }}" readonly />
                                     </div>
 
-                                    <div class="form-group">
+                                    <div class="form-group mb-3">
                                         <label for="gender">Jenis Kelamin</label>
                                         <select class="form-control editable" id="gender" name="gender" disabled>
                                             <option value="laki-laki" {{ (Auth::user()->personalPelamar->gender ?? '') == 'laki-laki' ? 'selected' : '' }}>Laki-laki</option>
@@ -125,6 +173,7 @@
     </div>
 </div>
 @endsection
+
 
 @push('scripts')
 <!-- SweetAlert2 -->

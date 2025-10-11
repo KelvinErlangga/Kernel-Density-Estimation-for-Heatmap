@@ -1,5 +1,6 @@
 import L from "leaflet";
 import "leaflet.heat";
+import { density2d } from "fast-kde";
 import "leaflet/dist/leaflet.css";
 
 // Fix icon default path (karena bundler/Vite ga otomatis bawa PNG)
@@ -16,7 +17,7 @@ L.Icon.Default.mergeOptions({
 // ========================= STATE GLOBAL =========================
 let jobs = [];
 let locations = [];
-let mPoints = []; // titik dalam Web Mercator meters: [x, y]
+let mPoints = [];
 let map, heatLayer, markerLayer, nearCircle, nearLayer;
 let currentMode = "default"; // 'default' | 'nearby'
 const USER_HOME = window.USER_DOMICILE || {
@@ -29,7 +30,7 @@ const USER_HOME = window.USER_DOMICILE || {
 // ========================= Helper angka & koordinat =========================
 const toNum = (v) => {
     if (v === null || v === undefined) return NaN;
-    const s = String(v).trim().replace(",", ".");
+    const s = String(v).trim().replace(",", "."); // dukung " -7,123 "
     const n = parseFloat(s);
     return Number.isFinite(n) ? n : NaN;
 };
@@ -53,12 +54,54 @@ const metersToLngLat = (x, y) => {
     return [lon, lat];
 };
 
-// ========================= Popup builder (sederhana) =========================
+// ========================= Debounce helper =========================
+function debounce(fn, ms = 400) {
+    let t;
+    return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), ms);
+    };
+}
+
+// ========================= Popup builders =========================
+function formatRupiah(num) {
+    if (num == null || num === "") return "-";
+    const n = Number(num);
+    if (!Number.isFinite(n)) return String(num);
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits: 0,
+    }).format(n);
+}
+function formatRangeRupiah(min, max) {
+    if (min == null && max == null) return "-";
+    if (min != null && max != null)
+        return `${formatRupiah(min)} – ${formatRupiah(max)}`;
+    return min != null ? `${formatRupiah(min)}` : `${formatRupiah(max)}`;
+}
+function formatDateISO(d) {
+    if (!d) return "-";
+    const dt = new Date(d);
+    return isNaN(dt)
+        ? String(d)
+        : dt.toLocaleDateString("id-ID", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+          });
+}
 function buildPopup(job) {
     const posisi = job.position_hiring ?? "Lowongan";
+    const jenis = job.jenis_pekerjaan ?? "-";
+    const sistem = job.work_system ?? job.pola_kerja ?? "-";
     const lokasi = [job.kota, job.provinsi].filter(Boolean).join(", ");
-    const gajiMin = new Intl.NumberFormat("id-ID").format(job.gaji_min ?? 0);
-    const gajiMax = new Intl.NumberFormat("id-ID").format(job.gaji_max ?? 0);
+    const gaji = formatRangeRupiah(job.gaji_min, job.gaji_max);
+    const edu = job.education_hiring ?? "-";
+    const exp = job.pengalaman_minimal_tahun ?? job.pengalaman ?? null;
+    const expText = exp == null || exp === "" ? "-" : `${exp} th`;
+    const deadline = formatDateISO(job.deadline_hiring);
+
     return `
     <div style="min-width:240px">
       <div style="font-weight:700;font-size:14px;margin-bottom:6px">${posisi}</div>
@@ -66,7 +109,12 @@ function buildPopup(job) {
           lokasi || "-"
       }</div>
       <div style="font-size:12px;line-height:1.35">
-        <div><b>Gaji</b>: Rp ${gajiMin} – Rp ${gajiMax}/Bulan</div>
+        <div><b>Jenis</b>: ${jenis}</div>
+        <div><b>Sistem</b>: ${sistem}</div>
+        <div><b>Gaji</b>: ${gaji}</div>
+        <div><b>Pendidikan</b>: ${edu}</div>
+        <div><b>Pengalaman</b>: ${expText}</div>
+        <div><b>Deadline</b>: ${deadline}</div>
       </div>
       <div style="margin-top:8px">
         <a href="#" class="lihat-detail" data-id="${job.id}">Lihat detail</a>
@@ -74,7 +122,7 @@ function buildPopup(job) {
     </div>`;
 }
 
-// ========================= Parameter grid adaptif =========================
+// ========================= KDE recompute =========================
 function getAdaptiveParams() {
     const b = map.getBounds();
     const [minx, miny] = lngLatToMeters(b.getWest(), b.getSouth());
@@ -83,167 +131,59 @@ function getAdaptiveParams() {
     const heightM = maxy - miny;
 
     const px = map.getSize();
-    // kisi adaptif (jadi halus di layar besar, tetap aman performa)
-    const binsX = Math.max(96, Math.min(256, Math.round(px.x / 5)));
-    const binsY = Math.max(96, Math.min(256, Math.round(px.y / 5)));
+    const binsX = Math.max(128, Math.min(1024, Math.round(px.x / 4)));
+    const binsY = Math.max(128, Math.min(1024, Math.round(px.y / 4)));
 
     const cellX = widthM / binsX;
     const cellY = heightM / binsY;
 
-    // bandwidth dalam meter ~ 1.5x ukuran sel (mirip heuristik fast-kde default)
-    const sigmaM = 1.5 * Math.max(cellX, cellY);
+    const baseFactor = 1.5;
+    const BAND_M = baseFactor * Math.max(cellX, cellY);
+    const buf = BAND_M * 3;
 
     return {
         extent: [
-            [minx, maxx],
-            [miny, maxy],
+            [minx - buf, maxx + buf],
+            [miny - buf, maxy + buf],
         ],
         bins: [binsX, binsY],
-        cell: [cellX, cellY],
-        sigmaM,
+        bandwidth: [BAND_M, BAND_M],
     };
 }
 
-// ========================= Util KDE: histogram 2D =========================
-function makeHistogram2D(pointsM, extent, bins) {
-    const [minx, maxx] = extent[0];
-    const [miny, maxy] = extent[1];
-    const [nx, ny] = bins;
-
-    const w = nx,
-        h = ny;
-    const arr = new Float32Array(w * h);
-
-    const invDx = w / (maxx - minx);
-    const invDy = h / (maxy - miny);
-
-    for (const [x, y] of pointsM) {
-        const xi = Math.floor((x - minx) * invDx);
-        const yi = Math.floor((y - miny) * invDy);
-        if (xi >= 0 && xi < w && yi >= 0 && yi < h) {
-            arr[yi * w + xi] += 1;
-        }
-    }
-    return { data: arr, w, h, minx, miny };
-}
-
-// ========================= Util KDE: kernel gaussian 1D =========================
-function gaussianKernel1D(sigmaPixel) {
-    // batasi radius 3*sigma untuk efisiensi
-    const radius = Math.max(1, Math.ceil(3 * sigmaPixel));
-    const len = 2 * radius + 1;
-    const k = new Float32Array(len);
-    const s2 = sigmaPixel * sigmaPixel;
-    let sum = 0;
-    for (let i = -radius; i <= radius; i++) {
-        const v = Math.exp(-(i * i) / (2 * s2));
-        k[i + radius] = v;
-        sum += v;
-    }
-    // normalisasi
-    for (let i = 0; i < len; i++) k[i] /= sum;
-    return { k, radius };
-}
-
-// ========================= Util KDE: konvolusi separable =========================
-function convolveSeparable(data, w, h, kernel) {
-    const { k, radius } = kernel;
-    const tmp = new Float32Array(w * h);
-    const out = new Float32Array(w * h);
-
-    // Horizontal
-    for (let y = 0; y < h; y++) {
-        const rowOff = y * w;
-        for (let x = 0; x < w; x++) {
-            let sum = 0;
-            for (let t = -radius; t <= radius; t++) {
-                const xx = Math.min(w - 1, Math.max(0, x + t));
-                sum += data[rowOff + xx] * k[t + radius];
-            }
-            tmp[rowOff + x] = sum;
-        }
-    }
-
-    // Vertical
-    for (let x = 0; x < w; x++) {
-        for (let y = 0; y < h; y++) {
-            let sum = 0;
-            for (let t = -radius; t <= radius; t++) {
-                const yy = Math.min(h - 1, Math.max(0, y + t));
-                sum += tmp[yy * w + x] * k[t + radius];
-            }
-            out[y * w + x] = sum;
-        }
-    }
-    return out;
-}
-
-// ========================= KDE -> HeatLayer =========================
 function recomputeKDE() {
     if (!mPoints || !mPoints.length) {
         heatLayer.setLatLngs([]);
         return;
     }
+    const { extent, bins, bandwidth } = getAdaptiveParams();
+    const d2 = density2d(mPoints, { bins, extent, bandwidth });
 
-    const { extent, bins, cell, sigmaM } = getAdaptiveParams();
-    const [nx, ny] = bins;
-    const [cellX, cellY] = cell;
-
-    // sigma dalam pixel grid
-    const sigmaPx = sigmaM / Math.max(cellX, cellY);
-    const {
-        data: hist,
-        w,
-        h,
-        minx,
-        miny,
-    } = makeHistogram2D(mPoints, extent, bins);
-    const kernel = gaussianKernel1D(sigmaPx);
-
-    // Smooth (KDE via konvolusi separable)
-    const density = convolveSeparable(hist, w, h, kernel);
-
-    // Normalisasi & threshold kuantil agar tidak jadi “haze” menyeluruh
-    let dmax = 0;
-    const densVals = [];
-    for (let i = 0; i < density.length; i++) {
-        if (density[i] > dmax) dmax = density[i];
-    }
-    if (dmax <= 0) {
-        heatLayer.setLatLngs([]);
-        return;
+    let zmax = 0;
+    const pts = [];
+    for (const p of d2) {
+        if (p.z > zmax) zmax = p.z;
+        pts.push(p);
     }
 
-    for (let i = 0; i < density.length; i++) {
-        const v = density[i] / dmax;
-        if (v > 0) densVals.push(v);
-    }
-    densVals.sort((a, b) => a - b);
-    // ambil kuantil 0.80 (hanya top 20% paling padat) + minimum cutoff 0.12
-    const qIdx = Math.floor(densVals.length * 0.8);
-    const q80 = densVals[qIdx] ?? 0.12;
-    const CUTOFF = Math.max(0.12, q80);
-
+    const CUTOFF = 0.1;
     const heat = [];
-    for (let iy = 0; iy < h; iy++) {
-        for (let ix = 0; ix < w; ix++) {
-            const v = density[iy * w + ix] / dmax;
-            if (v < CUTOFF) continue; // buang nilai kecil
-            const gx = minx + (ix + 0.5) * cellX;
-            const gy = miny + (iy + 0.5) * cellY;
-            const [lon, lat] = metersToLngLat(gx, gy);
-            if (!validLat(lat) || !validLon(lon)) continue;
-            heat.push([lat, lon, v]);
-        }
+    for (const p of pts) {
+        const val = zmax ? p.z / zmax : 0;
+        if (val < CUTOFF) continue;
+        const [lon, lat] = metersToLngLat(p.x, p.y);
+        const latNum = toNum(lat),
+            lonNum = toNum(lon);
+        if (!validLat(latNum) || !validLon(lonNum)) continue;
+        heat.push([latNum, lonNum, val]);
     }
-
     heatLayer.setLatLngs(heat);
 }
 
 // ========================= Marker interaktif =========================
 function updateMarkers() {
     markerLayer.clearLayers();
-    const MARKER_ZOOM_THRESHOLD = 15; // turunkan supaya marker muncul lebih cepat
+    const MARKER_ZOOM_THRESHOLD = 15;
     if (map.getZoom() < MARKER_ZOOM_THRESHOLD) return;
 
     const bounds = map.getBounds();
@@ -260,6 +200,7 @@ function renderRekomendasi(list, highlightQuery = "") {
     const container = document.getElementById("rekomendasi-container");
     const counter = document.getElementById("rekomendasi-count");
     if (!container) return;
+
     if (counter) counter.textContent = list.length;
 
     if (!list.length) {
@@ -267,6 +208,7 @@ function renderRekomendasi(list, highlightQuery = "") {
         return;
     }
 
+    // Prioritaskan match query
     if (highlightQuery) {
         list.sort((a, b) => {
             const aMatch = (a.position_hiring ?? "")
@@ -275,7 +217,7 @@ function renderRekomendasi(list, highlightQuery = "") {
             const bMatch = (b.position_hiring ?? "")
                 .toLowerCase()
                 .includes(highlightQuery.toLowerCase());
-            return Number(bMatch) - Number(aMatch);
+            return bMatch - aMatch; // true=1
         });
     }
 
@@ -286,38 +228,43 @@ function renderRekomendasi(list, highlightQuery = "") {
                       job.distance_km
                   ).toFixed(1)} km dari lokasi Anda</small>`
                 : "";
+
             return `
-      <div class="card mb-3 border job-card" style="cursor:pointer;" onclick="showJobDetail('${
-          job.id
-      }')" tabindex="0">
-        <div class="d-flex p-3">
-          <img src="${
-              job.personal_company?.logo
-                  ? "/storage/company_logo/" + job.personal_company.logo
-                  : "/images/default-company.png"
-          }"
-               alt="Logo ${job.personal_company?.name_company ?? "Perusahaan"}"
-               style="width:70px;height:70px;object-fit:contain;border-radius:6px;border:1px solid #ccc;background:#f5f5f5;" class="mr-3">
-          <div>
-            <h6 class="font-weight-bold mb-1">${job.position_hiring ?? "-"}</h6>
-            <small class="d-block text-muted">${
-                job.personal_company?.name_company ?? "-"
-            }</small>
-            <small class="d-block">${[job.kota, job.provinsi]
-                .filter(Boolean)
-                .join(", ")}</small>
-            ${dist}
-            <small class="d-block text-dark">Rp ${new Intl.NumberFormat(
-                "id-ID"
-            ).format(job.gaji_min ?? 0)} - Rp ${new Intl.NumberFormat(
+        <div class="card mb-3 border job-card" style="cursor:pointer;" onclick="showJobDetail('${
+            job.id
+        }')" tabindex="0">
+          <div class="d-flex p-3">
+            <img src="${
+                job.personal_company?.logo
+                    ? "/storage/company_logo/" + job.personal_company.logo
+                    : "/images/default-company.png"
+            }"
+                 alt="Logo ${
+                     job.personal_company?.name_company ?? "Perusahaan"
+                 }"
+                 style="width:70px;height:70px;object-fit:contain;border-radius:6px;border:1px solid #ccc;background:#f5f5f5;" class="mr-3">
+            <div>
+              <h6 class="font-weight-bold mb-1">${
+                  job.position_hiring ?? "-"
+              }</h6>
+              <small class="d-block text-muted">${
+                  job.personal_company?.name_company ?? "-"
+              }</small>
+              <small class="d-block">${[job.kota, job.provinsi]
+                  .filter(Boolean)
+                  .join(", ")}</small>
+              ${dist}
+              <small class="d-block text-dark">Rp ${new Intl.NumberFormat(
+                  "id-ID"
+              ).format(job.gaji_min ?? 0)} - Rp ${new Intl.NumberFormat(
                 "id-ID"
             ).format(job.gaji_max ?? 0)}/Bulan</small>
-            <small class="text-muted">Diposting ${new Date(
-                job.created_at
-            ).toLocaleDateString("id-ID")}</small>
+              <small class="text-muted">Diposting ${new Date(
+                  job.created_at
+              ).toLocaleDateString("id-ID")}</small>
+            </div>
           </div>
-        </div>
-      </div>`;
+        </div>`;
         })
         .join("");
 }
@@ -380,24 +327,29 @@ async function fetchData(query = "", opts = {}) {
         );
     }
 
-    // --- overlay radius: bersihkan/gambar ulang ---
+    // --- ⬇️ overlay radius: SELALU dibersihkan lalu digambar ulang ---
     if (mode === "nearby" && hasHome) {
         const radiusKm = Number(
             opts.radiusKm ?? USER_HOME.radiusKmDefault ?? 60
         );
+
+        // bersihkan overlay lama
         if (nearLayer) nearLayer.clearLayers();
         nearCircle = L.circle([USER_HOME.lat, USER_HOME.lon], {
-            radius: radiusKm * 1000,
+            radius: radiusKm * 1000, // km -> meter
             color: "#1d4ed8",
             weight: 1,
             fillOpacity: 0.08,
-            pane: "overlayPane",
         });
         nearLayer.addLayer(nearCircle);
+
+        // zoom mengikuti lingkaran (kalau radius dikecilkan -> zoom masuk; dibesarkan -> zoom keluar)
         map.fitBounds(nearCircle.getBounds().pad(0.15));
     } else {
+        // mode default: hilangkan overlay radius & optionally fit ke data lowongan
         if (nearLayer) nearLayer.clearLayers();
         nearCircle = null;
+
         if (jobs.length) {
             const bb = L.latLngBounds(locations);
             map.fitBounds(bb.pad(0.2));
@@ -419,34 +371,20 @@ document.addEventListener("DOMContentLoaded", async () => {
             attribution: "&copy; OpenStreetMap contributors",
         }).addTo(map);
 
-        // Panes agar heat di bawah marker
-        if (!map.getPane("heat")) {
-            const paneHeat = map.createPane("heat");
-            paneHeat.style.zIndex = 450;
-            paneHeat.style.pointerEvents = "none";
-        }
         if (!map.getPane("markers")) {
-            const paneMarkers = map.createPane("markers");
-            paneMarkers.style.zIndex = 650;
+            const pane = map.createPane("markers");
+            pane.style.zIndex = 650;
         }
 
         heatLayer = L.heatLayer([], {
-            pane: "heat",
-            radius: 40,
-            blur: 18,
+            radius: 35,
+            blur: 15,
             maxZoom: 17,
-            minOpacity: 0.2, // penting: biar area low density benar2 transparan
-            // gradient non-ungu (opsional)
-            gradient: {
-                0.0: "transparent",
-                0.25: "#4c6ef5",
-                0.5: "#2dd4bf",
-                0.75: "#f59e0b",
-                1.0: "#ef4444",
-            },
+            minOpacity: 0.06,
         }).addTo(map);
+        markerLayer = L.layerGroup().addTo(map);
 
-        markerLayer = L.layerGroup([], { pane: "markers" }).addTo(map);
+        // Layer khusus untuk radius domisili (agar gampang dibersihkan)
         nearLayer = L.layerGroup().addTo(map);
 
         // Fetch awal sesuai mode (default)
@@ -489,18 +427,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                                   .join("")}</ul>`
                             : "<p>-</p>";
                     }
-                    function makeCommaList(text) {
-                        if (!text) return "<p>-</p>";
-                        const parts = String(text)
-                            .split(",")
-                            .map((p) => p.trim())
-                            .filter(Boolean);
-                        return parts.length
-                            ? `<ul class="pl-3 mb-0">${parts
-                                  .map((p) => `<li>${p}</li>`)
-                                  .join("")}</ul>`
-                            : "<p>-</p>";
-                    }
 
                     let btn = "";
                     if (job.is_closed)
@@ -511,73 +437,96 @@ document.addEventListener("DOMContentLoaded", async () => {
                         btn = `<button class="btn btn-primary mt-3" onclick="openApplicationModal('${job.id}')">Kirim Lamaran</button>`;
 
                     if (target) {
+                        // helper list dengan pemisah koma
+                        function makeCommaList(text) {
+                            if (!text) return "<p>-</p>";
+                            const parts = String(text)
+                                .split(",")
+                                .map((p) => p.trim())
+                                .filter(Boolean);
+                            if (!parts.length) return "<p>-</p>";
+                            return `<ul class="pl-3 mb-0">${parts
+                                .map((p) => `<li>${p}</li>`)
+                                .join("")}</ul>`;
+                        }
+
                         target.innerHTML = `
-              <div class="d-flex align-items-center mb-4">
-                <img src="${
-                    job.personal_company_logo ?? "/images/default-company.png"
-                }"
-                     style="width:70px;height:70px;object-fit:contain;border-radius:8px;border:1px solid #ccc;background:#f5f5f5;" class="mr-3">
-                <div>
-                  <h5 class="font-weight-bold mb-1">${
-                      job.position_hiring ?? "-"
-                  }</h5>
-                  <small class="text-muted">${job.company_name ?? "-"}</small>
-                </div>
-              </div>
-              <ul class="list-unstyled mb-4">
-                <li class="d-flex align-items-center mb-2">
-                  <i class="fas fa-map-marker-alt mr-2 text-secondary" style="width:18px;text-align:center;"></i>
-                  <span>${job.kota ?? ""}${
+                            <div class="d-flex align-items-center mb-4">
+                                <img src="${
+                                    job.personal_company_logo ??
+                                    "/images/default-company.png"
+                                }"
+                                    style="width:70px;height:70px;object-fit:contain;border-radius:8px;border:1px solid #ccc;background:#f5f5f5;" class="mr-3">
+                                <div>
+                                    <h5 class="font-weight-bold mb-1">${
+                                        job.position_hiring ?? "-"
+                                    }</h5>
+                                    <small class="text-muted">${
+                                        job.company_name ?? "-"
+                                    }</small>
+                                </div>
+                            </div>
+
+                            <ul class="list-unstyled mb-4">
+                                <li class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-map-marker-alt mr-2 text-secondary" style="width:18px;text-align:center;"></i>
+                                    <span>${job.kota ?? ""}${
                             job.provinsi ? ", " + job.provinsi : ""
                         }</span>
-                </li>
-                <li class="d-flex align-items-center mb-2">
-                  <i class="fas fa-building mr-2 text-secondary" style="width:18px;text-align:center;"></i>
-                  <span>${job.type_of_company ?? "-"}</span>
-                </li>
-                <li class="d-flex align-items-center mb-2">
-                  <i class="fas fa-money-bill-wave mr-2 text-secondary" style="width:18px;text-align:center;"></i>
-                  <span>Rp ${new Intl.NumberFormat("id-ID").format(
-                      job.gaji_min ?? 0
-                  )} -
-                        Rp ${new Intl.NumberFormat("id-ID").format(
-                            job.gaji_max ?? 0
-                        )} / Bulan</span>
-                </li>
-                <li class="d-flex align-items-center">
-                  <i class="fas fa-clock mr-2 text-secondary" style="width:18px;text-align:center;"></i>
-                  <span>Batas Waktu: ${
-                      job.deadline_hiring
-                          ? new Date(job.deadline_hiring).toLocaleDateString(
-                                "id-ID",
-                                {
-                                    day: "2-digit",
-                                    month: "long",
-                                    year: "numeric",
-                                }
-                            )
-                          : "-"
-                  }</span>
-                </li>
-              </ul>
-              <div class="mb-3">
-                <h6 class="font-weight-bold">Deskripsi Pekerjaan</h6>
-                ${makeBulletList(job.description_hiring)}
-              </div>
-              <div class="mb-3">
-                <h6 class="font-weight-bold">Kualifikasi</h6>
-                ${makeBulletList(job.kualifikasi)}
-              </div>
-              <div class="mb-3">
-                <h6 class="font-weight-bold">Keterampilan Teknis</h6>
-                ${makeCommaList(job.keterampilan_teknis)}
-              </div>
-              <div class="mb-3">
-                <h6 class="font-weight-bold">Keterampilan Non-Teknis</h6>
-                ${makeCommaList(job.keterampilan_non_teknis)}
-              </div>
-              ${btn}
-            `;
+                                </li>
+                                <li class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-building mr-2 text-secondary" style="width:18px;text-align:center;"></i>
+                                    <span>${job.type_of_company ?? "-"}</span>
+                                </li>
+                                <li class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-money-bill-wave mr-2 text-secondary" style="width:18px;text-align:center;"></i>
+                                    <span>Rp ${new Intl.NumberFormat(
+                                        "id-ID"
+                                    ).format(job.gaji_min ?? 0)} -
+                                        Rp ${new Intl.NumberFormat(
+                                            "id-ID"
+                                        ).format(
+                                            job.gaji_max ?? 0
+                                        )} / Bulan</span>
+                                </li>
+                                <li class="d-flex align-items-center">
+                                    <i class="fas fa-clock mr-2 text-secondary" style="width:18px;text-align:center;"></i>
+                                    <span>Batas Waktu: ${
+                                        job.deadline_hiring
+                                            ? new Date(
+                                                  job.deadline_hiring
+                                              ).toLocaleDateString("id-ID", {
+                                                  day: "2-digit",
+                                                  month: "long",
+                                                  year: "numeric",
+                                              })
+                                            : "-"
+                                    }</span>
+                                </li>
+                            </ul>
+
+                            <div class="mb-3">
+                                <h6 class="font-weight-bold">Deskripsi Pekerjaan</h6>
+                                ${makeBulletList(job.description_hiring)}
+                            </div>
+
+                            <div class="mb-3">
+                                <h6 class="font-weight-bold">Kualifikasi</h6>
+                                ${makeBulletList(job.kualifikasi)}
+                            </div>
+
+                            <div class="mb-3">
+                                <h6 class="font-weight-bold">Keterampilan Teknis</h6>
+                                ${makeCommaList(job.keterampilan_teknis)}
+                            </div>
+
+                            <div class="mb-3">
+                                <h6 class="font-weight-bold">Keterampilan Non-Teknis</h6>
+                                ${makeCommaList(job.keterampilan_non_teknis)}
+                            </div>
+
+                            ${btn}
+                        `;
                     }
 
                     if (window.scrollToDetailHeader)
@@ -608,6 +557,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         async function doSearchManual() {
             const query = $input.value.trim();
             if (!query) return;
+
             await fetchData(query, { mode: currentMode });
 
             const container = document.getElementById("rekomendasi-container");
@@ -741,11 +691,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         // ========================= Toggle Mode Lokasi (Dropdown) =========================
         const modeSelect = document.getElementById("mode-select");
         if (modeSelect) {
+            // set currentMode awal dari select
             currentMode = modeSelect.value;
 
             modeSelect.addEventListener("change", async () => {
                 currentMode = modeSelect.value;
 
+                // validasi koordinat
                 if (
                     currentMode === "nearby" &&
                     !(
@@ -777,24 +729,30 @@ document.addEventListener("DOMContentLoaded", async () => {
             const modeSelect = document.getElementById("mode-select");
             const km = e.detail && Number(e.detail.radiusKm);
 
+            // Apakah user saat ini berada/ingin berada di nearby?
             const isNearbySelected =
                 (modeSelect && modeSelect.value === "nearby") ||
                 currentMode === "nearby";
 
+            // Jika radius tidak valid (anggap reset), dan memang sedang nearby -> kembali ke default.
             if (!Number.isFinite(km)) {
                 if (isNearbySelected) {
                     currentMode = "default";
                     if (modeSelect) modeSelect.value = "default";
+                    // fetch default + bersihkan circle (fetchData default juga remove circle)
                     await fetchData("", { mode: "default" });
                 }
                 return;
             }
 
+            // Jika dropdown sedang "default", JANGAN paksa ke nearby (user memang mau default).
+            // Tapi kalau dropdown bukan default (atau sebelumnya nearby), barulah set nearby.
             if (!isNearbySelected) {
                 if (modeSelect) modeSelect.value = "nearby";
                 currentMode = "nearby";
             }
 
+            // Refresh data & gambar circle dengan radius terbaru
             await fetchData("", { mode: "nearby", radiusKm: km });
         });
     } catch (err) {
