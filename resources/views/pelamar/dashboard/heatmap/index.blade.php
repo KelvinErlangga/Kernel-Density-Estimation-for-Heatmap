@@ -103,6 +103,41 @@
     }
     .card-header h6{letter-spacing:.02em}
 
+    /* ===== Hint Banner ===== */
+    .hint-banner{
+    background: rgba(250, 204, 21, .18); /* kuning transparan */
+    border: 1px solid #facc15;           /* amber-400 */
+    color: #78350f;                      /* amber-900 */
+    border-radius: 12px;
+    padding: .65rem .85rem;
+    display: flex; align-items: center; gap: .5rem;
+    box-shadow: var(--soft-shadow);
+    }
+    .hint-banner a{ color:#1d4ed8; font-weight:700; text-decoration: underline; }
+    .hint-banner .icon{ width:18px; text-align:center; }
+
+    /* ==== Fade effect untuk hint ==== */
+    .hint-banner { position: relative; overflow: hidden; }
+    .hint-banner .icon { width:18px; text-align:center; }
+
+    /* kontainer isi yang dianimasikan */
+    .hint-inner{
+    display:inline-block;
+    opacity:1;
+    transform: translateY(0);
+    transition: opacity .35s ease, transform .35s ease;
+    }
+
+    .hint-inner.fade-out{
+    opacity:0;
+    transform: translateY(6px);
+    }
+
+    .hint-inner.fade-in{
+    opacity:1;
+    transform: translateY(0);
+    }
+
     /* ===== Suggestions dropdown ===== */
     #job-suggestions{
         border:1px solid var(--soft-border);
@@ -136,6 +171,12 @@ window.USER_DOMICILE = {
 </script>
 
 <div class="container-fluid mt-4">
+
+    <!-- ===== Hint Banner (auto diisi oleh JS) ===== -->
+    <div id="match-hint" class="hint-banner mb-3 d-none">
+        <i class="fas fa-lightbulb icon"></i>
+        <span>Menyiapkan rekomendasi terbaik untukmu…</span>
+    </div>
 
     {{-- Toolbar: Search + Mode + Radius --}}
     <div class="toolbar mb-3">

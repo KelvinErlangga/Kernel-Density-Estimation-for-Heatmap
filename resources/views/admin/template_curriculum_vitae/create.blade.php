@@ -522,6 +522,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const leftPanelKeys = ["personal_detail-kreatif", "links-kreatif", "skills-kreatif"];
     const rightPanelKeys = ["profile-kreatif", "experiences-kreatif", "educations-kreatif", "languages-kreatif", "organizations-kreatif", "achievements-kreatif"];
 
+    // [ADD] helpers
+    const baseFrom = (fullKey) => (fullKey || '').split('-')[0];            // "custom-ats" -> "custom"
+    const isCustom = (fullKeyOrBase) => baseFrom(fullKeyOrBase) === 'custom';
+
     // Saat dropdown diubah
     templateTypeSelect.addEventListener("change", function () {
         document.querySelectorAll(".template-fields").forEach(el => {
@@ -571,6 +575,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const targetList = document.getElementById("available-fields-" + selected);
             if (targetList) {
                 targetList.classList.remove("d-none");
+                // [KEEP] aktifkan sortable di list kiri (clone)
                 Sortable.create(targetList, {
                     group: { name: 'cv-sections', pull: 'clone', put: false },
                     sort: false
@@ -584,12 +589,13 @@ document.addEventListener("DOMContentLoaded", function () {
         group: { name: 'cv-sections', pull: false, put: true },
         animation: 150,
         onAdd: function(evt) {
-            const li = evt.item;
-            const key = li.dataset.key;
+            const li  = evt.item;
+            const key = li.dataset.key;        // contoh: "experiences-ats" / "custom-ats"
             li.remove();
 
-            // prevent duplicate
-            if (canvas.querySelector(`[data-key="${key}"]`)) {
+            // [FIX] cegah duplikasi hanya untuk NON-custom (custom boleh berkali-kali)
+            const base = baseFrom(key);        // "experiences" / "custom"
+            if (!isCustom(base) && canvas.querySelector(`.cv-section[data-key="${base}"]`)) {
                 updateLayoutJSON();
                 return;
             }
@@ -621,15 +627,17 @@ document.addEventListener("DOMContentLoaded", function () {
             const clone = tpl.content.cloneNode(true);
             panel.appendChild(clone);
 
-            // disable item di kiri
-            const activeList = document.querySelector('.template-fields:not(.d-none)');
-            if (activeList) {
-                const leftLi = activeList.querySelector(`[data-key="${key}"]`);
-                if (leftLi) {
-                    leftLi.classList.add('disabled');
-                    leftLi.style.pointerEvents = 'none';
-                    leftLi.style.color = '#b0b0b0';
-                    leftLi.style.backgroundColor = '#f8f9fa';
+            // [CHANGE] disable item di kiri HANYA untuk NON-custom
+            if (!isCustom(base)) {
+                const activeList = document.querySelector('.template-fields:not(.d-none)');
+                if (activeList) {
+                    const leftLi = activeList.querySelector(`[data-key="${key}"]`);
+                    if (leftLi) {
+                        leftLi.classList.add('disabled');
+                        leftLi.style.pointerEvents = 'none';
+                        leftLi.style.color = '#b0b0b0';
+                        leftLi.style.backgroundColor = '#f8f9fa';
+                    }
                 }
             }
 
@@ -643,18 +651,22 @@ document.addEventListener("DOMContentLoaded", function () {
         if (e.target && e.target.matches('.remove-section')) {
             const sec = e.target.closest('.cv-section');
             if (!sec) return;
-            const key = sec.dataset.key;
+            const keyBase = sec.dataset.key;  // contoh: "experiences" / "custom"
             sec.remove();
 
-            // re-enable item di kiri (semua list kiri, bukan hanya yang aktif)
-            document.querySelectorAll('.template-fields .list-group-item').forEach(li => {
-                if (li.dataset.key === key) {
-                    li.classList.remove('disabled');
-                    li.style.pointerEvents = 'auto';
-                    li.style.color = '';
-                    li.style.backgroundColor = '';
-                }
-            });
+            // [FIX] re-enable item kiri untuk NON-custom (custom memang tidak pernah di-disable)
+            if (!isCustom(keyBase)) {
+                const t = (templateTypeSelect.value || 'ats').toLowerCase();
+                const fullKey = `${keyBase}-${t}`;
+                document.querySelectorAll('.template-fields .list-group-item').forEach(li => {
+                    if (li.dataset.key === fullKey) {
+                        li.classList.remove('disabled');
+                        li.style.pointerEvents = 'auto';
+                        li.style.color = '';
+                        li.style.backgroundColor = '';
+                    }
+                });
+            }
 
             updateLayoutJSON();
         }
@@ -662,232 +674,248 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // update layout JSON: ambil urutan komponen di panel kiri dan kanan
     function updateLayoutJSON() {
-  const layout = [];
-  const mainLayout = canvas.querySelector('.cv-main-layout');
+      const layout = [];
+      const mainLayout = canvas.querySelector('.cv-main-layout');
 
-  if (mainLayout) {
-    const leftPanel  = mainLayout.querySelector('.left-panel');
-    const rightPanel = mainLayout.querySelector('.right-panel');
-    if (leftPanel) {
-      leftPanel.querySelectorAll('.cv-section').forEach(sec => {
-        const key = sec.dataset.key; // termasuk "custom"
-        layout.push({ key, panel: 'left' });
-      });
-    }
-    if (rightPanel) {
-      rightPanel.querySelectorAll('.cv-section').forEach(sec => {
-        const key = sec.dataset.key;
-        layout.push({ key, panel: 'right' });
-      });
-    }
-  } else {
-    // fallback: satu panel (ATS)
-    canvas.querySelectorAll('.cv-section').forEach(sec => {
-      const key = sec.dataset.key;
-      layout.push({ key });
-    });
-  }
+      // [ADD] helper ambil payload (judul & body) untuk custom
+      const pickCustomPayload = (sectionEl) => {
+        const titleEl = sectionEl.querySelector('h4.editable, h3.editable');
+        const bodyEl  = sectionEl.querySelector('div.editable');
+        return {
+          title:  titleEl ? titleEl.textContent.trim() : 'Custom Section',
+          payload:{ body: bodyEl ? bodyEl.innerHTML.trim() : 'Tulis deskripsi di sini…' }
+        };
+      };
 
-  layoutInput.value = JSON.stringify(layout);
+      if (mainLayout) {
+        const leftPanel  = mainLayout.querySelector('.left-panel');
+        const rightPanel = mainLayout.querySelector('.right-panel');
 
-  // ===== Styles (tambahan: custom) =====
-  const baseStyles = {
-    "page": {
-      "width": "100%",
-      "margin": "0 auto",
-      "padding": "0 48px",
-      "max-width": "800px",
-      "box-sizing": "border-box"
-    },
-
-    "links": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "ul": { "color": "#000000", "font-size": "14px" }
-    },
-
-    "skills": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "ul": {
-        "color": "#000000",
-        "columns": "2",
-        "font-size": "14px",
-        "margin-top": "6px"
+        if (leftPanel) {
+          leftPanel.querySelectorAll('.cv-section').forEach(sec => {
+            const keyBase = sec.dataset.key; // termasuk "custom"
+            const item = { key: keyBase, panel: 'left' };
+            if (isCustom(keyBase)) Object.assign(item, pickCustomPayload(sec)); // [ADD]
+            layout.push(item);
+          });
+        }
+        if (rightPanel) {
+          rightPanel.querySelectorAll('.cv-section').forEach(sec => {
+            const keyBase = sec.dataset.key;
+            const item = { key: keyBase, panel: 'right' };
+            if (isCustom(keyBase)) Object.assign(item, pickCustomPayload(sec)); // [ADD]
+            layout.push(item);
+          });
+        }
+      } else {
+        // fallback: satu panel (ATS)
+        canvas.querySelectorAll('.cv-section').forEach(sec => {
+          const keyBase = sec.dataset.key;
+          const item = { key: keyBase };
+          if (isCustom(keyBase)) Object.assign(item, pickCustomPayload(sec));   // [ADD]
+          layout.push(item);
+        });
       }
-    },
 
-    "languages": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "ul": {
-        "color": "#000000",
-        "font-size": "14px",
-        "margin-top": "6px"
-      }
-    },
+      layoutInput.value = JSON.stringify(layout);
 
-    "educations": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "ul": { "margin-top": "6px" },
-      "div": { "color": "#000000", "font-size": "14px" },
-      "date": { "color": "#666666", "float": "right", "font-size": "12px" },
-      "field": { "margin-top": "6px" }
-    },
+      // ===== Styles (tambahan: custom) =====
+      const baseStyles = {
+        "page": {
+          "width": "100%",
+          "margin": "0 auto",
+          "padding": "0 48px",
+          "max-width": "800px",
+          "box-sizing": "border-box"
+        },
 
-    "experiences": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "li": { "text-align": "justify", "margin-bottom": "6px" },
-      "ul": {
-        "color": "#000000",
-        "font-size": "14px",
-        "margin-top": "8px",
-        "line-height": "1.5",
-        "padding-left": "20px",
-        "margin-bottom": "8px",
-        "list-style-type": "disc"
-      },
-      "div": { "color": "#000000", "font-size": "14px", "margin-bottom": "10px" },
-      "date": { "color": "#555555", "float": "right", "font-size": "12px" },
-      "meta": { "overflow": "hidden", "margin-bottom": "4px" },
-      "position": { "float": "left", "font-style": "italic" }
-    },
+        "links": {
+          "h3": {
+            "color": "#111111",
+            "margin": "0 0 6px 0",
+            "font-size": "18px",
+            "text-align": "center",
+            "border-bottom": "1px solid #111",
+            "padding-bottom": "6px"
+          },
+          "hr": { "margin-top": "6px" },
+          "ul": { "color": "#000000", "font-size": "14px" }
+        },
 
-    "achievements": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "ul": { "color": "#000000", "font-size": "14px" }
-    },
+        "skills": {
+          "h3": {
+            "color": "#111111",
+            "margin": "0 0 6px 0",
+            "font-size": "18px",
+            "text-align": "center",
+            "border-bottom": "1px solid #111",
+            "padding-bottom": "6px"
+          },
+          "hr": { "margin-top": "6px" },
+          "ul": {
+            "color": "#000000",
+            "columns": "2",
+            "font-size": "14px",
+            "margin-top": "6px"
+          }
+        },
 
-    "organizations": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "hr": { "margin-top": "6px" },
-      "ul": { "margin-top": "6px" },
-      "div": { "color": "#000000", "font-size": "14px" }
-    },
+        "languages": {
+          "h3": {
+            "color": "#111111",
+            "margin": "0 0 6px 0",
+            "font-size": "18px",
+            "text-align": "center",
+            "border-bottom": "1px solid #111",
+            "padding-bottom": "6px"
+          },
+          "hr": { "margin-top": "6px" },
+          "ul": {
+            "color": "#000000",
+            "font-size": "14px",
+            "margin-top": "6px"
+          }
+        },
 
-    "personal_detail": {
-      "hr": {
-        "width": "80%",
-        "border": "0",
-        "margin": "12px auto",
-        "border-top": "1px solid #ddd"
-      },
-      "row": {
-        "display": "flex",
-        "flex-wrap": "wrap",
-        "text-align": "center",
-        "align-items": "center",
-        "margin-bottom": "8px",
-        "justify-content": "center"
-      },
-      "info": {
-        "color": "#000000",
-        "display": "inline-block",
-        "font-size": "12px",
-        "text-align": "center",
-        "line-height": "1.4",
-        "margin-bottom": "4px"
-      },
-      "name": {
-        "color": "#000000",
-        "margin": "0 0 8px 0",
-        "font-size": "28px",
-        "text-align": "center",
-        "font-weight": "700",
-        "line-height": "1.05",
-        "text-transform": "uppercase"
-      },
-      "summary": {
-        "color": "#333333",
-        "margin": "12px 0",
-        "font-size": "13px",
-        "text-align": "justify"
-      },
-      "container": {
-        "width": "100%",
-        "margin": "0 auto",
-        "display": "block",
-        "padding": "0 12px",
-        "max-width": "760px",
-        "box-sizing": "border-box",
-        "text-align": "center"
-      }
-    },
+        "educations": {
+          "h3": {
+            "color": "#111111",
+            "margin": "0 0 6px 0",
+            "font-size": "18px",
+            "text-align": "center",
+            "border-bottom": "1px solid #111",
+            "padding-bottom": "6px"
+          },
+          "hr": { "margin-top": "6px" },
+          "ul": { "margin-top": "6px" },
+          "div": { "color": "#000000", "font-size": "14px" },
+          "date": { "color": "#666666", "float": "right", "font-size": "12px" },
+          "field": { "margin-top": "6px" }
+        },
 
-    // ===== NEW: Section Bebas =====
-    "custom": {
-      "h3": {
-        "color": "#111111",
-        "margin": "0 0 6px 0",
-        "font-size": "18px",
-        "text-align": "center",
-        "border-bottom": "1px solid #111",
-        "padding-bottom": "6px"
-      },
-      "content": {
-        "font-size": "14px",
-        "line-height": "1.5",
-        "text-align": "justify"
-      },
-      "container": {}
+        "experiences": {
+          "h3": {
+            "color": "#111111",
+            "margin": "0 0 6px 0",
+            "font-size": "18px",
+            "text-align": "center",
+            "border-bottom": "1px solid #111",
+            "padding-bottom": "6px"
+          },
+          "hr": { "margin-top": "6px" },
+          "li": { "text-align": "justify", "margin-bottom": "6px" },
+          "ul": {
+            "color": "#000000",
+            "font-size": "14px",
+            "margin-top": "8px",
+            "line-height": "1.5",
+            "padding-left": "20px",
+            "margin-bottom": "8px",
+            "list-style-type": "disc"
+          },
+          "div": { "color": "#000000", "font-size": "14px", "margin-bottom": "10px" },
+          "date": { "color": "#555555", "float": "right", "font-size": "12px" },
+          "meta": { "overflow": "hidden", "margin-bottom": "4px" },
+          "position": { "float": "left", "font-style": "italic" }
+        },
+
+        "achievements": {
+          "h3": {
+            "color": "#111111",
+            "margin": "0 0 6px 0",
+            "font-size": "18px",
+            "text-align": "center",
+            "border-bottom": "1px solid #111",
+            "padding-bottom": "6px"
+          },
+          "hr": { "margin-top": "6px" },
+          "ul": { "color": "#000000", "font-size": "14px" }
+        },
+
+        "organizations": {
+          "h3": {
+            "color": "#111111",
+            "margin": "0 0 6px 0",
+            "font-size": "18px",
+            "text-align": "center",
+            "border-bottom": "1px solid #111",
+            "padding-bottom": "6px"
+          },
+          "hr": { "margin-top": "6px" },
+          "ul": { "margin-top": "6px" },
+          "div": { "color": "#000000", "font-size": "14px" }
+        },
+
+        "personal_detail": {
+          "hr": {
+            "width": "80%",
+            "border": "0",
+            "margin": "12px auto",
+            "border-top": "1px solid #ddd"
+          },
+          "row": {
+            "display": "flex",
+            "flex-wrap": "wrap",
+            "text-align": "center",
+            "align-items": "center",
+            "margin-bottom": "8px",
+            "justify-content": "center"
+          },
+          "info": {
+            "color": "#000000",
+            "display": "inline-block",
+            "font-size": "12px",
+            "text-align": "center",
+            "line-height": "1.4",
+            "margin-bottom": "4px"
+          },
+          "name": {
+            "color": "#000000",
+            "margin": "0 0 8px 0",
+            "font-size": "28px",
+            "text-align": "center",
+            "font-weight": "700",
+            "line-height": "1.05",
+            "text-transform": "uppercase"
+          },
+          "summary": {
+            "color": "#333333",
+            "margin": "12px 0",
+            "font-size": "13px",
+            "text-align": "justify"
+          },
+          "container": {
+            "width": "100%",
+            "margin": "0 auto",
+            "display": "block",
+            "padding": "0 12px",
+            "max-width": "760px",
+            "box-sizing": "border-box",
+            "text-align": "center"
+          }
+        },
+
+        // ===== NEW: Section Bebas =====
+        "custom": {
+          "h3": {
+            "color": "#111111",
+            "margin": "0 0 6px 0",
+            "font-size": "18px",
+            "text-align": "center",
+            "border-bottom": "1px solid #111",
+            "padding-bottom": "6px"
+          },
+          "content": {
+            "font-size": "14px",
+            "line-height": "1.5",
+            "text-align": "justify"
+          },
+          "container": {}
+        }
+      };
+
+      document.getElementById("style_json").value = JSON.stringify(baseStyles);
     }
-  };
-
-  document.getElementById("style_json").value = JSON.stringify(baseStyles);
-}
-
 
     // sebelum submit pastikan update
     form.addEventListener('submit', function(e) {

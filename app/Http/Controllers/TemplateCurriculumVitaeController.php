@@ -57,7 +57,7 @@ class TemplateCurriculumVitaeController extends Controller
             // Upload thumbnail jika ada
             if ($request->hasFile('thumbnail_curriculum_vitae')) {
                 $thumbnailPath = $request->file('thumbnail_curriculum_vitae')
-                    ->store('thumbnails', 'public'); // sesuai folder di versi lama
+                    ->store('thumbnails', 'public');
                 $validated['thumbnail_curriculum_vitae'] = $thumbnailPath;
             }
 
@@ -68,7 +68,7 @@ class TemplateCurriculumVitaeController extends Controller
             $validated['style_json'] = $request->style_json ?? json_encode([]);
 
             // template_type wajib diisi (ambil dari form), default 'ats' kalau null
-            $validated['template_type'] = $request->template_type ?? 'ATS';
+            $validated['template_type'] = $request->template_type ?? 'ats';
 
             // Simpan ID admin yang membuat
             $validated['created_by'] = auth()->id();

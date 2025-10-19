@@ -33,11 +33,19 @@ function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) 
 function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
+// heatmap-simple-pai-jurnal.js
+// Heatmap polosan (leaflet.heat) + evaluasi HR/PAI versi jurnal (tanpa KDE)
+// - AP = α (proporsi area = proporsi sel grid teratas)
+// - HR = hits / total_test
+// - PAI = HR / AP
+// - Split 70/30 deterministik (seed=42)
+// - Grid evaluasi TETAP 256x256 (tidak ikut viewport)
 
 
 
 
-// Fix icon default path (karena bundler/Vite ga otomatis bawa PNG)
+
+// Perbaiki path icon default (bundler/Vite)
 
 
 
@@ -47,10 +55,15 @@ leaflet__WEBPACK_IMPORTED_MODULE_0___default().Icon.Default.mergeOptions({
   shadowUrl: leaflet_dist_images_marker_shadow_png__WEBPACK_IMPORTED_MODULE_5__["default"]
 });
 
-// ========================= STATE GLOBAL =========================
+/* ========================= KONFIG EVALUASI (VERSI JURNAL) ========================= */
+var PAI_ALPHAS = [0.01, 0.05, 0.1]; // AP = α (1%, 5%, 10%)
+var SPLIT_SEED = 42; // deterministik
+var TRAIN_RATIO = 0.7; // 70% train, 30% test
+var FIXED_BINS = [256, 256]; // grid evaluasi tetap
+
+/* ========================= STATE GLOBAL ========================= */
 var jobs = [];
-var locations = [];
-var mPoints = []; // titik dalam Web Mercator meters: [x, y]
+var locations = []; // [[lat, lon], ...]
 var map, heatLayer, markerLayer, nearCircle, nearLayer;
 var currentMode = "default"; // 'default' | 'nearby'
 var USER_HOME = window.USER_DOMICILE || {
@@ -60,7 +73,11 @@ var USER_HOME = window.USER_DOMICILE || {
   radiusKmDefault: 60
 };
 
-// ========================= Helper angka & koordinat =========================
+// Hint carousel
+var hintTimer = null;
+var hintIdx = 0;
+
+/* ========================= Helpers umum ========================= */
 var toNum = function toNum(v) {
   if (v === null || v === undefined) return NaN;
   var s = String(v).trim().replace(",", ".");
@@ -74,21 +91,19 @@ var validLon = function validLon(x) {
   return Number.isFinite(x) && x >= -180 && x <= 180;
 };
 
-// Web Mercator meter <-> lon/lat
-var R = 20037508.34;
-var lngLatToMeters = function lngLatToMeters(lon, lat) {
-  var x = lon * R / 180;
-  var y = Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180);
-  return [x, y * R / 180];
-};
-var metersToLngLat = function metersToLngLat(x, y) {
-  var lon = x / R * 180;
-  var lat = y / R * 180;
-  lat = 180 / Math.PI * (2 * Math.atan(Math.exp(lat * Math.PI / 180)) - Math.PI / 2);
-  return [lon, lat];
-};
+// Haversine (jarak untuk hint)
+function computeDistanceKm(lat1, lon1, lat2, lon2) {
+  var toRad = function toRad(d) {
+    return d * Math.PI / 180;
+  };
+  var R = 6371;
+  var dLat = toRad(lat2 - lat1);
+  var dLon = toRad(lon2 - lon1);
+  var a = Math.pow(Math.sin(dLat / 2), 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.pow(Math.sin(dLon / 2), 2);
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
 
-// ========================= Popup builder (sederhana) =========================
+/* ========================= Popup ========================= */
 function buildPopup(job) {
   var _job$position_hiring, _job$gaji_min, _job$gaji_max;
   var posisi = (_job$position_hiring = job.position_hiring) !== null && _job$position_hiring !== void 0 ? _job$position_hiring : "Lowongan";
@@ -98,37 +113,72 @@ function buildPopup(job) {
   return "\n    <div style=\"min-width:240px\">\n      <div style=\"font-weight:700;font-size:14px;margin-bottom:6px\">".concat(posisi, "</div>\n      <div style=\"font-size:12px;color:#555;margin-bottom:6px\">").concat(lokasi || "-", "</div>\n      <div style=\"font-size:12px;line-height:1.35\">\n        <div><b>Gaji</b>: Rp ").concat(gajiMin, " \u2013 Rp ").concat(gajiMax, "/Bulan</div>\n      </div>\n      <div style=\"margin-top:8px\">\n        <a href=\"#\" class=\"lihat-detail\" data-id=\"").concat(job.id, "\">Lihat detail</a>\n      </div>\n    </div>");
 }
 
-// ========================= Parameter grid adaptif =========================
-function getAdaptiveParams() {
-  var b = map.getBounds();
-  var _lngLatToMeters = lngLatToMeters(b.getWest(), b.getSouth()),
-    _lngLatToMeters2 = _slicedToArray(_lngLatToMeters, 2),
-    minx = _lngLatToMeters2[0],
-    miny = _lngLatToMeters2[1];
-  var _lngLatToMeters3 = lngLatToMeters(b.getEast(), b.getNorth()),
-    _lngLatToMeters4 = _slicedToArray(_lngLatToMeters3, 2),
-    maxx = _lngLatToMeters4[0],
-    maxy = _lngLatToMeters4[1];
-  var widthM = maxx - minx;
-  var heightM = maxy - miny;
-  var px = map.getSize();
-  // kisi adaptif (jadi halus di layar besar, tetap aman performa)
-  var binsX = Math.max(96, Math.min(256, Math.round(px.x / 5)));
-  var binsY = Math.max(96, Math.min(256, Math.round(px.y / 5)));
-  var cellX = widthM / binsX;
-  var cellY = heightM / binsY;
-
-  // bandwidth dalam meter ~ 1.5x ukuran sel (mirip heuristik fast-kde default)
-  var sigmaM = 1.5 * Math.max(cellX, cellY);
-  return {
-    extent: [[minx, maxx], [miny, maxy]],
-    bins: [binsX, binsY],
-    cell: [cellX, cellY],
-    sigmaM: sigmaM
+/* ===== Gaya heat adaptif (visual) ===== */
+function getHeatStyleForZoom(z) {
+  var table = {
+    10: {
+      r: 8,
+      b: 6,
+      min: 0.25
+    },
+    11: {
+      r: 10,
+      b: 7,
+      min: 0.25
+    },
+    12: {
+      r: 14,
+      b: 9,
+      min: 0.28
+    },
+    13: {
+      r: 20,
+      b: 12,
+      min: 0.3
+    },
+    14: {
+      r: 26,
+      b: 15,
+      min: 0.32
+    },
+    15: {
+      r: 34,
+      b: 18,
+      min: 0.33
+    },
+    16: {
+      r: 42,
+      b: 20,
+      min: 0.34
+    },
+    17: {
+      r: 50,
+      b: 22,
+      min: 0.35
+    }
   };
+  var zc = Math.max(10, Math.min(17, Math.round(z)));
+  return table[zc];
+}
+function applyHeatStyle() {
+  if (!map || !heatLayer) return;
+  var s = getHeatStyleForZoom(map.getZoom());
+  heatLayer.setOptions({
+    radius: s.r,
+    blur: s.b,
+    minOpacity: s.min
+  });
 }
 
-// ========================= Util KDE: histogram 2D =========================
+/* ===== Mercator: lon/lat <-> meter (untuk grid evaluasi) ===== */
+var R = 20037508.34;
+function lngLatToMeters(lon, lat) {
+  var x = lon * R / 180;
+  var y = Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180);
+  return [x, y * R / 180];
+}
+
+/* ===== Histogram 2D (COUNT per cell) – TANPA smoothing (untuk evaluasi) ===== */
 function makeHistogram2D(pointsM, extent, bins) {
   var _extent$ = _slicedToArray(extent[0], 2),
     minx = _extent$[0],
@@ -137,10 +187,8 @@ function makeHistogram2D(pointsM, extent, bins) {
     miny = _extent$2[0],
     maxy = _extent$2[1];
   var _bins = _slicedToArray(bins, 2),
-    nx = _bins[0],
-    ny = _bins[1];
-  var w = nx,
-    h = ny;
+    w = _bins[0],
+    h = _bins[1];
   var arr = new Float32Array(w * h);
   var invDx = w / (maxx - minx);
   var invDy = h / (maxy - miny);
@@ -153,9 +201,7 @@ function makeHistogram2D(pointsM, extent, bins) {
         y = _step$value[1];
       var xi = Math.floor((x - minx) * invDx);
       var yi = Math.floor((y - miny) * invDy);
-      if (xi >= 0 && xi < w && yi >= 0 && yi < h) {
-        arr[yi * w + xi] += 1;
-      }
+      if (xi >= 0 && xi < w && yi >= 0 && yi < h) arr[yi * w + xi] += 1;
     }
   } catch (err) {
     _iterator.e(err);
@@ -167,140 +213,243 @@ function makeHistogram2D(pointsM, extent, bins) {
     w: w,
     h: h,
     minx: minx,
-    miny: miny
+    miny: miny,
+    cellX: (maxx - minx) / w,
+    cellY: (maxy - miny) / h
   };
 }
 
-// ========================= Util KDE: kernel gaussian 1D =========================
-function gaussianKernel1D(sigmaPixel) {
-  // batasi radius 3*sigma untuk efisiensi
-  var radius = Math.max(1, Math.ceil(3 * sigmaPixel));
-  var len = 2 * radius + 1;
-  var k = new Float32Array(len);
-  var s2 = sigmaPixel * sigmaPixel;
-  var sum = 0;
-  for (var i = -radius; i <= radius; i++) {
-    var v = Math.exp(-(i * i) / (2 * s2));
-    k[i + radius] = v;
-    sum += v;
+/* ===== PRNG ber-seed untuk split konsisten ===== */
+function mulberry32(seed) {
+  var t = seed >>> 0;
+  return function () {
+    t += 0x6d2b79f5;
+    var r = Math.imul(t ^ t >>> 15, 1 | t);
+    r ^= r + Math.imul(r ^ r >>> 7, 61 | r);
+    return ((r ^ r >>> 14) >>> 0) / 4294967296;
+  };
+}
+function shuffleSeeded(arr) {
+  var seed = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : SPLIT_SEED;
+  var rng = mulberry32(seed);
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(rng() * (i + 1));
+    var _ref = [a[j], a[i]];
+    a[i] = _ref[0];
+    a[j] = _ref[1];
   }
-  // normalisasi
-  for (var _i = 0; _i < len; _i++) k[_i] /= sum;
+  return a;
+}
+
+/* ===== Parameter grid evaluasi TETAP (tidak ikut viewport/zoom) ===== */
+function getFixedEvalParams() {
+  if (!jobs.length) return null;
+  var minLat = +Infinity,
+    maxLat = -Infinity,
+    minLon = +Infinity,
+    maxLon = -Infinity;
+  var _iterator2 = _createForOfIteratorHelper(jobs),
+    _step2;
+  try {
+    for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+      var j = _step2.value;
+      if (!Number.isFinite(j.lat) || !Number.isFinite(j.lon)) continue;
+      if (j.lat < minLat) minLat = j.lat;
+      if (j.lat > maxLat) maxLat = j.lat;
+      if (j.lon < minLon) minLon = j.lon;
+      if (j.lon > maxLon) maxLon = j.lon;
+    }
+  } catch (err) {
+    _iterator2.e(err);
+  } finally {
+    _iterator2.f();
+  }
+  var _lngLatToMeters = lngLatToMeters(minLon, minLat),
+    _lngLatToMeters2 = _slicedToArray(_lngLatToMeters, 2),
+    minx0 = _lngLatToMeters2[0],
+    miny0 = _lngLatToMeters2[1];
+  var _lngLatToMeters3 = lngLatToMeters(maxLon, maxLat),
+    _lngLatToMeters4 = _slicedToArray(_lngLatToMeters3, 2),
+    maxx0 = _lngLatToMeters4[0],
+    maxy0 = _lngLatToMeters4[1];
+  var pad = 1000; // buffer 1 km
+  var extent = [[minx0 - pad, maxx0 + pad], [miny0 - pad, maxy0 + pad]];
+  var bins = FIXED_BINS.slice();
   return {
-    k: k,
-    radius: radius
+    extent: extent,
+    bins: bins
+  };
+}
+var lastEvalGrid = null; // { w,h,minx,miny,cellX,cellY,z: Float32Array }
+
+/* ===== Bangun grid COUNT dari titik TRAIN (untuk evaluasi) ===== */
+function buildCountGrid(pointsLngLat) {
+  var fp = getFixedEvalParams();
+  if (!fp) return null;
+  var extent = fp.extent,
+    bins = fp.bins;
+  var ptsM = pointsLngLat.map(function (_ref2) {
+    var _ref3 = _slicedToArray(_ref2, 2),
+      lat = _ref3[0],
+      lon = _ref3[1];
+    return lngLatToMeters(lon, lat);
+  });
+  var _makeHistogram2D = makeHistogram2D(ptsM, extent, bins),
+    counts = _makeHistogram2D.data,
+    w = _makeHistogram2D.w,
+    h = _makeHistogram2D.h,
+    minx = _makeHistogram2D.minx,
+    miny = _makeHistogram2D.miny,
+    cellX = _makeHistogram2D.cellX,
+    cellY = _makeHistogram2D.cellY;
+
+  // normalisasi ke [0,1] agar bisa diranking stabil
+  var cmax = 0;
+  for (var i = 0; i < counts.length; i++) if (counts[i] > cmax) cmax = counts[i];
+  var z = new Float32Array(w * h);
+  if (cmax > 0) for (var _i = 0; _i < counts.length; _i++) z[_i] = counts[_i] / cmax;
+  return {
+    w: w,
+    h: h,
+    minx: minx,
+    miny: miny,
+    cellX: cellX,
+    cellY: cellY,
+    z: z
   };
 }
 
-// ========================= Util KDE: konvolusi separable =========================
-function convolveSeparable(data, w, h, kernel) {
-  var k = kernel.k,
-    radius = kernel.radius;
-  var tmp = new Float32Array(w * h);
-  var out = new Float32Array(w * h);
+/* ===== Konversi titik ke index sel pada grid evaluasi ===== */
+function cellIndexOf(lat, lon, grid) {
+  var w = grid.w,
+    h = grid.h,
+    minx = grid.minx,
+    miny = grid.miny,
+    cellX = grid.cellX,
+    cellY = grid.cellY;
+  var _lngLatToMeters5 = lngLatToMeters(lon, lat),
+    _lngLatToMeters6 = _slicedToArray(_lngLatToMeters5, 2),
+    x = _lngLatToMeters6[0],
+    y = _lngLatToMeters6[1];
+  var ix = Math.floor((x - minx) / cellX);
+  var iy = Math.floor((y - miny) / cellY);
+  if (ix < 0 || ix >= w || iy < 0 || iy >= h) return -1;
+  return iy * w + ix;
+}
 
-  // Horizontal
-  for (var y = 0; y < h; y++) {
-    var rowOff = y * w;
-    for (var x = 0; x < w; x++) {
-      var sum = 0;
-      for (var t = -radius; t <= radius; t++) {
-        var xx = Math.min(w - 1, Math.max(0, x + t));
-        sum += data[rowOff + xx] * k[t + radius];
-      }
-      tmp[rowOff + x] = sum;
-    }
+/* ===== HR & PAI (versi jurnal) =====
+   AP = α (proporsi area yang diuji)
+   HR = hits / total_test
+   PAI = HR / AP
+*/
+function evaluatePAI(testPoints) {
+  var alphas = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : PAI_ALPHAS;
+  if (!lastEvalGrid) {
+    console.warn("Grid evaluasi belum ada.");
+    return [];
   }
+  var _lastEvalGrid = lastEvalGrid,
+    w = _lastEvalGrid.w,
+    h = _lastEvalGrid.h,
+    z = _lastEvalGrid.z;
+  var N = w * h;
 
-  // Vertical
-  for (var _x = 0; _x < w; _x++) {
-    for (var _y = 0; _y < h; _y++) {
-      var _sum = 0;
-      for (var _t = -radius; _t <= radius; _t++) {
-        var yy = Math.min(h - 1, Math.max(0, _y + _t));
-        _sum += tmp[yy * w + _x] * k[_t + radius];
+  // rank sel dari skor z tertinggi → terendah
+  var order = Array.from({
+    length: N
+  }, function (_, i) {
+    return i;
+  }).sort(function (a, b) {
+    return z[b] - z[a];
+  });
+  var totalPts = testPoints.length || 1;
+  var out = [];
+  var _iterator3 = _createForOfIteratorHelper(alphas),
+    _step3;
+  try {
+    for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
+      var alpha = _step3.value;
+      var topK = Math.max(1, Math.floor(alpha * N));
+      var chosen = new Set(order.slice(0, topK));
+      var hits = 0;
+      var _iterator4 = _createForOfIteratorHelper(testPoints),
+        _step4;
+      try {
+        for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
+          var pt = _step4.value;
+          var idx = cellIndexOf(pt.lat, pt.lon, lastEvalGrid);
+          if (idx >= 0 && chosen.has(idx)) hits++;
+        }
+      } catch (err) {
+        _iterator4.e(err);
+      } finally {
+        _iterator4.f();
       }
-      out[_y * w + _x] = _sum;
+      var HR = hits / totalPts;
+      var AP = alpha;
+      var PAI = HR / AP;
+      out.push({
+        alpha: alpha,
+        AP: AP,
+        HR: HR,
+        PAI: PAI,
+        hits: hits,
+        totalPts: totalPts,
+        topCells: topK
+      });
     }
+  } catch (err) {
+    _iterator3.e(err);
+  } finally {
+    _iterator3.f();
   }
   return out;
 }
 
-// ========================= KDE -> HeatLayer =========================
-function recomputeKDE() {
-  var _densVals$qIdx;
-  if (!mPoints || !mPoints.length) {
+/* ========================= Heatmap murni (polosan) =========================
+   Untuk tampilan saja: ambil titik dalam viewport (+padding) dan kirim ke leaflet.heat
+*/
+function recomputeHeat() {
+  if (!locations.length) {
     heatLayer.setLatLngs([]);
     return;
   }
-  var _getAdaptiveParams = getAdaptiveParams(),
-    extent = _getAdaptiveParams.extent,
-    bins = _getAdaptiveParams.bins,
-    cell = _getAdaptiveParams.cell,
-    sigmaM = _getAdaptiveParams.sigmaM;
-  var _bins2 = _slicedToArray(bins, 2),
-    nx = _bins2[0],
-    ny = _bins2[1];
-  var _cell = _slicedToArray(cell, 2),
-    cellX = _cell[0],
-    cellY = _cell[1];
+  var bounds = map.getBounds();
 
-  // sigma dalam pixel grid
-  var sigmaPx = sigmaM / Math.max(cellX, cellY);
-  var _makeHistogram2D = makeHistogram2D(mPoints, extent, bins),
-    hist = _makeHistogram2D.data,
-    w = _makeHistogram2D.w,
-    h = _makeHistogram2D.h,
-    minx = _makeHistogram2D.minx,
-    miny = _makeHistogram2D.miny;
-  var kernel = gaussianKernel1D(sigmaPx);
-
-  // Smooth (KDE via konvolusi separable)
-  var density = convolveSeparable(hist, w, h, kernel);
-
-  // Normalisasi & threshold kuantil agar tidak jadi “haze” menyeluruh
-  var dmax = 0;
-  var densVals = [];
-  for (var i = 0; i < density.length; i++) {
-    if (density[i] > dmax) dmax = density[i];
-  }
-  if (dmax <= 0) {
-    heatLayer.setLatLngs([]);
-    return;
-  }
-  for (var _i2 = 0; _i2 < density.length; _i2++) {
-    var v = density[_i2] / dmax;
-    if (v > 0) densVals.push(v);
-  }
-  densVals.sort(function (a, b) {
-    return a - b;
+  // padding kecil agar transisi halus saat peta digeser/zoom
+  var padLat = (bounds.getNorth() - bounds.getSouth()) * 0.08;
+  var padLng = (bounds.getEast() - bounds.getWest()) * 0.08;
+  var south = bounds.getSouth() - padLat;
+  var north = bounds.getNorth() + padLat;
+  var west = bounds.getWest() - padLng;
+  var east = bounds.getEast() + padLng;
+  var inView = locations.filter(function (_ref4) {
+    var _ref5 = _slicedToArray(_ref4, 2),
+      lat = _ref5[0],
+      lon = _ref5[1];
+    return lat >= south && lat <= north && lon >= west && lon <= east;
   });
-  // ambil kuantil 0.80 (hanya top 20% paling padat) + minimum cutoff 0.12
-  var qIdx = Math.floor(densVals.length * 0.8);
-  var q80 = (_densVals$qIdx = densVals[qIdx]) !== null && _densVals$qIdx !== void 0 ? _densVals$qIdx : 0.12;
-  var CUTOFF = Math.max(0.12, q80);
-  var heat = [];
-  for (var iy = 0; iy < h; iy++) {
-    for (var ix = 0; ix < w; ix++) {
-      var _v = density[iy * w + ix] / dmax;
-      if (_v < CUTOFF) continue; // buang nilai kecil
-      var gx = minx + (ix + 0.5) * cellX;
-      var gy = miny + (iy + 0.5) * cellY;
-      var _metersToLngLat = metersToLngLat(gx, gy),
-        _metersToLngLat2 = _slicedToArray(_metersToLngLat, 2),
-        lon = _metersToLngLat2[0],
-        lat = _metersToLngLat2[1];
-      if (!validLat(lat) || !validLon(lon)) continue;
-      heat.push([lat, lon, _v]);
-    }
-  }
+  var heat = inView.map(function (_ref6) {
+    var _ref7 = _slicedToArray(_ref6, 2),
+      lat = _ref7[0],
+      lon = _ref7[1];
+    return [lat, lon, 1];
+  }); // intensitas=1
   heatLayer.setLatLngs(heat);
 }
 
-// ========================= Marker interaktif =========================
+/* ========================= Marker interaktif ========================= */
+var BRIEFCASE_PIN_ICON = leaflet__WEBPACK_IMPORTED_MODULE_0___default().divIcon({
+  className: "job-briefcase-pin",
+  html: "\n    <svg viewBox=\"0 0 38 54\" width=\"38\" height=\"54\"\n         xmlns=\"http://www.w3.org/2000/svg\" style=\"filter: drop-shadow(0 1px 3px rgba(0,0,0,.35))\">\n      <path fill=\"#1d4ed8\" d=\"M19 0C8.5 0 0 8.5 0 19c0 13.2 19 35 19 35s19-21.8 19-35C38 8.5 29.5 0 19 0z\"/>\n      <image href=\"/assets/icons/briefcase.svg\" x=\"10\" y=\"11\" width=\"18\" height=\"18\" style=\"filter:brightness(0) invert(1)\"/>\n    </svg>",
+  iconSize: [48, 64],
+  iconAnchor: [19, 52],
+  popupAnchor: [0, -46]
+});
 function updateMarkers() {
   markerLayer.clearLayers();
-  var MARKER_ZOOM_THRESHOLD = 15; // turunkan supaya marker muncul lebih cepat
+  var MARKER_ZOOM_THRESHOLD = 15;
   if (map.getZoom() < MARKER_ZOOM_THRESHOLD) return;
   var bounds = map.getBounds();
   var visibleJobs = jobs.filter(function (j) {
@@ -308,12 +457,13 @@ function updateMarkers() {
   });
   visibleJobs.forEach(function (job) {
     leaflet__WEBPACK_IMPORTED_MODULE_0___default().marker([job.lat, job.lon], {
-      pane: "markers"
+      pane: "markers",
+      icon: BRIEFCASE_PIN_ICON
     }).bindPopup(buildPopup(job)).addTo(markerLayer);
   });
 }
 
-// ========================= Render Rekomendasi =========================
+/* ========================= Rekomendasi ========================= */
 function renderRekomendasi(list) {
   var highlightQuery = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "";
   var container = document.getElementById("rekomendasi-container");
@@ -339,10 +489,96 @@ function renderRekomendasi(list) {
   }).join("");
 }
 
-// ========================= Fetch data (dengan query & mode) =========================
+/* ========================= Hint Banner ========================= */
+function renderHint(job) {
+  var _job$position_hiring3, _ref8, _job$personal_company6, _job$personal_company7;
+  var animate = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+  var bar = document.getElementById("match-hint");
+  if (!bar || !job) return;
+  if (!bar.querySelector(".hint-inner")) {
+    bar.innerHTML = "<i class=\"fas fa-lightbulb icon\"></i><span class=\"hint-inner\"></span>";
+  }
+  var inner = bar.querySelector(".hint-inner");
+  var pos = (_job$position_hiring3 = job.position_hiring) !== null && _job$position_hiring3 !== void 0 ? _job$position_hiring3 : "Pekerjaan";
+  var comp = (_ref8 = (_job$personal_company6 = (_job$personal_company7 = job.personal_company) === null || _job$personal_company7 === void 0 ? void 0 : _job$personal_company7.name_company) !== null && _job$personal_company6 !== void 0 ? _job$personal_company6 : job.company_name) !== null && _ref8 !== void 0 ? _ref8 : "perusahaan";
+  var dkm = toNum(job.distance_km);
+  var hasHome = Number.isFinite(USER_HOME === null || USER_HOME === void 0 ? void 0 : USER_HOME.lat) && Number.isFinite(USER_HOME === null || USER_HOME === void 0 ? void 0 : USER_HOME.lon);
+  if (!Number.isFinite(dkm) && hasHome && Number.isFinite(toNum(job.lat)) && Number.isFinite(toNum(job.lon))) {
+    dkm = computeDistanceKm(USER_HOME.lat, USER_HOME.lon, job.lat, job.lon);
+  }
+  var jarakTxt = Number.isFinite(dkm) ? " dan jaraknya hanya ".concat(dkm.toFixed(1), " km dari lokasi kamu") : "";
+  var msgHtml = "Posisi \u201C".concat(pos, "\u201D di ").concat(comp, " cocok dengan skill kamu").concat(jarakTxt, ", buruan daftar! <a href=\"#\" id=\"hint-cta\" class=\"ms-1\">Lihat & daftar</a>");
+  var setContent = function setContent() {
+    inner.innerHTML = msgHtml;
+    var cta = document.getElementById("hint-cta");
+    if (cta) {
+      cta.onclick = function (e) {
+        e.preventDefault();
+        if (typeof showJobDetail === "function") showJobDetail(job.id);
+        var header = document.getElementById("detail-title");
+        if (header) header.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      };
+    }
+  };
+  bar.classList.remove("d-none");
+  if (!animate) {
+    inner.classList.remove("fade-out", "fade-in");
+    setContent();
+    return;
+  }
+  inner.classList.remove("fade-in");
+  inner.classList.add("fade-out");
+  setTimeout(function () {
+    setContent();
+    inner.classList.remove("fade-out");
+    inner.classList.add("fade-in");
+    setTimeout(function () {
+      return inner.classList.remove("fade-in");
+    }, 380);
+  }, 180);
+}
+function startHintCarousel(list) {
+  var bar = document.getElementById("match-hint");
+  if (!bar) return;
+  if (hintTimer) {
+    clearInterval(hintTimer);
+    hintTimer = null;
+  }
+  hintIdx = 0;
+  if (!Array.isArray(list) || list.length === 0) {
+    bar.classList.add("d-none");
+    return;
+  }
+  var candidates = list.slice(0, Math.min(8, list.length));
+  if (currentMode === "nearby") {
+    var withDist = candidates.filter(function (j) {
+      return Number.isFinite(toNum(j.distance_km));
+    });
+    if (withDist.length) {
+      withDist.sort(function (a, b) {
+        return (toNum(a.distance_km) || 1e9) - (toNum(b.distance_km) || 1e9);
+      });
+      candidates = withDist.concat(candidates.filter(function (j) {
+        return !withDist.includes(j);
+      })).slice(0, 8);
+    }
+  }
+  renderHint(candidates[hintIdx % candidates.length], false);
+  hintIdx++;
+  hintTimer = setInterval(function () {
+    renderHint(candidates[hintIdx % candidates.length], true);
+    hintIdx++;
+  }, 7000);
+}
+
+/* ========================= Fetch data ========================= */
 function fetchData() {
   return _fetchData.apply(this, arguments);
-} // ========================= DOM Ready =========================
+}
+/* ========================= DOM Ready ========================= */
 function _fetchData() {
   _fetchData = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee9() {
     var query,
@@ -350,14 +586,14 @@ function _fetchData() {
       params,
       mode,
       hasHome,
-      _ref9,
+      _ref17,
       _opts$radiusKm,
       radiusKm,
       res,
       preview,
       rawData,
       rawJobs,
-      _ref12,
+      _ref18,
       _opts$radiusKm2,
       _radiusKm,
       bb,
@@ -374,7 +610,7 @@ function _fetchData() {
           params.set("mode", mode);
           hasHome = Number.isFinite(USER_HOME === null || USER_HOME === void 0 ? void 0 : USER_HOME.lat) && Number.isFinite(USER_HOME === null || USER_HOME === void 0 ? void 0 : USER_HOME.lon);
           if (mode === "nearby" && hasHome) {
-            radiusKm = Number((_ref9 = (_opts$radiusKm = opts.radiusKm) !== null && _opts$radiusKm !== void 0 ? _opts$radiusKm : USER_HOME.radiusKmDefault) !== null && _ref9 !== void 0 ? _ref9 : 60);
+            radiusKm = Number((_ref17 = (_opts$radiusKm = opts.radiusKm) !== null && _opts$radiusKm !== void 0 ? _opts$radiusKm : USER_HOME.radiusKmDefault) !== null && _ref17 !== void 0 ? _ref17 : 60);
             params.set("origin_lat", String(USER_HOME.lat));
             params.set("origin_lon", String(USER_HOME.lon));
             params.set("radius_km", String(radiusKm));
@@ -423,12 +659,6 @@ function _fetchData() {
           locations = jobs.map(function (j) {
             return [j.lat, j.lon];
           });
-          mPoints = locations.map(function (_ref10) {
-            var _ref11 = _slicedToArray(_ref10, 2),
-              lat = _ref11[0],
-              lon = _ref11[1];
-            return lngLatToMeters(lon, lat);
-          });
 
           // Urutkan jarak saat nearby (jika backend kirim distance_km)
           if (mode === "nearby") {
@@ -437,9 +667,9 @@ function _fetchData() {
             });
           }
 
-          // --- overlay radius: bersihkan/gambar ulang ---
+          // Overlay radius
           if (mode === "nearby" && hasHome) {
-            _radiusKm = Number((_ref12 = (_opts$radiusKm2 = opts.radiusKm) !== null && _opts$radiusKm2 !== void 0 ? _opts$radiusKm2 : USER_HOME.radiusKmDefault) !== null && _ref12 !== void 0 ? _ref12 : 60);
+            _radiusKm = Number((_ref18 = (_opts$radiusKm2 = opts.radiusKm) !== null && _opts$radiusKm2 !== void 0 ? _opts$radiusKm2 : USER_HOME.radiusKmDefault) !== null && _ref18 !== void 0 ? _ref18 : 60);
             if (nearLayer) nearLayer.clearLayers();
             nearCircle = leaflet__WEBPACK_IMPORTED_MODULE_0___default().circle([USER_HOME.lat, USER_HOME.lon], {
               radius: _radiusKm * 1000,
@@ -453,17 +683,19 @@ function _fetchData() {
           } else {
             if (nearLayer) nearLayer.clearLayers();
             nearCircle = null;
-            if (jobs.length) {
+            if (locations.length) {
               bb = leaflet__WEBPACK_IMPORTED_MODULE_0___default().latLngBounds(locations);
               map.fitBounds(bb.pad(0.2));
             }
           }
 
-          // render panel & peta
+          // Render UI
           renderRekomendasi(jobs);
-          recomputeKDE();
+          startHintCarousel(jobs);
+          applyHeatStyle();
+          recomputeHeat();
           updateMarkers();
-        case 32:
+        case 33:
         case "end":
           return _context9.stop();
       }
@@ -485,7 +717,7 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
           });
         };
         doSearchManual = /*#__PURE__*/function () {
-          var _ref3 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee2() {
+          var _ref11 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee2() {
             var query, container, counter;
             return _regeneratorRuntime().wrap(function _callee2$(_context2) {
               while (1) switch (_context2.prev = _context2.next) {
@@ -519,11 +751,11 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
             }, _callee2);
           }));
           return function doSearchManual() {
-            return _ref3.apply(this, arguments);
+            return _ref11.apply(this, arguments);
           };
         }();
         fetchSuggestions = /*#__PURE__*/function () {
-          var _ref4 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3(q) {
+          var _ref12 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee3(q) {
             var res, data;
             return _regeneratorRuntime().wrap(function _callee3$(_context3) {
               while (1) switch (_context3.prev = _context3.next) {
@@ -569,8 +801,8 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
               }
             }, _callee3, null, [[3, 15]]);
           }));
-          return function fetchSuggestions(_x3) {
-            return _ref4.apply(this, arguments);
+          return function fetchSuggestions(_x2) {
+            return _ref12.apply(this, arguments);
           };
         }();
         renderSuggestions = function renderSuggestions(list) {
@@ -625,7 +857,7 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
           attribution: "&copy; OpenStreetMap contributors"
         }).addTo(map);
 
-        // Panes agar heat di bawah marker
+        // Panes: heat di bawah marker
         if (!map.getPane("heat")) {
           paneHeat = map.createPane("heat");
           paneHeat.style.zIndex = 450;
@@ -638,11 +870,10 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
         heatLayer = leaflet__WEBPACK_IMPORTED_MODULE_0___default().heatLayer([], {
           pane: "heat",
           radius: 40,
-          blur: 18,
+          // awal, akan diubah oleh applyHeatStyle()
+          blur: 12,
           maxZoom: 17,
-          minOpacity: 0.2,
-          // penting: biar area low density benar2 transparan
-          // gradient non-ungu (opsional)
+          minOpacity: 0.3,
           gradient: {
             0.0: "transparent",
             0.25: "#4c6ef5",
@@ -651,29 +882,31 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
             1.0: "#ef4444"
           }
         }).addTo(map);
+        applyHeatStyle();
         markerLayer = leaflet__WEBPACK_IMPORTED_MODULE_0___default().layerGroup([], {
           pane: "markers"
         }).addTo(map);
         nearLayer = leaflet__WEBPACK_IMPORTED_MODULE_0___default().layerGroup().addTo(map);
 
-        // Fetch awal sesuai mode (default)
-        _context8.next = 15;
+        // Fetch awal
+        _context8.next = 16;
         return fetchData("", {
           mode: currentMode
         });
-      case 15:
+      case 16:
         map.on("zoomend moveend", function () {
-          recomputeKDE();
+          applyHeatStyle(); // radius/blur adaptif
+          recomputeHeat(); // hanya titik di viewport
           updateMarkers();
         });
 
-        // ====== handler popup "Lihat detail" (tetap) ======
+        // ====== handler popup "Lihat detail" (UTUH) ======
         map.on("popupopen", function (e) {
           var link = e.popup.getElement().querySelector(".lihat-detail");
           if (!link) return;
           link.addEventListener("click", /*#__PURE__*/function () {
-            var _ref2 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(evt) {
-              var id, makeBulletList, makeCommaList, r, job, target, btn, _job$personal_company6, _job$position_hiring3, _job$company_name, _job$kota, _job$type_of_company, _job$gaji_min3, _job$gaji_max3, _target;
+            var _ref10 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(evt) {
+              var id, makeBulletList, makeCommaList, r, job, target, btn, _job$personal_company8, _job$position_hiring4, _job$company_name, _job$kota, _job$type_of_company, _job$gaji_min3, _job$gaji_max3, _target;
               return _regeneratorRuntime().wrap(function _callee$(_context) {
                 while (1) switch (_context.prev = _context.next) {
                   case 0:
@@ -722,7 +955,7 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
                     btn = "";
                     if (job.is_closed) btn = "<p class=\"text-danger mt-3\">Lowongan Ditutup</p>";else if (job.has_applied) btn = "<p class=\"text-success mt-3\">Sudah Melamar</p>";else btn = "<button class=\"btn btn-primary mt-3\" onclick=\"openApplicationModal('".concat(job.id, "')\">Kirim Lamaran</button>");
                     if (target) {
-                      target.innerHTML = "\n              <div class=\"d-flex align-items-center mb-4\">\n                <img src=\"".concat((_job$personal_company6 = job.personal_company_logo) !== null && _job$personal_company6 !== void 0 ? _job$personal_company6 : "/images/default-company.png", "\"\n                     style=\"width:70px;height:70px;object-fit:contain;border-radius:8px;border:1px solid #ccc;background:#f5f5f5;\" class=\"mr-3\">\n                <div>\n                  <h5 class=\"font-weight-bold mb-1\">").concat((_job$position_hiring3 = job.position_hiring) !== null && _job$position_hiring3 !== void 0 ? _job$position_hiring3 : "-", "</h5>\n                  <small class=\"text-muted\">").concat((_job$company_name = job.company_name) !== null && _job$company_name !== void 0 ? _job$company_name : "-", "</small>\n                </div>\n              </div>\n              <ul class=\"list-unstyled mb-4\">\n                <li class=\"d-flex align-items-center mb-2\">\n                  <i class=\"fas fa-map-marker-alt mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>").concat((_job$kota = job.kota) !== null && _job$kota !== void 0 ? _job$kota : "").concat(job.provinsi ? ", " + job.provinsi : "", "</span>\n                </li>\n                <li class=\"d-flex align-items-center mb-2\">\n                  <i class=\"fas fa-building mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>").concat((_job$type_of_company = job.type_of_company) !== null && _job$type_of_company !== void 0 ? _job$type_of_company : "-", "</span>\n                </li>\n                <li class=\"d-flex align-items-center mb-2\">\n                  <i class=\"fas fa-money-bill-wave mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_min3 = job.gaji_min) !== null && _job$gaji_min3 !== void 0 ? _job$gaji_min3 : 0), " -\n                        Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_max3 = job.gaji_max) !== null && _job$gaji_max3 !== void 0 ? _job$gaji_max3 : 0), " / Bulan</span>\n                </li>\n                <li class=\"d-flex align-items-center\">\n                  <i class=\"fas fa-clock mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>Batas Waktu: ").concat(job.deadline_hiring ? new Date(job.deadline_hiring).toLocaleDateString("id-ID", {
+                      target.innerHTML = "\n              <div class=\"d-flex align-items-center mb-4\">\n                <img src=\"".concat((_job$personal_company8 = job.personal_company_logo) !== null && _job$personal_company8 !== void 0 ? _job$personal_company8 : "/images/default-company.png", "\"\n                     style=\"width:70px;height:70px;object-fit:contain;border-radius:8px;border:1px solid #ccc;background:#f5f5f5;\" class=\"mr-3\">\n                <div>\n                  <h5 class=\"font-weight-bold mb-1\">").concat((_job$position_hiring4 = job.position_hiring) !== null && _job$position_hiring4 !== void 0 ? _job$position_hiring4 : "-", "</h5>\n                  <small class=\"text-muted\">").concat((_job$company_name = job.company_name) !== null && _job$company_name !== void 0 ? _job$company_name : "-", "</small>\n                </div>\n              </div>\n              <ul class=\"list-unstyled mb-4\">\n                <li class=\"d-flex align-items-center mb-2\">\n                  <i class=\"fas fa-map-marker-alt mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>").concat((_job$kota = job.kota) !== null && _job$kota !== void 0 ? _job$kota : "").concat(job.provinsi ? ", " + job.provinsi : "", "</span>\n                </li>\n                <li class=\"d-flex align-items-center mb-2\">\n                  <i class=\"fas fa-building mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>").concat((_job$type_of_company = job.type_of_company) !== null && _job$type_of_company !== void 0 ? _job$type_of_company : "-", "</span>\n                </li>\n                <li class=\"d-flex align-items-center mb-2\">\n                  <i class=\"fas fa-money-bill-wave mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_min3 = job.gaji_min) !== null && _job$gaji_min3 !== void 0 ? _job$gaji_min3 : 0), " -\n                        Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_max3 = job.gaji_max) !== null && _job$gaji_max3 !== void 0 ? _job$gaji_max3 : 0), " / Bulan</span>\n                </li>\n                <li class=\"d-flex align-items-center\">\n                  <i class=\"fas fa-clock mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>Batas Waktu: ").concat(job.deadline_hiring ? new Date(job.deadline_hiring).toLocaleDateString("id-ID", {
                         day: "2-digit",
                         month: "long",
                         year: "numeric"
@@ -743,13 +976,13 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
                 }
               }, _callee, null, [[2, 20]]);
             }));
-            return function (_x2) {
-              return _ref2.apply(this, arguments);
+            return function (_x) {
+              return _ref10.apply(this, arguments);
             };
           }());
         });
 
-        // ========================= Search & Suggestions (tetap) =========================
+        /* ========================= Search & Suggestions (UTUH) ========================= */
         $input = document.getElementById("job-search");
         $reset = document.getElementById("job-search-reset");
         $suggestions = document.getElementById("job-suggestions");
@@ -786,7 +1019,7 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
         }
         if ($reset) {
           $reset.addEventListener("click", /*#__PURE__*/function () {
-            var _ref6 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5(e) {
+            var _ref14 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5(e) {
               return _regeneratorRuntime().wrap(function _callee5$(_context5) {
                 while (1) switch (_context5.prev = _context5.next) {
                   case 0:
@@ -805,8 +1038,8 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
                 }
               }, _callee5);
             }));
-            return function (_x4) {
-              return _ref6.apply(this, arguments);
+            return function (_x3) {
+              return _ref14.apply(this, arguments);
             };
           }());
         }
@@ -830,7 +1063,7 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
           passive: true
         });
 
-        // ========================= Toggle Mode Lokasi (Dropdown) =========================
+        /* ========================= Toggle Mode & Radius ========================= */
         modeSelect = document.getElementById("mode-select");
         if (modeSelect) {
           currentMode = modeSelect.value;
@@ -867,8 +1100,10 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
             }, _callee6);
           })));
         }
+
+        // Perubahan radius (Nearby)
         document.addEventListener("HEATMAP:radius-change", /*#__PURE__*/function () {
-          var _ref8 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee7(e) {
+          var _ref16 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee7(e) {
             var modeSelect, km, isNearbySelected;
             return _regeneratorRuntime().wrap(function _callee7$(_context7) {
               while (1) switch (_context7.prev = _context7.next) {
@@ -908,22 +1143,99 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
               }
             }, _callee7);
           }));
-          return function (_x5) {
-            return _ref8.apply(this, arguments);
+          return function (_x4) {
+            return _ref16.apply(this, arguments);
           };
         }());
-        _context8.next = 39;
+
+        /* ========================= Tombol Run PAI (versi jurnal) ========================= */
+        (function injectPAIButton() {
+          var toolbar = document.querySelector(".toolbar") || document.querySelector("#heatmap-controls") || document.querySelector("#job-search-wrap");
+          if (!toolbar) return;
+          var btn = document.createElement("button");
+          btn.id = "run-pai";
+          btn.className = "btn btn-outline-primary";
+          btn.style.marginLeft = "8px";
+          btn.textContent = "Run PAI";
+          toolbar.appendChild(btn);
+          btn.addEventListener("click", function () {
+            try {
+              if (!jobs.length) {
+                window.Swal ? Swal.fire("Info", "Tidak ada data untuk evaluasi.", "info") : alert("Tidak ada data.");
+                return;
+              }
+              // 1) split 70/30 ber-seed → deterministik
+              var shuffled = shuffleSeeded(jobs, SPLIT_SEED);
+              var cut = Math.max(1, Math.floor(TRAIN_RATIO * shuffled.length));
+              var train = shuffled.slice(0, cut);
+              var test = shuffled.slice(cut);
+              if (!test.length) {
+                window.Swal ? Swal.fire("Info", "Dataset terlalu kecil untuk split 70/30.", "info") : alert("Dataset terlalu kecil untuk split 70/30.");
+                return;
+              }
+
+              // 2) grid COUNT dari TRAIN (tanpa smoothing, grid tetap)
+              var grid = buildCountGrid(train.map(function (j) {
+                return [j.lat, j.lon];
+              }));
+              if (!grid) {
+                window.Swal ? Swal.fire("Gagal", "Tidak bisa membangun grid evaluasi.", "error") : alert("Gagal membangun grid evaluasi.");
+                return;
+              }
+
+              // 3) simpan grid & evaluasi HR/PAI
+              var prev = lastEvalGrid;
+              lastEvalGrid = grid;
+              var out = evaluatePAI(test.map(function (j) {
+                return {
+                  lat: j.lat,
+                  lon: j.lon
+                };
+              }), PAI_ALPHAS);
+              lastEvalGrid = prev;
+              if (!out.length) {
+                window.Swal ? Swal.fire("Info", "Evaluasi tidak menghasilkan nilai.", "info") : alert("Evaluasi tidak menghasilkan nilai.");
+                return;
+              }
+              console.table(out.map(function (r) {
+                return {
+                  "Alpha %": r.alpha * 100,
+                  "Top Cells": r.topCells,
+                  Hits: r.hits,
+                  Total: r.totalPts,
+                  AP: r.AP.toFixed(3),
+                  HR: r.HR.toFixed(3),
+                  PAI: r.PAI.toFixed(2)
+                };
+              }));
+              var html = out.map(function (r) {
+                return "\u03B1=".concat((r.alpha * 100).toFixed(0), "% \u2192 HR=").concat(r.HR.toFixed(3), ", PAI=").concat(r.PAI.toFixed(2), " (").concat(r.hits, "/").concat(r.totalPts, ")");
+              }).join("<br/>");
+              if (window.Swal) Swal.fire({
+                title: "Hasil PAI",
+                html: html,
+                icon: "info"
+              });else alert(out.map(function (r) {
+                return "\u03B1 ".concat((r.alpha * 100).toFixed(0), "%: HR ").concat(r.HR.toFixed(3), ", PAI ").concat(r.PAI.toFixed(2));
+              }).join("\n"));
+            } catch (e) {
+              console.error("[PAI] error:", e);
+              window.Swal ? Swal.fire("Gagal", "Terjadi error saat evaluasi.", "error") : alert("Gagal evaluasi PAI.");
+            }
+          });
+        })();
+        _context8.next = 41;
         break;
-      case 35:
-        _context8.prev = 35;
+      case 37:
+        _context8.prev = 37;
         _context8.t0 = _context8["catch"](0);
         console.error("❌ Error:", _context8.t0);
         alert("Gagal memuat data heatmap. Cek konsol.");
-      case 39:
+      case 41:
       case "end":
         return _context8.stop();
     }
-  }, _callee8, null, [[0, 35]]);
+  }, _callee8, null, [[0, 37]]);
 })));
 
 /***/ }),

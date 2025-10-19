@@ -27,6 +27,9 @@
         body, html {
             font-family: 'Poppins', sans-serif !important;
         }
+        .job-briefcase-pin { background: transparent; border: 0; }
+.job-briefcase-pin svg { display:block; }
+
     </style>
 
     @stack('style')
@@ -177,7 +180,7 @@
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
-                        <span>CVRE Generate &copy; 2024</span>
+                        <span>CVRE Generate &copy; 2025</span>
                     </div>
                 </div>
             </footer>

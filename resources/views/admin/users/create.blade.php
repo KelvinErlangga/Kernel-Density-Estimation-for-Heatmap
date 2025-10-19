@@ -64,12 +64,12 @@
                             <div class="form-group">
                                 <label for="city_pelamar" class="form-label">Kota Domisili</label>
                                 <input type="text" class="form-control form-control-md" name="city_pelamar" id="city_pelamar"
-                                    value="{{ old('city_pelamar') }}">
+                                    value="{{ old('city_pelamar') }}" placeholder="Masukkan Kota Domisili">
                             </div>
                             <div class="form-group">
                                 <label for="phone_pelamar" class="form-label">Nomor Telepon</label>
                                 <input type="text" class="form-control form-control-md" name="phone_pelamar" id="phone_pelamar"
-                                    value="{{ old('phone_pelamar') }}">
+                                    value="{{ old('phone_pelamar') }}" placeholder="Masukkan Nomor Telepon">
                             </div>
                         </div>
 
@@ -78,7 +78,7 @@
                             <div class="form-group">
                                 <label for="name_user_company" class="form-label">Nama Pengguna Perusahaan</label>
                                 <input type="text" class="form-control form-control-md" name="name_user_company"
-                                    id="name_user_company" value="{{ old('name_user_company') }}">
+                                    id="name_user_company" value="{{ old('name_user_company') }}" placeholder="Masukkan Nama Pengguna Perusahaan">
                             </div>
                             <div class="form-group">
                                 <label for="type_of_company" class="form-label">Jenis Perusahaan</label>
@@ -107,12 +107,12 @@
                             <div class="form-group">
                                 <label for="city_company" class="form-label">Kota Domisili Perusahaan</label>
                                 <input type="text" class="form-control form-control-md" name="city_company" id="city_company"
-                                    value="{{ old('city_company') }}">
+                                    value="{{ old('city_company') }}" placeholder="Masukkan Kota Domisili Perusahaan">
                             </div>
                             <div class="form-group">
                                 <label for="phone_company" class="form-label">Nomor Telepon Perusahaan</label>
                                 <input type="text" class="form-control form-control-md" name="phone_company" id="phone_company"
-                                    value="{{ old('phone_company') }}">
+                                    value="{{ old('phone_company') }}" placeholder="Masukkan Nomor Telepon Perusahaan">
                             </div>
                         </div>
 

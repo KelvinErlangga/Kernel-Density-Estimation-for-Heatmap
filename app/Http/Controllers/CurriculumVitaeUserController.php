@@ -38,33 +38,94 @@ class CurriculumVitaeUserController extends Controller
     }
 
     // tambah database id template cv dan user id
+    // public function store(StoreCurriculumVitaeUserRequest $request)
+    // {
+    //     $user = Auth::user();
+
+    //     // Validasi input
+    //     $validated = $request->validated();
+    //     $validated['user_id'] = $user->id;
+
+    //     $adaCVUser = CurriculumVitaeUser::findByUserIdAndTemplateId(
+    //         $validated['user_id'],
+    //         $validated['template_curriculum_vitae_id']
+    //     );
+
+    //     if ($adaCVUser) {
+    //         // Jika sudah ada, langsung redirect ke view selanjutnya
+    //         return redirect()->route('pelamar.curriculum_vitae.profile.index', $adaCVUser);
+    //         // return redirect()->route('pelamar.curriculum_vitae.preview.index', $adaCVUser);
+    //     }
+
+    //     // Jika belum ada, simpan data baru
+    //     $newCVUser = null;
+    //     DB::transaction(function () use ($validated, &$newCVUser) {
+    //         $newCVUser = CurriculumVitaeUser::create($validated);
+    //     });
+
+    //     return redirect()->route('pelamar.curriculum_vitae.profile.index', $newCVUser);
+    //     // return redirect()->route('pelamar.curriculum_vitae.preview.index', $newCVUser);
+    // }
+
     public function store(StoreCurriculumVitaeUserRequest $request)
     {
         $user = Auth::user();
-
-        // Validasi input
         $validated = $request->validated();
         $validated['user_id'] = $user->id;
 
-        $adaCVUser = CurriculumVitaeUser::findByUserIdAndTemplateId(
+        $ada = CurriculumVitaeUser::findByUserIdAndTemplateId(
             $validated['user_id'],
             $validated['template_curriculum_vitae_id']
         );
-
-        if ($adaCVUser) {
-            // Jika sudah ada, langsung redirect ke view selanjutnya
-            return redirect()->route('pelamar.curriculum_vitae.profile.index', $adaCVUser);
-            // return redirect()->route('pelamar.curriculum_vitae.preview.index', $adaCVUser);
+        if ($ada) {
+            return redirect()->route('pelamar.curriculum_vitae.profile.index', $ada);
         }
 
-        // Jika belum ada, simpan data baru
-        $newCVUser = null;
-        DB::transaction(function () use ($validated, &$newCVUser) {
-            $newCVUser = CurriculumVitaeUser::create($validated);
+        $cv = null;
+        DB::transaction(function () use ($validated, &$cv) {
+            $cv = CurriculumVitaeUser::create($validated);
         });
 
-        return redirect()->route('pelamar.curriculum_vitae.profile.index', $newCVUser);
-        // return redirect()->route('pelamar.curriculum_vitae.preview.index', $newCVUser);
+        // >>> SEED CUSTOM DEFAULT DARI TEMPLATE <<<
+        $this->seedCustomSectionsFromTemplate($cv);
+
+        return redirect()->route('pelamar.curriculum_vitae.profile.index', $cv);
+    }
+
+    /**
+     * Membuat record custom_sections default berdasarkan layout_json template.
+     */
+    private function seedCustomSectionsFromTemplate(CurriculumVitaeUser $cv): void
+    {
+        $tpl = $cv->template;
+        if (!$tpl) return;
+
+        $layout = $tpl->layoutArray(); // sudah ada di model TemplateCurriculumVitae
+        $order  = 1;
+
+        foreach ($layout as $item) {
+            $key = $item['key'] ?? null;
+            if (!$key) continue;
+
+            $base = preg_replace('/-(ats|kreatif)$/i', '', $key);
+
+            if ($base === 'custom') {
+                $title = $item['title'] ?? $item['section_title'] ?? 'Custom Section';
+                $body  = data_get($item, 'payload.body')
+                    ?? data_get($item, 'body')
+                    ?? 'Tulis deskripsi di sini…';
+
+                $cv->customSections()->create([
+                    'section_key'   => 'custom_text',
+                    'section_title' => $title,
+                    'subtitle'      => $item['subtitle'] ?? null,
+                    'payload'       => ['body' => $body],
+                    'sort_order'    => $order,
+                ]);
+            }
+
+            $order++;
+        }
     }
 
     // 1) Buat section baru (default: Text Section)

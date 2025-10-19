@@ -113,6 +113,34 @@
         <hr>
     </div>
 </template>
+
+<!-- Section Bebas (ATS) -->
+<template id="tpl-custom-ats">
+  <!-- data-key WAJIB base name tanpa suffix -->
+  <div class="cv-section" data-key="custom" style="position:relative; padding:8px 0;">
+    <button type="button" class="remove-section btn btn-sm btn-danger" title="Hapus section"
+            style="position:absolute; right:0; top:0;">×</button>
+
+    <h4 contenteditable="true"
+        class="editable"
+        data-section="customs"
+        data-field="title_custom"
+        style="margin:0 0 6px 0; border-bottom:2px solid #111; padding-bottom:6px;">
+      JUDUL SECTION (klik untuk ubah)
+    </h4>
+
+    <div contenteditable="true"
+         class="editable"
+         data-section="customs"
+         data-field="content_custom"
+         style="font-size:14px; line-height:1.5; text-align:justify;">
+      Tulis apa saja di sini. Tekan Enter untuk baris baru.
+    </div>
+
+    <hr style="margin-top:8px;">
+  </div>
+</template>
+
 <!-- End of Templates CV ATS (sample HTML untuk preview) -->
 
 <!-- Templates CV Kreatif (sample HTML untuk preview) -->
