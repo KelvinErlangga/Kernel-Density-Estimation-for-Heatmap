@@ -2,40 +2,34 @@
 // Helper
 // ===============================
 function hexToRgb(hex) {
-    hex = hex.replace(/^#/, "");
-    if (hex.length === 3)
-        hex = hex
-            .split("")
-            .map((x) => x + x)
-            .join("");
-    const num = parseInt(hex, 16);
-    return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+  hex = hex.replace(/^#/, "");
+  if (hex.length === 3) hex = hex.split("").map((x) => x + x).join("");
+  const num = parseInt(hex, 16);
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
 }
 
 // ===============================
 // Font & Background
 // ===============================
 function changeFont(selectElement) {
-    const content = document.getElementById("content");
-    if (content) content.style.fontFamily = selectElement.value;
+  const content = document.getElementById("content");
+  if (content) content.style.fontFamily = selectElement.value;
 }
 
 function changeBackgroundColor(color) {
-    let panel =
-        document.querySelector(".left-panel") ||
-        document.getElementById("content");
-    if (!panel) return;
+  let panel = document.querySelector(".left-panel") || document.getElementById("content");
+  if (!panel) return;
 
-    panel.style.backgroundColor = color;
+  panel.style.backgroundColor = color;
 
-    const rgb = hexToRgb(color);
-    const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-    const textColor = brightness > 128 ? "#000000" : "#FFFFFF";
+  const rgb = hexToRgb(color);
+  const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+  const textColor = brightness > 128 ? "#000000" : "#FFFFFF";
 
-    panel.style.color = textColor;
-    panel.querySelectorAll("p,h1,h2,h3,a,span,div,li").forEach((el) => {
-        el.style.color = textColor;
-    });
+  panel.style.color = textColor;
+  panel.querySelectorAll("p,h1,h2,h3,a,span,div,li").forEach((el) => {
+    el.style.color = textColor;
+  });
 }
 
 // ===== Export mask: hilangkan outline/border saat snapshot =====
@@ -53,7 +47,6 @@ function applyExportMask(root) {
   document.head.appendChild(styleEl);
   root.classList.add("exporting");
 
-  // strip border/outline/pill seperti sebelumnya …
   const toClean = [];
   root.querySelectorAll("*").forEach((el) => {
     const cs = window.getComputedStyle(el);
@@ -76,7 +69,6 @@ function applyExportMask(root) {
     }
   });
 
-  // pastikan elemen yang wajib hilang benar2 disembunyikan (backup display)
   const hiddenEls = Array.from(
     root.querySelectorAll(".export-hidden, .drag-indicator, .delete-indicator")
   );
@@ -102,221 +94,224 @@ function applyExportMask(root) {
 // Download CV (Image / PDF)
 // ===============================
 async function downloadAsImage(type) {
-    const content = document.getElementById("content");
-    if (!content) return;
+  const content = document.getElementById("content");
+  if (!content) return;
 
-    const cleanup = applyExportMask(content);
-    const canvas = await html2canvas(content, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-    });
-    cleanup();
+  const cleanup = applyExportMask(content);
+  const canvas = await html2canvas(content, { scale: 2, useCORS: true, allowTaint: true });
+  cleanup();
 
-    const image = canvas.toDataURL(`image/${type}`);
-    const link = document.createElement("a");
-    link.href = image;
-    link.download = `cv.${type}`;
-    link.click();
+  const image = canvas.toDataURL(`image/${type}`);
+  const link = document.createElement("a");
+  link.href = image;
+  link.download = `cv.${type}`;
+  link.click();
 }
 
 async function downloadAsPDF() {
-    const content = document.getElementById("content");
-    if (!content) return;
+  const content = document.getElementById("content");
+  if (!content) return;
 
-    const cleanup = applyExportMask(content);
-    const canvas = await html2canvas(content, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-    });
-    cleanup();
+  const cleanup = applyExportMask(content);
+  const canvas = await html2canvas(content, { scale: 2, useCORS: true, allowTaint: true });
+  cleanup();
 
-    const imgWidthPx = canvas.width;
-    const imgHeightPx = canvas.height;
+  const imgWidthPx = canvas.width;
+  const imgHeightPx = canvas.height;
 
-    const pdf = new jspdf.jsPDF("p", "mm", "a4");
-    const pageWidthMm = pdf.internal.pageSize.getWidth();
-    const pageHeightMm = pdf.internal.pageSize.getHeight();
+  const pdf = new jspdf.jsPDF("p", "mm", "a4");
+  const pageWidthMm  = pdf.internal.pageSize.getWidth();
+  const pageHeightMm = pdf.internal.pageSize.getHeight();
 
-    const marginTop = 10,
-        marginBottom = 15,
-        marginLeft = 8,
-        marginRight = 8;
-    const availableWidthMm = pageWidthMm - marginLeft - marginRight;
-    const availableHeightMm = pageHeightMm - marginTop - marginBottom;
+  const marginTop = 10, marginBottom = 15, marginLeft = 8, marginRight = 8;
+  const availableWidthMm  = pageWidthMm  - marginLeft - marginRight;
+  const availableHeightMm = pageHeightMm - marginTop  - marginBottom;
 
-    const imgProps = pdf.getImageProperties(canvas);
-    const pdfHeight = (imgProps.height * availableWidthMm) / imgProps.width;
+  const imgProps = pdf.getImageProperties(canvas);
+  const pdfHeight = (imgProps.height * availableWidthMm) / imgProps.width;
 
-    if (pdfHeight <= availableHeightMm) {
-        const imgData = canvas.toDataURL("image/png");
-        pdf.addImage(
-            imgData,
-            "PNG",
-            marginLeft,
-            marginTop,
-            availableWidthMm,
-            pdfHeight
-        );
-    } else {
-        const pxPerMm = imgWidthPx / pageWidthMm;
-        const sliceHeightPx = Math.floor(availableHeightMm * pxPerMm);
-        let positionY = 0,
-            pageIndex = 0;
+  if (pdfHeight <= availableHeightMm) {
+    const imgData = canvas.toDataURL("image/png");
+    pdf.addImage(imgData, "PNG", marginLeft, marginTop, availableWidthMm, pdfHeight);
+  } else {
+    const pxPerMm = imgWidthPx / pageWidthMm;
+    const sliceHeightPx = Math.floor(availableHeightMm * pxPerMm);
+    let positionY = 0, pageIndex = 0;
 
-        while (positionY < imgHeightPx) {
-            const currentSliceHeightPx = Math.min(
-                sliceHeightPx,
-                imgHeightPx - positionY
-            );
-            const sliceCanvas = document.createElement("canvas");
-            sliceCanvas.width = imgWidthPx;
-            sliceCanvas.height = currentSliceHeightPx;
-            const ctx = sliceCanvas.getContext("2d");
+    while (positionY < imgHeightPx) {
+      const currentSliceHeightPx = Math.min(sliceHeightPx, imgHeightPx - positionY);
+      const sliceCanvas = document.createElement("canvas");
+      sliceCanvas.width  = imgWidthPx;
+      sliceCanvas.height = currentSliceHeightPx;
+      const ctx = sliceCanvas.getContext("2d");
 
-            ctx.drawImage(
-                canvas,
-                0,
-                positionY,
-                imgWidthPx,
-                currentSliceHeightPx,
-                0,
-                0,
-                imgWidthPx,
-                currentSliceHeightPx
-            );
+      ctx.drawImage(canvas, 0, positionY, imgWidthPx, currentSliceHeightPx, 0, 0, imgWidthPx, currentSliceHeightPx);
 
-            const imgData = sliceCanvas.toDataURL("image/png");
-            const sliceHeightMm = currentSliceHeightPx / pxPerMm;
+      const imgData = sliceCanvas.toDataURL("image/png");
+      const sliceHeightMm = currentSliceHeightPx / pxPerMm;
 
-            if (pageIndex > 0) pdf.addPage();
-            pdf.addImage(
-                imgData,
-                "PNG",
-                marginLeft,
-                marginTop,
-                availableWidthMm,
-                sliceHeightMm
-            );
+      if (pageIndex > 0) pdf.addPage();
+      pdf.addImage(imgData, "PNG", marginLeft, marginTop, availableWidthMm, sliceHeightMm);
 
-            positionY += currentSliceHeightPx;
-            pageIndex++;
-        }
+      positionY += currentSliceHeightPx;
+      pageIndex++;
     }
+  }
 
-    pdf.save("cv.pdf");
+  pdf.save("cv.pdf");
 }
 
 // ===============================
 // Email & Print
 // ===============================
 function sendByEmail() {
-    const emailBody = "Silakan temukan CV terlampir di bawah ini.";
-    const mailtoLink = `mailto:?subject=CV&body=${encodeURIComponent(
-        emailBody
-    )}`;
-    window.location.href = mailtoLink;
+  const emailBody = "Silakan temukan CV terlampir di bawah ini.";
+  const mailtoLink = `mailto:?subject=CV&body=${encodeURIComponent(emailBody)}`;
+  window.location.href = mailtoLink;
+}
+function printCV() { window.print(); }
+
+// ===============================
+// Spinner Button Helpers
+// ===============================
+function ensureSpinnerCss() {
+  if (document.getElementById("btn-spinner-style")) return;
+  const css = document.createElement("style");
+  css.id = "btn-spinner-style";
+  css.textContent = `
+    @keyframes spin360 { to { transform: rotate(360deg); } }
+    .btn-loading { pointer-events: none; opacity: .9; }
+    .btn-loading .spinner {
+      width: 16px; height: 16px; margin-right: 8px;
+      display: inline-block; vertical-align: -2px;
+    }
+    .btn-loading .spinner svg { width: 16px; height: 16px; animation: spin360 1s linear infinite; }
+  `;
+  document.head.appendChild(css);
 }
 
-function printCV() {
-    window.print();
+function setBtnLoading(btn, isLoading, textWhenLoading = "Saving...") {
+  if (!btn) return;
+  ensureSpinnerCss();
+
+  if (isLoading) {
+    if (!btn.dataset.originalHtml) btn.dataset.originalHtml = btn.innerHTML;
+    btn.classList.add("btn-loading");
+    btn.disabled = true;
+
+    // SVG spinner kecil (tanpa dependensi)
+    const spinnerSvg = `
+      <span class="spinner" aria-hidden="true">
+        <svg viewBox="0 0 50 50" fill="none">
+          <circle cx="25" cy="25" r="20" stroke="currentColor" stroke-opacity=".2" stroke-width="6"/>
+          <path d="M45 25a20 20 0 0 1-20 20" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+      </span>`;
+    btn.innerHTML = `${spinnerSvg}<span>${textWhenLoading}</span>`;
+  } else {
+    btn.classList.remove("btn-loading");
+    btn.disabled = false;
+    if (btn.dataset.originalHtml) {
+      btn.innerHTML = btn.dataset.originalHtml;
+      delete btn.dataset.originalHtml;
+    } else {
+      btn.textContent = "Save to Dashboard";
+    }
+  }
 }
 
 // ===============================
 // Save to Dashboard (PDF upload)
 // ===============================
 async function savePdfToDashboard() {
-    const btn = document.getElementById("saveToDashboardBtn");
-    if (!btn) return;
+  const btn = document.getElementById("saveToDashboardBtn");
+  if (!btn) return;
 
-    btn.disabled = true;
-    btn.innerText = "Saving...";
+  setBtnLoading(btn, true, "Saving...");
 
-    try {
-        const content = document.getElementById("content");
+  try {
+    const content = document.getElementById("content");
 
-        const cleanup = applyExportMask(content);
-        const canvas = await html2canvas(content, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-        });
-        cleanup();
+    const cleanup = applyExportMask(content);
+    const canvas = await html2canvas(content, { scale: 2, useCORS: true, allowTaint: true });
+    cleanup();
 
-        const imgData = canvas.toDataURL("image/png");
+    const imgData = canvas.toDataURL("image/png");
 
-        const pdf = new jspdf.jsPDF("p", "mm", "a4");
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfHeight = (imgProps.height * pageWidth) / imgProps.width;
-        pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pdfHeight);
+    const pdf = new jspdf.jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfHeight = (imgProps.height * pageWidth) / imgProps.width;
+    pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pdfHeight);
 
-        const pdfBlob = pdf.output("blob");
+    const pdfBlob = pdf.output("blob");
 
-        const formData = new FormData();
-        formData.append("cv_file", pdfBlob, "cv.pdf");
+    const formData = new FormData();
+    formData.append("cv_file", pdfBlob, "cv.pdf");
 
-        const templateId = btn.dataset.templateId;
-        if (!templateId) {
-            alert("Template ID tidak ditemukan!");
-            btn.disabled = false;
-            btn.innerText = "Save to Dashboard";
-            return;
-        }
-        formData.append("template_id", templateId);
-
-        const csrfToken = document
-            .querySelector('meta[name="csrf-token"]')
-            .getAttribute("content");
-        formData.append("_token", csrfToken);
-
-        const res = await fetch("/curriculum-vitae/save", {
-            method: "POST",
-            headers: { "X-CSRF-TOKEN": csrfToken },
-            body: formData,
-        });
-
-        const text = await res.text();
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (err) {
-            console.error("Server returned non-JSON response:", text);
-            alert("Server error — Response bukan JSON.");
-            return;
-        }
-
-        if (data.success) {
-            if (window.Swal)
-                Swal.fire({
-                    icon: "success",
-                    title: "Berhasil",
-                    text: data.message,
-                    timer: 1800,
-                    showConfirmButton: false,
-                });
-            else alert("CV berhasil disimpan");
-        } else {
-            const msg =
-                data.message || JSON.stringify(data.errors) || "Unknown error";
-            if (window.Swal)
-                Swal.fire({ icon: "error", title: "Gagal", text: msg });
-            else alert("Gagal menyimpan CV: " + msg);
-        }
-    } catch (err) {
-        console.error("JS exception", err);
-        alert("Terjadi error saat proses penyimpanan (lihat console).");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "Save to Dashboard";
+    const templateId = btn.dataset.templateId;
+    if (!templateId) {
+      alert("Template ID tidak ditemukan!");
+      return;
     }
+    formData.append("template_id", templateId);
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+    formData.append("_token", csrfToken);
+
+    const res = await fetch("/curriculum-vitae/save", {
+      method: "POST",
+      headers: { "X-CSRF-TOKEN": csrfToken },
+      body: formData,
+    });
+
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch (err) {
+      console.error("Server returned non-JSON response:", text);
+      alert("Server error — Response bukan JSON.");
+      return;
+    }
+
+    if (data.success) {
+      // Simpan ID CV yang baru disimpan ke localStorage (untuk dipakai di Dashboard)
+      const newId = (data.data && data.data.id) || data.new_cv_id;
+      if (newId) {
+        localStorage.setItem("cv_just_saved_id", String(newId));
+        // optional: timestamp (kalau mau “kadaluarsa” dalam beberapa menit)
+        localStorage.setItem("cv_just_saved_at", String(Date.now()));
+      }
+
+      if (window.Swal) {
+        await Swal.fire({
+          icon: "success",
+          title: "Berhasil",
+          text: data.message || "CV berhasil disimpan",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        alert("CV berhasil disimpan");
+      }
+      // TETAP di halaman preview. User bebas klik "Return to Dashboard" kapan saja.
+    } else {
+      const msg = data.message || JSON.stringify(data.errors) || "Unknown error";
+      if (window.Swal) Swal.fire({ icon: "error", title: "Gagal", text: msg });
+      else alert("Gagal menyimpan CV: " + msg);
+    }
+  } catch (err) {
+    console.error("JS exception", err);
+    alert("Terjadi error saat proses penyimpanan (lihat console).");
+  } finally {
+    setBtnLoading(document.getElementById("saveToDashboardBtn"), false);
+  }
 }
 
 // ===============================
 // Event Binding
 // ===============================
 document.addEventListener("DOMContentLoaded", () => {
-    const btnSave = document.getElementById("saveToDashboardBtn");
-    if (btnSave) btnSave.addEventListener("click", savePdfToDashboard);
+  const btnSave = document.getElementById("saveToDashboardBtn");
+  if (btnSave) btnSave.addEventListener("click", savePdfToDashboard);
 });

@@ -136,157 +136,10 @@ function applyHeatStyle() {
     heatLayer.setOptions({ radius: s.r, blur: s.b, minOpacity: s.min });
 }
 
-// ==== Evaluasi PAI (state & util) ====
-let lastEvalGrid = null; // {w,h,minx,miny,cellX,cellY,z: Float32Array}
-
-// bikin grid KDE dari kumpulan titik (untuk EVALUASI, param tetap)
-function computeDensityGridFor(pointsLngLat) {
-    if (!pointsLngLat || !pointsLngLat.length) return null;
-
-    // >>> pakai parameter evaluasi tetap
-    const fp = getFixedEvalParams();
-    if (!fp) return null;
-    const { extent, bins, cell, bandwidth } = fp;
-
-    const [minx, maxx] = extent[0];
-    const [miny, maxy] = extent[1];
-    const [w, h] = bins;
-    const [cellX, cellY] = cell;
-
-    // projek ke meter
-    const ptsM = pointsLngLat.map(([lat, lon]) => lngLatToMeters(lon, lat));
-
-    // fast-kde
-    const dens = density2d(ptsM, { bins, extent, bandwidth });
-
-    // normalisasi ke [0..1] + raster
-    let zmax = 0;
-    for (const p of dens) if (p.z > zmax) zmax = p.z;
-
-    const z = new Float32Array(w * h);
-    for (const p of dens) {
-        const v = zmax ? p.z / zmax : 0;
-        let ix = Math.floor((p.x - minx) / cellX);
-        let iy = Math.floor((p.y - miny) / cellY);
-        if (ix < 0) ix = 0;
-        else if (ix >= w) ix = w - 1;
-        if (iy < 0) iy = 0;
-        else if (iy >= h) iy = h - 1;
-        const idx = iy * w + ix;
-        if (v > z[idx]) z[idx] = v;
-    }
-
-    return { w, h, minx, miny, cellX, cellY, z };
-}
-
-// konversi satu titik (lat,lon) ke index sel pada grid
-function idxOf(lat, lon, grid) {
-    const { w, h, minx, miny, cellX, cellY } = grid;
-    const [x, y] = lngLatToMeters(lon, lat);
-    const ix = Math.floor((x - minx) / cellX);
-    const iy = Math.floor((y - miny) / cellY);
-    if (ix < 0 || ix >= w || iy < 0 || iy >= h) return -1; // di luar extent
-    return iy * w + ix;
-}
-
-// hitung HR & PAI untuk daftar alpha (mis. [0.01, 0.05, 0.10])
-function evaluatePAI(testPoints, alphas = [0.005, 0.01, 0.02]) {
-    if (!lastEvalGrid) {
-        console.warn(
-            "Grid evaluasi belum ada. Pastikan recomputeKDE() sudah jalan."
-        );
-        return;
-    }
-    const { w, h, z } = lastEvalGrid;
-    const N = w * h;
-
-    // urutkan indeks sel berdasarkan skor z desc
-    const idxs = Array.from({ length: N }, (_, i) => i);
-    idxs.sort((a, b) => z[b] - z[a]); // descending
-
-    const totalPts = testPoints.length;
-    if (!totalPts) {
-        console.warn("Tidak ada titik test.");
-        return;
-    }
-
-    const results = [];
-    for (const alpha of alphas) {
-        const topK = Math.max(1, Math.floor(alpha * N)); // top-α% sel
-        const chosen = new Set(idxs.slice(0, topK));
-
-        let hits = 0;
-        for (const pt of testPoints) {
-            const i = idxOf(pt.lat, pt.lon, lastEvalGrid);
-            if (i >= 0 && chosen.has(i)) hits++;
-        }
-        const HR = hits / totalPts;
-        const PAI = HR / alpha;
-        results.push({ alpha, HR, PAI, hits, totalPts, topCells: topK });
-    }
-    return results;
-}
-
-// ========= Repro helpers: PRNG ber-seed + param evaluasi tetap =========
-function mulberry32(seed) {
-    let t = seed >>> 0;
-    return function () {
-        t += 0x6d2b79f5;
-        let r = Math.imul(t ^ (t >>> 15), 1 | t);
-        r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
-        return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-    };
-}
-
-function shuffleSeeded(arr, seed = 42) {
-    const rng = mulberry32(seed);
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(rng() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-}
-
-// Parameter EVALUASI (tetap) — tidak tergantung map/zoom
-function getFixedEvalParams() {
-    if (!jobs.length) return null;
-
-    let minLat = +Infinity,
-        maxLat = -Infinity,
-        minLon = +Infinity,
-        maxLon = -Infinity;
-    for (const j of jobs) {
-        if (!Number.isFinite(j.lat) || !Number.isFinite(j.lon)) continue;
-        if (j.lat < minLat) minLat = j.lat;
-        if (j.lat > maxLat) maxLat = j.lat;
-        if (j.lon < minLon) minLon = j.lon;
-        if (j.lon > maxLon) maxLon = j.lon;
-    }
-    const [minx0, miny0] = lngLatToMeters(minLon, minLat);
-    const [maxx0, maxy0] = lngLatToMeters(maxLon, maxLat);
-
-    const pad = 1000; // buffer 1 km
-    const extent = [
-        [minx0 - pad, maxx0 + pad],
-        [miny0 - pad, maxy0 + pad],
-    ];
-
-    const bins = [256, 256]; // grid tetap
-    const cellX = (extent[0][1] - extent[0][0]) / bins[0];
-    const cellY = (extent[1][1] - extent[1][0]) / bins[1];
-
-    const BAND_M = 1200; // bandwidth tetap ~1.2 km (atur sesuai kebutuhan)
-    const bandwidth = [BAND_M, BAND_M];
-
-    return { extent, bins, cell: [cellX, cellY], bandwidth };
-}
-
 // ========================= KDE -> HeatLayer (fast-kde) =========================
 function recomputeKDE() {
     if (!mPoints || !mPoints.length) {
         heatLayer.setLatLngs([]);
-        lastEvalGrid = null;
         return;
     }
 
@@ -297,46 +150,35 @@ function recomputeKDE() {
     const cellX = (maxx - minx) / w;
     const cellY = (maxy - miny) / h;
 
-    const dens = density2d(mPoints, { bins, extent, bandwidth });
-    if (!dens) {
+    const densIter = density2d(mPoints, { bins, extent, bandwidth });
+    if (!densIter) {
         heatLayer.setLatLngs([]);
-        lastEvalGrid = null;
         return;
     }
 
-    // --- cari zmax & siapkan values buat cutoff + heat ---
+    // cari zmax
     let zmax = 0;
-    for (const p of dens) if (p.z > zmax) zmax = p.z;
+    for (const p of densIter) if (p.z > zmax) zmax = p.z;
 
-    // buat ulang iterator, isi untuk heat + kumpulkan vals + simpan raster evaluasi
+    // generate ulang untuk heat (iterator sekali pakai)
+    const densIter2 = density2d(mPoints, { bins, extent, bandwidth });
+
+    // kumpulkan nilai utk cutoff + hasil heat
     const vals = [];
     const heat = [];
-    const zRaster = new Float32Array(w * h);
-
-    // kita butuh iterasi ulang: density2d bisa di-loop lagi
-    for (const p of density2d(mPoints, { bins, extent, bandwidth })) {
+    for (const p of densIter2) {
         const v = zmax ? p.z / zmax : 0;
         if (v > 0) vals.push(v);
-
-        // simpan ke raster evaluasi
-        let ix = Math.floor((p.x - minx) / cellX);
-        let iy = Math.floor((p.y - miny) / cellY);
-        if (ix < 0) ix = 0;
-        else if (ix >= w) ix = w - 1;
-        if (iy < 0) iy = 0;
-        else if (iy >= h) iy = h - 1;
-        const idx = iy * w + ix;
-        if (v > zRaster[idx]) zRaster[idx] = v;
+        // thresholding nanti
     }
 
     if (!vals.length) {
         heatLayer.setLatLngs([]);
-        lastEvalGrid = null;
         return;
     }
     vals.sort((a, b) => a - b);
 
-    // cutoff adaptif (sesuai kode kamu)
+    // cutoff adaptif (sesuai pola sebelumnya)
     const z = map.getZoom();
     let q = 0.75;
     if (z <= 12) q = 0.86;
@@ -344,8 +186,9 @@ function recomputeKDE() {
     const qIdx = Math.floor(vals.length * q);
     const CUTOFF = Math.max(0.12, vals[qIdx] ?? 0.12);
 
-    // konversi ke titik heat
-    for (const p of density2d(mPoints, { bins, extent, bandwidth })) {
+    // iterasi lagi untuk push ke heat
+    const densIter3 = density2d(mPoints, { bins, extent, bandwidth });
+    for (const p of densIter3) {
         const v = zmax ? p.z / zmax : 0;
         if (v < CUTOFF) continue;
         const [lon, lat] = metersToLngLat(p.x, p.y);
@@ -356,9 +199,6 @@ function recomputeKDE() {
     }
 
     heatLayer.setLatLngs(heat);
-
-    // simpan grid buat evaluasi
-    lastEvalGrid = { w, h, minx, miny, cellX, cellY, z: zRaster };
 }
 
 // ========================= Marker interaktif =========================
@@ -692,8 +532,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Fetch awal
         await fetchData("", { mode: currentMode });
 
-        map.on("zoomend moveend", () => {
+        map.on("zoomend", () => {
             applyHeatStyle();
+        });
+        map.on("zoomend moveend", () => {
             recomputeKDE();
             updateMarkers();
         });
@@ -1018,125 +860,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
             await fetchData("", { mode: "nearby", radiusKm: km });
         });
-
-        (function injectPAIButton() {
-            // cari container tombol; kalau .toolbar tidak ada, sesuaikan selector-nya
-            const toolbar =
-                document.querySelector(".toolbar") ||
-                document.querySelector("#heatmap-controls") ||
-                document.querySelector("#job-search-wrap");
-            if (!toolbar) return;
-
-            const btn = document.createElement("button");
-            btn.id = "run-pai";
-            btn.className = "btn btn-outline-primary";
-            btn.style.marginLeft = "8px";
-            btn.textContent = "Run PAI";
-            toolbar.appendChild(btn);
-
-            btn.addEventListener("click", () => {
-                try {
-                    if (!jobs.length) {
-                        alert("Tidak ada data lowongan untuk dievaluasi.");
-                        return;
-                    }
-
-                    // Pastikan grid tampilan sudah dibangun sekali (biasanya sudah dipanggil di fetchData)
-                    if (!lastEvalGrid) {
-                        // recompute dari semua titik agar lastEvalGrid tidak null (opsional)
-                        recomputeKDE();
-                    }
-
-                    // ===== split 70/30 =====
-                    const shuffled = shuffleSeeded(jobs, 42);
-                    const cut = Math.max(1, Math.floor(0.7 * shuffled.length));
-                    const train = shuffled.slice(0, cut);
-                    const test = shuffled.slice(cut);
-
-                    if (!test.length) {
-                        alert("Dataset terlalu kecil untuk split 70/30.");
-                        return;
-                    }
-
-                    // ===== grid dari TRAIN (biar fair, tidak "mengintip" test) =====
-                    const trainLngLat = train.map((j) => [j.lat, j.lon]);
-                    const grid = computeDensityGridFor(trainLngLat);
-                    if (!grid) {
-                        alert("Gagal membangun grid dari data TRAIN.");
-                        return;
-                    }
-
-                    // simpan & ganti sementara grid evaluasi
-                    const prevGrid = lastEvalGrid;
-                    lastEvalGrid = grid;
-
-                    // ===== hitung PAI =====
-                    const testPts = test.map((j) => ({
-                        lat: j.lat,
-                        lon: j.lon,
-                    }));
-                    const alphas = [0.01, 0.05, 0.1];
-                    const out = evaluatePAI(testPts, alphas);
-
-                    // restore grid tampilan
-                    lastEvalGrid = prevGrid;
-
-                    if (!out || !out.length) {
-                        alert("Evaluasi PAI tidak menghasilkan nilai.");
-                        return;
-                    }
-
-                    // tampilkan di console
-                    console.table(
-                        out.map((r) => ({
-                            "Alpha %": r.alpha * 100,
-                            "Top Cells": r.topCells,
-                            Hits: r.hits,
-                            Total: r.totalPts,
-                            HR: r.HR.toFixed(3),
-                            PAI: r.PAI.toFixed(2),
-                        }))
-                    );
-
-                    // popup ringkas (pakai Swal kalau ada, fallback alert)
-                    const lines = out
-                        .map(
-                            (r) =>
-                                `α=${(r.alpha * 100).toFixed(
-                                    0
-                                )}% → HR=${r.HR.toFixed(
-                                    3
-                                )}, PAI=${r.PAI.toFixed(2)} (${r.hits}/${
-                                    r.totalPts
-                                })`
-                        )
-                        .join("<br>");
-                    if (window.Swal) {
-                        Swal.fire({
-                            title: "Hasil PAI",
-                            html: lines,
-                            icon: "info",
-                        });
-                    } else {
-                        alert(
-                            out
-                                .map(
-                                    (r) =>
-                                        `alpha ${(r.alpha * 100).toFixed(
-                                            0
-                                        )}%: HR ${r.HR.toFixed(
-                                            3
-                                        )}, PAI ${r.PAI.toFixed(2)}`
-                                )
-                                .join("\n")
-                        );
-                    }
-                } catch (e) {
-                    console.error("[PAI] error:", e);
-                    alert("Gagal menjalankan evaluasi PAI. Cek konsol.");
-                }
-            });
-        })();
     } catch (err) {
         console.error("❌ Error:", err);
         alert("Gagal memuat data heatmap. Cek konsol.");

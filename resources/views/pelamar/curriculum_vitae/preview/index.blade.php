@@ -53,7 +53,7 @@
 
     <div class="editor-item">
       <img src="{{asset('assets/images/home.svg')}}" alt="Home Icon" style="width:24px;height:24px;margin-right:8px;" />
-      <a href="{{route('home')}}" class="editor-btn">Back to Home</a>
+      <a href="{{route('pelamar.dashboard.curriculum_vitae.index')}}" class="editor-btn">Return to Dashboard</a>
     </div>
   </div>
 

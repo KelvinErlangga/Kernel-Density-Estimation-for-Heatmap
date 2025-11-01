@@ -15,9 +15,9 @@ use App\Http\Controllers\UserAdminController;
 use Illuminate\Support\Facades\Route;
 
 /*
-|---------------------------------------------------------------------------
+|--------------------------------------------------------------------------
 | Web Routes
-|---------------------------------------------------------------------------
+|--------------------------------------------------------------------------
 */
 
 Route::get('/', fn() => view('welcome'))->name('welcome');
@@ -71,10 +71,6 @@ Route::middleware('auth', 'verified')->group(function () {
             ->name('pelamar.curriculum_vitae.profile.editProfile');
         Route::put('/curriculum-vitae/{curriculum_vitae_user}/profile/edit/{personalCurriculumVitae}', [CurriculumVitaeUserController::class, 'updateProfile'])
             ->name('pelamar.curriculum_vitae.profile.updateProfile');
-
-        // ---------- Detail Section jadi 1 ----------
-        Route::get('/curriculum-vitae/{curriculum_vitae_user}/detail_section', [CurriculumVitaeUserController::class, 'getDetailSection'])
-            ->name('pelamar.curriculum_vitae.detail_section.index');
 
         // ---------- Experience ----------
         Route::get('/curriculum-vitae/{curriculum_vitae_user}/profile/experience', [CurriculumVitaeUserController::class, 'getExperience'])

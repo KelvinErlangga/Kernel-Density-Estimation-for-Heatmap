@@ -203,10 +203,35 @@ class CurriculumVitaeUserController extends Controller
         return response()->json(['success' => true]);
     }
 
+    // Ambil daftar key yang diizinkan dari layout_json template
+    private function allowedKeysForTemplate(?\App\Models\TemplateCurriculumVitae $template): array
+    {
+        if (!$template) return [];
+
+        $raw = $template->layout_json;
+
+        $layout = is_string($raw) ? (json_decode($raw, true) ?: []) : (is_array($raw) ? $raw : []);
+
+        return collect($layout)
+            ->pluck('key')
+            ->filter(fn($k) => is_string($k) && $k !== '')
+            ->values()
+            ->all();
+    }
+
     // tampil form input profile
     public function getProfile(CurriculumVitaeUser $curriculumVitaeUser)
     {
-        return view('pelamar.curriculum_vitae.profile.index', compact('curriculumVitaeUser'));
+        $curriculumVitaeUser->load('templateCV', 'personalDetail');
+        $allowedKeys = $this->allowedKeysForTemplate($curriculumVitaeUser->templateCV);
+
+        // Guard: pastikan section ini tersedia di template
+        abort_unless(in_array('personal_detail', $allowedKeys, true), 404);
+
+        return view('pelamar.curriculum_vitae.profile.index', [
+            'curriculumVitaeUser' => $curriculumVitaeUser,
+            'allowedKeys'         => $allowedKeys,
+        ]);
     }
 
     // tambah data profile kedalam database
@@ -234,10 +259,64 @@ class CurriculumVitaeUserController extends Controller
         return redirect()->route('pelamar.curriculum_vitae.experience.index', $curriculumVitaeUser->id);
     }
 
+    // public function addProfile(AddUpdateProfileCurriculumVitaeRequest $request, CurriculumVitaeUser $curriculumVitaeUser)
+    // {
+    //     DB::transaction(function () use ($request, $curriculumVitaeUser) {
+
+    //         $existingAvatar = optional($curriculumVitaeUser->personalDetail)->avatar_curriculum_vitae;
+
+    //         $curriculumVitaeUser->personalDetail()->delete();
+
+    //         $validated = $request->validated();
+
+    //         if ($request->hasFile('avatar_curriculum_vitae')) {
+    //             $avatar_curriculum_vitaePath = $request->file('avatar_curriculum_vitae')->store('avatar_curriculum_vitae', 'public');
+    //             $validated['avatar_curriculum_vitae'] = $avatar_curriculum_vitaePath;
+    //         } else {
+    //             // Jika tidak ada file baru, gunakan avatar yang sudah ada
+    //             $validated['avatar_curriculum_vitae'] = $existingAvatar;
+    //         }
+
+    //         $curriculumVitaeUser->personalDetail()->create($validated);
+    //     });
+
+    //     return redirect()->route('pelamar.curriculum_vitae.detail_section.index', $curriculumVitaeUser->id);
+    // }
+
+    // tampil data pengalaman kerja
+    public function getDetailSection(CurriculumVitaeUser $curriculumVitaeUser)
+    {
+        $curriculumVitaeUser->load([
+            'experiences',
+            'educations',
+            'languages',
+            'skills',
+            'organizations',
+            'achievements',
+            'links',
+            'customSections',
+            'templateCV',
+        ]);
+
+        $allowedKeys = $this->allowedKeysForTemplate($curriculumVitaeUser->templateCV);
+
+        return view('pelamar.curriculum_vitae.detail_section.index', [
+            'curriculumVitaeUser' => $curriculumVitaeUser,
+            'allowedKeys'         => $allowedKeys,
+        ]);
+    }
+
     // tampil data pengalaman kerja
     public function getExperience(CurriculumVitaeUser $curriculumVitaeUser)
     {
-        return view('pelamar.curriculum_vitae.experience.index', compact('curriculumVitaeUser'));
+        $curriculumVitaeUser->load('templateCV', 'experiences');
+        $allowedKeys = $this->allowedKeysForTemplate($curriculumVitaeUser->templateCV);
+        abort_unless(in_array('experiences', $allowedKeys, true), 404);
+
+        return view('pelamar.curriculum_vitae.experience.index', [
+            'curriculumVitaeUser' => $curriculumVitaeUser,
+            'allowedKeys'         => $allowedKeys,
+        ]);
     }
 
     // buat data pengalaman kerja
@@ -288,7 +367,14 @@ class CurriculumVitaeUserController extends Controller
     // tampil data pendidikan
     public function getEducation(CurriculumVitaeUser $curriculumVitaeUser)
     {
-        return view('pelamar.curriculum_vitae.education.index', compact('curriculumVitaeUser'));
+        $curriculumVitaeUser->load('templateCV', 'educations');
+        $allowedKeys = $this->allowedKeysForTemplate($curriculumVitaeUser->templateCV);
+        abort_unless(in_array('educations', $allowedKeys, true), 404);
+
+        return view('pelamar.curriculum_vitae.education.index', [
+            'curriculumVitaeUser' => $curriculumVitaeUser,
+            'allowedKeys'         => $allowedKeys,
+        ]);
     }
 
     // buat data pendidikan
@@ -339,7 +425,14 @@ class CurriculumVitaeUserController extends Controller
     // tampil data bahasa
     public function getLanguage(CurriculumVitaeUser $curriculumVitaeUser)
     {
-        return view('pelamar.curriculum_vitae.language.index', compact('curriculumVitaeUser'));
+        $curriculumVitaeUser->load('templateCV', 'languages');
+        $allowedKeys = $this->allowedKeysForTemplate($curriculumVitaeUser->templateCV);
+        abort_unless(in_array('languages', $allowedKeys, true), 404);
+
+        return view('pelamar.curriculum_vitae.language.index', [
+            'curriculumVitaeUser' => $curriculumVitaeUser,
+            'allowedKeys'         => $allowedKeys,
+        ]);
     }
 
     // tambah data bahasa ke database
@@ -369,7 +462,14 @@ class CurriculumVitaeUserController extends Controller
     // tampil data keahlian
     public function getSkill(CurriculumVitaeUser $curriculumVitaeUser)
     {
-        return view('pelamar.curriculum_vitae.skill.index', compact('curriculumVitaeUser'));
+        $curriculumVitaeUser->load('templateCV', 'skills');
+        $allowedKeys = $this->allowedKeysForTemplate($curriculumVitaeUser->templateCV);
+        abort_unless(in_array('skills', $allowedKeys, true), 404);
+
+        return view('pelamar.curriculum_vitae.skill.index', [
+            'curriculumVitaeUser' => $curriculumVitaeUser,
+            'allowedKeys'         => $allowedKeys,
+        ]);
     }
 
     // tambah data keahlian ke database
@@ -400,7 +500,14 @@ class CurriculumVitaeUserController extends Controller
     // tampil data organisasi
     public function getOrganization(CurriculumVitaeUser $curriculumVitaeUser)
     {
-        return view('pelamar.curriculum_vitae.organization.index', compact('curriculumVitaeUser'));
+        $curriculumVitaeUser->load('templateCV', 'organizations');
+        $allowedKeys = $this->allowedKeysForTemplate($curriculumVitaeUser->templateCV);
+        abort_unless(in_array('organizations', $allowedKeys, true), 404);
+
+        return view('pelamar.curriculum_vitae.organization.index', [
+            'curriculumVitaeUser' => $curriculumVitaeUser,
+            'allowedKeys'         => $allowedKeys,
+        ]);
     }
 
     // buat data organisasi
@@ -451,7 +558,14 @@ class CurriculumVitaeUserController extends Controller
     // tampil data prestasi
     public function getAchievement(CurriculumVitaeUser $curriculumVitaeUser)
     {
-        return view('pelamar.curriculum_vitae.achievement.index', compact('curriculumVitaeUser'));
+        $curriculumVitaeUser->load('templateCV', 'achievements');
+        $allowedKeys = $this->allowedKeysForTemplate($curriculumVitaeUser->templateCV);
+        abort_unless(in_array('achievements', $allowedKeys, true), 404);
+
+        return view('pelamar.curriculum_vitae.achievement.index', [
+            'curriculumVitaeUser' => $curriculumVitaeUser,
+            'allowedKeys'         => $allowedKeys,
+        ]);
     }
 
     // buat data prestasi
@@ -502,7 +616,14 @@ class CurriculumVitaeUserController extends Controller
     // tampil data link informasi
     public function getSocialMedia(CurriculumVitaeUser $curriculumVitaeUser)
     {
-        return view('pelamar.curriculum_vitae.social_media.index', compact('curriculumVitaeUser'));
+        $curriculumVitaeUser->load('templateCV', 'links');
+        $allowedKeys = $this->allowedKeysForTemplate($curriculumVitaeUser->templateCV);
+        abort_unless(in_array('links', $allowedKeys, true), 404);
+
+        return view('pelamar.curriculum_vitae.social_media.index', [
+            'curriculumVitaeUser' => $curriculumVitaeUser,
+            'allowedKeys'         => $allowedKeys,
+        ]);
     }
 
     // tambah data link informasi ke database
