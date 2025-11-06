@@ -12,14 +12,8 @@
 @php
     // ==== FLOW & ROUTES ====
     $flow = [
-        'personal_detail',
-        'experiences',
-        'educations',
-        'languages',
-        'skills',
-        'organizations',
-        'achievements',
-        'links',
+        'personal_detail','experiences','educations','languages',
+        'skills','organizations','achievements','links',
     ];
 
     $routeOf = [
@@ -33,30 +27,24 @@
         'links'           => 'pelamar.curriculum_vitae.social_media.index',
     ];
 
-    // Dari controller:
-    // $allowedKeys   -> step yang boleh dikunjungi
-    // $confirmedKeys -> step yang SUDAH diklik "Langkah Selanjutnya"
     $allowed       = $allowedKeys   ?? $flow;
     $confirmedKeys = $confirmedKeys ?? [];
 
     $currentKey = 'skills';
     $idx = array_search($currentKey, $flow, true);
 
-    // Prev allowed
+    // Prev
     $backKey = null;
     for ($i = $idx - 1; $i >= 0; $i--) {
         if (in_array($flow[$i], $allowed, true)) { $backKey = $flow[$i]; break; }
     }
-
-    // Next allowed
+    // Next
     $nextKey = null;
     for ($i = $idx + 1; $i < count($flow); $i++) {
         if (in_array($flow[$i], $allowed, true)) { $nextKey = $flow[$i]; break; }
     }
 
-    // ==== LOGIKA DONE (centang) ====
-    // done == sudah klik Next (ada di $confirmedKeys)
-    // fallback: jika $confirmedKeys kosong, anggap semua step sebelum current done
+    // Centang (confirmed) + fallback sebelum current
     $useConfirmed = !empty($confirmedKeys);
     $fallbackDoneSet = [];
     if (!$useConfirmed && $idx !== false) {
@@ -84,7 +72,7 @@
     @endif
 </div>
 
-<!-- ===== STEPPER: centang hanya jika step ada di $confirmedKeys (atau fallback sebelum current) ===== -->
+<!-- ===== STEPPER ===== -->
 <div class="absolute top-10 left-0 right-0 z-30 flex justify-center">
     <div class="flex items-center space-x-4 overflow-x-auto">
         @php $visualNum = 1; @endphp
@@ -135,10 +123,10 @@
 <div class="flex flex-col items-center justify-center z-10 mt-32 mb-20">
     <form action="{{ route('pelamar.curriculum_vitae.skill.addSkill', $curriculumVitaeUser->id) }}"
           method="POST"
-          class="bg-white shadow-lg rounded-lg p-8 mx-auto z-10 mb-20 grid grid-cols-1 md:grid-cols-2 gap-8"
+          class="bg-white shadow-lg rounded-2xl p-8 mx-auto z-10 mb-20 grid grid-cols-1 md:grid-cols-2 gap-8"
           style="max-width: 1000px; width: 100%;">
         @csrf
-        <h2 class="text-2xl text-center text-blue-800 md:col-span-2 mb-8">Keahlian</h2>
+        <h2 class="text-2xl text-center text-blue-800 md:col-span-2 mb-2">Keahlian</h2>
 
         <!-- Left: Keahlian & Level -->
         <div class="space-y-6">
@@ -224,26 +212,30 @@
                     </li>
                 @endforelse
             </ul>
+
+            <!-- Tombol sekunder: match index Bahasa -->
             <button type="button" id="add-skill-btn"
-                    class="mt-6 w-full py-4 bg-blue-100 text-blue-700 text-sm font-bold rounded shadow hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition text-center block">
+                    class="block w-full text-center py-3 md:py-4 bg-blue-100 text-blue-700 font-semibold rounded-xl shadow hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
                 + Tambah Keahlian Lain
             </button>
         </div>
 
         <!-- Right: Pencarian Bidang Pekerjaan -->
-        <div class="space-y-6 border-2 border-gray-300 rounded-lg p-4">
+        <div class="space-y-6 border border-gray-200 rounded-xl p-4 bg-gray-50">
+            <label for="search-job" class="text-sm text-gray-600">Pencarian Rekomendasi</label>
             <input
                 type="text"
                 id="search-job"
-                placeholder="Cari Berdasarkan Bidang Pekerjaan"
+                placeholder="Cari berdasarkan bidang kerja…"
                 class="block w-full rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none p-3" />
             <ul id="job-list" class="space-y-2 hidden"></ul>
         </div>
 
-        <!-- Submit -->
+        <!-- Submit (primer) -->
         <div class="md:col-span-2">
             @if($nextKey)
-                <button type="submit" class="mt-6 w-full py-4 bg-blue-700 text-white text-sm font-medium rounded shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
+                <button type="submit"
+                        class="block w-full text-center py-3 md:py-4 bg-blue-700 text-white font-semibold rounded-xl shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
                     Langkah Selanjutnya
                 </button>
             @endif
@@ -304,9 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const levels = Array.from(document.querySelectorAll('select.level-select'));
         let allFilled = true;
         for (let i = 0; i < names.length; i++) {
-            if (!names[i].value.trim() || !levels[i].value.trim()) {
-                allFilled = false; break;
-            }
+            if (!names[i].value.trim() || !levels[i].value.trim()) { allFilled = false; break; }
         }
         if (!allFilled) {
             alert('Pastikan semua keahlian & level terisi sebelum menambahkan baris baru.');
@@ -323,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (li) li.remove();
     });
 
-    // Job skills search (optional)
+    // Job skills search (opsional)
     const jobList   = document.getElementById('job-list');
     const searchInp = document.getElementById('search-job');
     let jobSkills   = {};
@@ -342,12 +332,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (job.toLowerCase().includes(q)) {
                 (jobSkills[job] || []).forEach(skill => {
                     const li = document.createElement('li');
-                    li.className = 'text-gray-700 flex justify-between items-center bg-gray-50 p-2 rounded shadow-sm';
+                    li.className = 'text-gray-700 flex justify-between items-center bg-white border border-gray-200 p-2 rounded shadow-sm';
                     const span = document.createElement('span');
                     span.textContent = `${job} • ${skill}`;
                     const btn = document.createElement('button');
                     btn.type = 'button';
-                    btn.className = 'text-blue-500 hover:text-blue-700';
+                    btn.className = 'text-blue-600 hover:text-blue-800';
                     btn.textContent = 'Pilih';
                     btn.addEventListener('click', () => addSkillToForm(skill));
                     li.appendChild(span); li.appendChild(btn); jobList.appendChild(li); count++;

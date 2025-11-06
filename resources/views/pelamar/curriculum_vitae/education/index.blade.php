@@ -33,7 +33,7 @@
         'links'           => 'pelamar.curriculum_vitae.social_media.index',
     ];
 
-    // Controller sebaiknya mengirim:
+    // Dari controller:
     // $allowedKeys   -> step yang boleh dikunjungi
     // $confirmedKeys -> step yang SUDAH diklik "Langkah Selanjutnya"
     $allowed       = $allowedKeys   ?? $flow;
@@ -93,14 +93,12 @@
                 $allowedStep = in_array($k, $allowed, true);
                 $isCurrent   = $currentKey === $k;
 
-                // done jika confirmed, kalau tidak ada confirmedKeys pakai fallback (semua sebelum current done)
                 $done = $useConfirmed ? in_array($k, $confirmedKeys, true)
                                       : isset($fallbackDoneSet[$k]);
 
                 $circleCls = $allowedStep ? 'bg-blue-700 text-white' : 'bg-gray-300 text-gray-700';
                 if ($isCurrent && $allowedStep) $circleCls .= ' ring-2 ring-blue-300';
 
-                // garis ke step berikutnya
                 $nextK = $loop->last ? null : $flow[$loop->index + 1];
                 $nextAllowed = $nextK ? in_array($nextK, $allowed, true) : false;
             @endphp
@@ -135,7 +133,7 @@
 
 <!-- Container -->
 <div class="flex flex-col items-center justify-center z-10 mt-32 mb-20 w-full px-4">
-    <div class="bg-white shadow-lg rounded-lg p-8 mx-auto z-10" style="max-width: 800px; width: 100%;">
+    <div class="bg-white shadow-lg rounded-2xl p-8 mx-auto z-10" style="max-width: 800px; width: 100%;">
         <h2 class="text-2xl text-center text-blue-800 mb-8">Pendidikan</h2>
 
         {{-- List Pendidikan (Draggable) --}}
@@ -217,20 +215,21 @@
             </div>
         @endif
 
-        <!-- Tombol Tambah Pendidikan -->
-        <a href="{{ route('pelamar.curriculum_vitae.education.createEducation', $curriculumVitaeUser->id) }}"
-           class="mt-6 w-full py-4 bg-blue-100 text-blue-700 text-sm font-bold rounded shadow hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition text-center block">
-            + Tambah Pendidikan
-        </a>
-
-        <!-- Langkah Selanjutnya -->
-        @if($nextKey)
-            {{-- IMPORTANT: di controller tujuan, tambahkan 'educations' ke $confirmedKeys sebelum redirect --}}
-            <a href="{{ route($routeOf[$nextKey], $curriculumVitaeUser->id) }}"
-               class="mt-6 w-full py-4 bg-blue-700 text-white text-sm font-bold rounded shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition text-center block">
-                Langkah Selanjutnya
+        <!-- CTA Buttons (match style Index Bahasa) -->
+        <div class="mt-6 space-y-3">
+            <a href="{{ route('pelamar.curriculum_vitae.education.createEducation', $curriculumVitaeUser->id) }}"
+               class="block w-full text-center py-3 md:py-4 bg-blue-100 text-blue-700 font-semibold rounded-xl shadow hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
+                + Tambah Pendidikan
             </a>
-        @endif
+
+            @if($nextKey)
+                {{-- IMPORTANT: di controller tujuan, tambahkan 'educations' ke $confirmedKeys sebelum redirect --}}
+                <a href="{{ route($routeOf[$nextKey], $curriculumVitaeUser->id) }}"
+                   class="block w-full text-center py-3 md:py-4 bg-blue-700 text-white font-semibold rounded-xl shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
+                    Langkah Selanjutnya
+                </a>
+            @endif
+        </div>
     </div>
 </div>
 

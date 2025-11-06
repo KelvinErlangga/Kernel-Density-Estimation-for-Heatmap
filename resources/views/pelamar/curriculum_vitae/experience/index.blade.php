@@ -33,9 +33,8 @@
         'links'           => 'pelamar.curriculum_vitae.social_media.index',
     ];
 
-    // Controller sebaiknya mengirim $allowedKeys (step yang boleh diakses) dan $confirmedKeys (step yang sudah diklik Next)
     $allowed        = $allowedKeys ?? $flow;
-    $confirmedKeys  = $confirmedKeys ?? []; // <-- diisi controller ketika user klik "Langkah Selanjutnya"
+    $confirmedKeys  = $confirmedKeys ?? [];
     $currentKey     = 'experiences';
 
     // ==== NAV: PREV/NEXT YANG DIIJINKAN ====
@@ -52,8 +51,6 @@
     }
 
     // ==== LOGIKA DONE (centang) ====
-    // Jika controller memberikan $confirmedKeys, gunakan itu.
-    // Jika tidak ada, fallback: semua step sebelum current dianggap done.
     $useConfirmed = !empty($confirmedKeys);
     $fallbackDoneSet = [];
     if (!$useConfirmed) {
@@ -90,14 +87,12 @@
                 $allowedStep = in_array($k, $allowed, true);
                 $isCurrent   = $currentKey === $k;
 
-                // done hanya jika sudah diklik Next (confirmed)
                 $done = $useConfirmed ? in_array($k, $confirmedKeys, true)
-                                      : isset($fallbackDoneSet[$k]); // fallback aman
+                                      : isset($fallbackDoneSet[$k]);
 
                 $circleCls = $allowedStep ? 'bg-blue-700 text-white' : 'bg-gray-300 text-gray-700';
                 if ($isCurrent && $allowedStep) $circleCls .= ' ring-2 ring-blue-300';
 
-                // garis ke step berikutnya
                 $nextK = $loop->last ? null : $flow[$loop->index + 1];
                 $nextAllowed = $nextK ? in_array($nextK, $allowed, true) : false;
             @endphp
@@ -133,7 +128,7 @@
 <!-- Content -->
 <div class="min-h-screen flex flex-col relative">
     <div class="flex flex-col items-center justify-center z-10 mt-32 mb-20 w-full px-4">
-        <div class="bg-white shadow-lg rounded-lg p-8 mx-auto" style="max-width:800px; width:100%;">
+        <div class="bg-white shadow-lg rounded-2xl p-8 mx-auto" style="max-width:800px; width:100%;">
             <h2 class="text-2xl text-center text-blue-800 mb-8">Pengalaman Kerja</h2>
 
             @if(($curriculumVitaeUser->experiences ?? collect())->count())
@@ -206,20 +201,21 @@
                 </div>
             @endif
 
-            <!-- Tambah Pengalaman -->
-            <a href="{{ route('pelamar.curriculum_vitae.experience.create', $curriculumVitaeUser->id) }}"
-               class="mt-6 w-full py-4 bg-blue-100 text-blue-700 text-sm font-bold rounded shadow hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition text-center block">
-                + Tambah Pengalaman Kerja
-            </a>
-
-            <!-- Langkah Selanjutnya -->
-            @if($nextKey)
-                {{-- IMPORTANT (di controller next): tambahkan key current ke $confirmedKeys lalu redirect --}}
-                <a href="{{ route($routeOf[$nextKey], $curriculumVitaeUser->id) }}"
-                   class="mt-6 w-full py-4 bg-blue-700 text-white text-sm font-bold rounded shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition text-center block">
-                    Langkah Selanjutnya
+            <!-- CTA Buttons (match style Index Bahasa) -->
+            <div class="mt-6 space-y-3">
+                <a href="{{ route('pelamar.curriculum_vitae.experience.create', $curriculumVitaeUser->id) }}"
+                   class="block w-full text-center py-3 md:py-4 bg-blue-100 text-blue-700 font-semibold rounded-xl shadow hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
+                    + Tambah Pengalaman Kerja
                 </a>
-            @endif
+
+                @if($nextKey)
+                    {{-- IMPORTANT (di controller next): tambahkan 'experiences' ke $confirmedKeys lalu redirect --}}
+                    <a href="{{ route($routeOf[$nextKey], $curriculumVitaeUser->id) }}"
+                       class="block w-full text-center py-3 md:py-4 bg-blue-700 text-white font-semibold rounded-xl shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
+                        Langkah Selanjutnya
+                    </a>
+                @endif
+            </div>
         </div>
     </div>
 </div>

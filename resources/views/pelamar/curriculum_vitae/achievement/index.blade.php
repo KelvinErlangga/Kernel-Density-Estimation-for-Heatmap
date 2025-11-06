@@ -122,7 +122,6 @@
 <div class="flex flex-col items-center justify-center z-10 mt-32 mb-20">
     <div class="bg-white shadow-lg rounded-lg p-8 mx-auto z-10 mb-20" style="max-width: 800px; width: 100%;">
         <h2 class="text-2xl text-center text-blue-800 mb-2">Prestasi <span class="text-gray-500 text-sm">(opsional)</span></h2>
-        <p class="text-center text-gray-500 mb-8">Tambah, urutkan, atau edit prestasi Anda.</p>
 
         <ul id="achievements-list" class="space-y-4">
             @forelse($curriculumVitaeUser->achievements as $achievement)
@@ -151,13 +150,13 @@
         </ul>
 
         <a href="{{ route('pelamar.curriculum_vitae.achievement.createAchievement', $curriculumVitaeUser->id) }}"
-           class="mt-6 w-full py-4 bg-blue-100 text-blue-700 text-sm font-bold rounded shadow hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition text-center block">
+           class="mt-6 block w-full text-center py-4 bg-blue-100 text-blue-700 text-sm font-bold rounded-xl shadow hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
             + Tambah Prestasi
         </a>
 
         @if($nextKey)
             <a href="{{ route($routeOf[$nextKey], $curriculumVitaeUser->id) }}"
-               class="mt-6 w-full py-4 bg-blue-700 text-white text-sm font-bold rounded shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition text-center block">
+               class="mt-6 block w-full text-center py-4 bg-blue-700 text-white text-sm font-bold rounded-xl shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
                 Langkah Selanjutnya
             </a>
         @endif

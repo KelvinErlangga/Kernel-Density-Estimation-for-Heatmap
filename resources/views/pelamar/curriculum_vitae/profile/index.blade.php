@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Detail Pribadi | CVRE GENERATE</title>
 
+    <!-- Quill.js CSS -->
     <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Poppins -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet"/>
     <link rel="icon" href="{{ asset('assets/icons/logo.svg') }}" type="image/x-icon"/>
 </head>
@@ -29,38 +32,25 @@
         'links'           => 'pelamar.curriculum_vitae.social_media.index',
     ];
 
-    // dari controller
-    $allowed       = $allowedKeys   ?? $flow;   // step yang boleh diakses
-    $confirmedKeys = $confirmedKeys ?? [];      // step yang sudah klik "Langkah Selanjutnya"
+    $allowed       = $allowedKeys   ?? $flow;
+    $confirmedKeys = $confirmedKeys ?? [];
 
-    // konteks halaman
     $currentKey = 'personal_detail';
     $idx = array_search($currentKey, $flow, true);
 
     // prev allowed
-    $backKey = null;
-    for ($i = $idx - 1; $i >= 0; $i--) {
-        if (in_array($flow[$i], $allowed, true)) { $backKey = $flow[$i]; break; }
-    }
-
+    $backKey = null; for ($i = $idx - 1; $i >= 0; $i--) { if (in_array($flow[$i], $allowed, true)) { $backKey = $flow[$i]; break; } }
     // next allowed
-    $nextKey = null;
-    for ($i = $idx + 1; $i < count($flow); $i++) {
-        if (in_array($flow[$i], $allowed, true)) { $nextKey = $flow[$i]; break; }
-    }
+    $nextKey = null; for ($i = $idx + 1; $i < count($flow); $i++) { if (in_array($flow[$i], $allowed, true)) { $nextKey = $flow[$i]; break; } }
 
-    // ==== LOGIKA DONE ====
-    // done == ada di $confirmedKeys (sudah pernah klik Next pada step tsb)
-    // fallback: jika $confirmedKeys kosong, anggap semua step SEBELUM current done
+    // Centang hanya untuk step yang sudah dikonfirmasi
     $useConfirmed = !empty($confirmedKeys);
     $fallbackDoneSet = [];
-    if (!$useConfirmed && $idx !== false) {
-        for ($i = 0; $i < $idx; $i++) { $fallbackDoneSet[$flow[$i]] = true; }
-    }
+    if (!$useConfirmed && $idx !== false) { for ($i=0;$i<$idx;$i++) $fallbackDoneSet[$flow[$i]] = true; }
 @endphp
 
 <!-- Background -->
-<img src="{{ asset('assets/images/background.png') }}" alt="Background Shape" class="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"/>
+<img src="{{ asset('assets/images/background.png') }}" alt="" class="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"/>
 
 <!-- Back Button -->
 <div class="absolute top-10 left-10 z-50">
@@ -90,17 +80,14 @@
                 $allowedStep = in_array($k, $allowed, true);
                 $isCurrent   = $currentKey === $k;
 
-                // Done jika ada di confirmedKeys; jika kosong gunakan fallback (semua sebelum current done)
                 $done = $useConfirmed ? in_array($k, $confirmedKeys, true)
                                       : isset($fallbackDoneSet[$k]);
-
-                // Pada halaman current, tetap angka (jangan centang)
+                // Pada halaman current, tetap angka
                 if ($isCurrent) { $done = false; }
 
                 $circleCls = $allowedStep ? 'bg-blue-700 text-white' : 'bg-gray-300 text-gray-700';
                 if ($isCurrent && $allowedStep) $circleCls .= ' ring-2 ring-blue-300';
 
-                // garis ke step berikutnya
                 $nextK = $loop->last ? null : $flow[$loop->index + 1];
                 $nextAllowed = $nextK ? in_array($nextK, $allowed, true) : false;
             @endphp
@@ -135,7 +122,7 @@
 
 <!-- Form Container -->
 <div class="flex flex-col items-center justify-center z-10 mt-32 mb-20">
-    <div class="bg-white shadow-lg rounded-lg p-8 mx-auto" style="max-width: 800px; width: 100%;">
+    <div class="bg-white shadow-lg rounded-2xl p-8 mx-auto" style="max-width: 800px; width: 100%;">
         <h2 class="text-2xl text-center text-blue-800 mb-8">Detail Pribadi</h2>
 
         <form method="POST"
@@ -314,37 +301,36 @@
                 </div>
             @endif
 
-            <!-- Tombol Simpan & Lanjut -->
-            <button type="submit"
-                    class="mt-6 w-full py-4 bg-blue-700 text-white text-sm font-medium rounded shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
-                Langkah Selanjutnya
-            </button>
+            <!-- Tombol (match style Index Bahasa) -->
+            <div class="mt-6 space-y-3">
+                <button type="submit"
+                        class="w-full py-3 md:py-4 bg-blue-700 text-white font-semibold rounded-xl shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
+                    Langkah Selanjutnya
+                </button>
+            </div>
         </form>
     </div>
 </div>
 
-<!-- Quill.js JS -->
+<!-- Quill.js -->
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var quill = new Quill('#editor', {
-            theme: 'snow',
-            placeholder: 'Ringkasan Mengenai Anda',
-            modules: { toolbar: [['bold','italic','underline'], [{ list: 'ordered' }, { list: 'bullet' }]] }
-        });
-        quill.root.style.fontFamily = 'Poppins, sans-serif';
-
-        var summaryInput = document.querySelector('input#personal_summary');
-        if (summaryInput && summaryInput.value) {
-            // jika menyimpan sebagai plain text sebelumnya, tampilkan apa adanya
-            quill.clipboard.dangerouslyPasteHTML(summaryInput.value);
-        }
-
-        quill.on('text-change', function () {
-            // simpan sebagai teks polos; jika ingin HTML: gunakan quill.root.innerHTML
-            summaryInput.value = quill.getText().trim();
-        });
+document.addEventListener('DOMContentLoaded', function () {
+    var quill = new Quill('#editor', {
+        theme: 'snow',
+        placeholder: 'Ringkasan Mengenai Anda',
+        modules: { toolbar: [['bold','italic','underline'], [{ list: 'ordered' }, { list: 'bullet' }]] }
     });
+    quill.root.style.fontFamily = 'Poppins, sans-serif';
+
+    var summaryInput = document.querySelector('input#personal_summary');
+    if (summaryInput && summaryInput.value) {
+        quill.clipboard.dangerouslyPasteHTML(summaryInput.value);
+    }
+    quill.on('text-change', function () {
+        summaryInput.value = quill.getText().trim(); // ganti ke quill.root.innerHTML kalau mau HTML
+    });
+});
 </script>
 </body>
 </html>

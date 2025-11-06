@@ -125,20 +125,19 @@
 <!-- ===== /STEPPER ===== -->
 
 <!-- Container -->
-<div class="flex flex-col items-center justify-center z-10 mt-32 mb-20">
-    <div class="bg-white shadow-lg rounded-lg p-8 mx-auto z-10 mb-20" style="max-width: 800px; width: 100%;">
+<div class="flex flex-col items-center justify-center z-10 mt-32 mb-20 px-4">
+    <div class="bg-white shadow-lg rounded-2xl p-8 mx-auto z-10 mb-20" style="max-width: 800px; width: 100%;">
         <h2 class="text-2xl text-center text-blue-800 mb-2">Pengalaman Organisasi <span class="text-gray-500 text-sm">(opsional)</span></h2>
-        <p class="text-center text-gray-500 mb-8">Tambah, urutkan, atau edit pengalaman organisasi Anda.</p>
 
         <!-- List (Draggable) -->
         <ul id="organization-list" class="space-y-4">
             @forelse($curriculumVitaeUser->organizations as $organization)
-                <li class="border border-gray-300 rounded flex items-center justify-between p-4 shadow">
+                <li class="border border-gray-200 rounded-xl flex items-center justify-between p-4 shadow-sm bg-white">
                     <div class="flex items-center space-x-4">
                         <div class="cursor-move text-gray-400" title="Seret untuk mengurutkan">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
                         </div>
-                        <a href="{{ route('pelamar.curriculum_vitae.organization.editOrganization', [$curriculumVitaeUser->id, $organization->id]) }}" class="block text-left">
+                        <a href="{{ route('pelamar.curriculum_vitae.organization.EditOrganization', [$curriculumVitaeUser->id, $organization->id]) }}" class="block text-left">
                             <h3 class="text-blue-700 font-semibold">
                                 {{ $organization->position_organization }} | {{ $organization->city_organization }}
                             </h3>
@@ -168,22 +167,22 @@
                     </form>
                 </li>
             @empty
-                <li class="rounded p-4 border border-dashed border-gray-300 text-center text-gray-500">
+                <li class="rounded-xl p-6 border border-dashed border-gray-300 text-center text-gray-600 bg-white">
                     Belum ada pengalaman organisasi. Klik tombol di bawah untuk menambahkan.
                 </li>
             @endforelse
         </ul>
 
-        <!-- Tambah -->
+        <!-- Tombol Tambah (sekunder — match Index Bahasa) -->
         <a href="{{ route('pelamar.curriculum_vitae.organization.createOrganization', $curriculumVitaeUser->id) }}"
-           class="mt-6 w-full py-4 bg-blue-100 text-blue-700 text-sm font-bold rounded shadow hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition text-center block">
+           class="mt-6 block w-full text-center py-4 bg-blue-100 text-blue-700 text-sm font-bold rounded-xl shadow hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
             + Tambah Pengalaman Organisasi
         </a>
 
-        <!-- Next -->
+        <!-- Tombol Next (primer — match Index Bahasa) -->
         @if($nextKey)
             <a href="{{ route($routeOf[$nextKey], $curriculumVitaeUser->id) }}"
-               class="mt-6 w-full py-4 bg-blue-700 text-white text-sm font-bold rounded shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition text-center block">
+               class="mt-6 block w-full text-center py-4 bg-blue-700 text-white text-sm font-bold rounded-xl shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
                 Langkah Selanjutnya
             </a>
         @endif
@@ -196,7 +195,11 @@
 document.addEventListener('DOMContentLoaded', function () {
     const listEl = document.getElementById('organization-list');
     if (listEl) {
-        Sortable.create(listEl, { animation: 150, handle: '.cursor-move', ghostClass: 'bg-blue-50' });
+        Sortable.create(listEl, {
+            animation: 150,
+            handle: '.cursor-move',
+            ghostClass: 'bg-blue-50'
+        });
     }
 });
 </script>

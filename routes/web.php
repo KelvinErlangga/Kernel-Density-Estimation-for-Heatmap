@@ -163,6 +163,8 @@ Route::middleware('auth', 'verified')->group(function () {
             ->name('pelamar.curriculum_vitae.social_media.index');
         Route::post('/curriculum-vitae/{curriculum_vitae_user}/profile/social-media', [CurriculumVitaeUserController::class, 'addSocialMedia'])
             ->name('pelamar.curriculum_vitae.social_media.addSocialMedia');
+        Route::delete('/curriculum-vitae/{curriculum_vitae_user}/profile/social-media/{link}', [CurriculumVitaeUserController::class, 'deleteSocialMedia'])
+            ->name('pelamar.curriculum_vitae.social_media.deleteSocialMedia');
 
         // ---------- Preview + Inline Edit ----------
         Route::get('/curriculum-vitae/{curriculum_vitae_user}/preview', [CurriculumVitaeUserController::class, 'previewCV'])

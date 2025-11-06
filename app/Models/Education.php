@@ -11,15 +11,23 @@ class Education extends Model
 
     protected $fillable = [
         'curriculum_vitae_user_id',
+        'education_level',
         'school_name',
         'field_of_study',
         'city_education',
-        'description_education',
+        'description',
         'start_date',
-        'end_date'
+        'end_date',
+        'is_current',
+        'gpa',
     ];
 
-    // relasi curriculum vitae user
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date'   => 'date',
+        'is_current' => 'boolean',
+    ];
+
     public function curriculumVitaeUser()
     {
         return $this->belongsTo(CurriculumVitaeUser::class);

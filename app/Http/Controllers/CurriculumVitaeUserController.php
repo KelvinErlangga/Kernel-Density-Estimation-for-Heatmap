@@ -17,19 +17,17 @@ use App\Models\Education;
 use App\Models\Experience;
 use App\Models\Organization;
 use App\Models\CustomSection;
-use App\Models\PersonalDetail;
 use App\Models\TemplateCurriculumVitae;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Validator;
+use App\Models\Link;
 
 class CurriculumVitaeUserController extends Controller
 {
-    // tampil data template cv
     public function index()
     {
         $templateCurriculumVitae = TemplateCurriculumVitae::getAllTemplateCV();
@@ -86,7 +84,6 @@ class CurriculumVitaeUserController extends Controller
             $cv = CurriculumVitaeUser::create($validated);
         });
 
-        // >>> SEED CUSTOM DEFAULT DARI TEMPLATE <<<
         $this->seedCustomSectionsFromTemplate($cv);
 
         return redirect()->route('pelamar.curriculum_vitae.profile.index', $cv);
@@ -100,7 +97,7 @@ class CurriculumVitaeUserController extends Controller
         $tpl = $cv->template;
         if (!$tpl) return;
 
-        $layout = $tpl->layoutArray(); // sudah ada di model TemplateCurriculumVitae
+        $layout = $tpl->layoutArray();
         $order  = 1;
 
         foreach ($layout as $item) {
@@ -128,7 +125,7 @@ class CurriculumVitaeUserController extends Controller
         }
     }
 
-    // 1) Buat section baru (default: Text Section)
+    // Buat section baru (default: Text Section)
     public function addCustomSection(Request $request, CurriculumVitaeUser $curriculumVitaeUser)
     {
         $type = $request->input('type', 'custom_text'); // sekarang cuma 'custom_text'
@@ -142,7 +139,6 @@ class CurriculumVitaeUserController extends Controller
             'sort_order'    => $nextOrder,
         ]);
 
-        // balikin HTML partial biar langsung di-inject ke preview
         $html = view('pelamar.curriculum_vitae.preview.sections.custom_text', [
             'cv'      => $curriculumVitaeUser,
             'section' => $section
@@ -155,7 +151,7 @@ class CurriculumVitaeUserController extends Controller
         ]);
     }
 
-    // 2) Update inline (judul / isi)
+    // Update inline (judul / isi)
     public function updateCustomSection(Request $request, CurriculumVitaeUser $curriculumVitaeUser, CustomSection $section)
     {
         abort_unless($section->curriculum_vitae_user_id === $curriculumVitaeUser->id, 403);
@@ -166,7 +162,7 @@ class CurriculumVitaeUserController extends Controller
         if ($field === 'section_title') {
             $section->section_title = $value;
         } elseif (str_starts_with($field, 'payload.')) {
-            $path = substr($field, 8); // setelah 'payload.'
+            $path = substr($field, 8);
             $payload = $section->payload ?? [];
             data_set($payload, $path, $value);
             $section->payload = $payload;
@@ -179,7 +175,7 @@ class CurriculumVitaeUserController extends Controller
         return response()->json(['success' => true]);
     }
 
-    // 3) Hapus section
+    // Hapus section
     public function deleteCustomSection(CurriculumVitaeUser $curriculumVitaeUser, CustomSection $section)
     {
         abort_unless($section->curriculum_vitae_user_id === $curriculumVitaeUser->id, 403);
@@ -187,10 +183,10 @@ class CurriculumVitaeUserController extends Controller
         return response()->json(['success' => true]);
     }
 
-    // 4) Reorder section (khusus custom)
+    // Reorder section (khusus custom)
     public function reorderCustomSections(Request $request, CurriculumVitaeUser $curriculumVitaeUser)
     {
-        $ids = $request->input('ids', []); // array of custom section IDs in new order
+        $ids = $request->input('ids', []);
 
         DB::transaction(function () use ($ids, $curriculumVitaeUser) {
             foreach ($ids as $i => $id) {
@@ -225,7 +221,6 @@ class CurriculumVitaeUserController extends Controller
         $curriculumVitaeUser->load('templateCV', 'personalDetail');
         $allowedKeys = $this->allowedKeysForTemplate($curriculumVitaeUser->templateCV);
 
-        // Guard: pastikan section ini tersedia di template
         abort_unless(in_array('personal_detail', $allowedKeys, true), 404);
 
         return view('pelamar.curriculum_vitae.profile.index', [
@@ -249,7 +244,6 @@ class CurriculumVitaeUserController extends Controller
                 $avatar_curriculum_vitaePath = $request->file('avatar_curriculum_vitae')->store('avatar_curriculum_vitae', 'public');
                 $validated['avatar_curriculum_vitae'] = $avatar_curriculum_vitaePath;
             } else {
-                // Jika tidak ada file baru, gunakan avatar yang sudah ada
                 $validated['avatar_curriculum_vitae'] = $existingAvatar;
             }
 
@@ -389,10 +383,25 @@ class CurriculumVitaeUserController extends Controller
         DB::transaction(function () use ($request, $curriculumVitaeUser) {
             $validated = $request->validated();
 
+            $validated['is_current'] = $request->boolean('is_current');
+
+            $validated['start_date'] = Carbon::createFromFormat('Y-m', $validated['start_date'])
+                ->startOfMonth()
+                ->toDateString();
+
+            if ($validated['is_current']) {
+                $validated['end_date'] = null;
+            } else {
+                $validated['end_date'] = !empty($validated['end_date'])
+                    ? Carbon::createFromFormat('Y-m', $validated['end_date'])->startOfMonth()->toDateString()
+                    : null;
+            }
+
             $curriculumVitaeUser->educations()->create($validated);
         });
 
-        return redirect()->route('pelamar.curriculum_vitae.education.index', $curriculumVitaeUser->id);
+        return redirect()->route('pelamar.curriculum_vitae.education.index', $curriculumVitaeUser->id)
+            ->with('success', 'Pendidikan berhasil ditambahkan.');
     }
 
     // edit data pendidikan
@@ -407,10 +416,25 @@ class CurriculumVitaeUserController extends Controller
         DB::transaction(function () use ($request, $education) {
             $validated = $request->validated();
 
+            $validated['is_current'] = $request->boolean('is_current');
+
+            $validated['start_date'] = Carbon::createFromFormat('Y-m', $validated['start_date'])
+                ->startOfMonth()
+                ->toDateString();
+
+            if ($validated['is_current']) {
+                $validated['end_date'] = null;
+            } else {
+                $validated['end_date'] = !empty($validated['end_date'])
+                    ? Carbon::createFromFormat('Y-m', $validated['end_date'])->startOfMonth()->toDateString()
+                    : null;
+            }
+
             $education->update($validated);
         });
 
-        return redirect()->route('pelamar.curriculum_vitae.education.index', $curriculumVitaeUser->id);
+        return redirect()->route('pelamar.curriculum_vitae.education.index', $curriculumVitaeUser->id)
+            ->with('success', 'Pendidikan berhasil diperbarui.');
     }
 
     public function deleteEducation(CurriculumVitaeUser $curriculumVitaeUser, Education $education)
@@ -651,6 +675,21 @@ class CurriculumVitaeUserController extends Controller
         return redirect()->route('pelamar.curriculum_vitae.preview.index', $curriculumVitaeUser->id);
     }
 
+    public function deleteSocialMedia(CurriculumVitaeUser $curriculumVitaeUser, Link $link)
+    {
+        if ($link->linkable_id !== $curriculumVitaeUser->id || $link->linkable_type !== CurriculumVitaeUser::class) {
+            abort(403, 'Aksi tidak diizinkan.');
+        }
+
+        DB::transaction(function () use ($link) {
+            $link->delete();
+        });
+
+        return redirect()->route('pelamar.curriculum_vitae.social_media.index', $curriculumVitaeUser->id)
+            ->with('success', 'Link berhasil dihapus.');
+    }
+
+
     // tampil preview cv
     // public function previewCV(CurriculumVitaeUser $curriculumVitaeUser)
     // {
@@ -700,7 +739,6 @@ class CurriculumVitaeUserController extends Controller
             return redirect()->back()->with('error', 'Template CV belum tersedia!');
         }
 
-        // Layout: pastikan array
         if (is_array($template->layout_json)) {
             $layout = $template->layout_json;
         } elseif (is_string($template->layout_json)) {
@@ -709,7 +747,6 @@ class CurriculumVitaeUserController extends Controller
             $layout = [];
         }
 
-        // Style: pastikan array
         if (is_array($template->style_json)) {
             $style = $template->style_json;
         } elseif (is_string($template->style_json)) {
@@ -728,7 +765,6 @@ class CurriculumVitaeUserController extends Controller
 
     public function updateInline(Request $request)
     {
-        // basic validation (id nullable here, later validated for experiences)
         $request->validate([
             'cv_id'   => 'required|integer',
             'section' => 'required|string',
@@ -741,9 +777,6 @@ class CurriculumVitaeUserController extends Controller
         $field = $request->field;
         $value = $request->value ?? '';
 
-        // -----------------------
-        // PERSONAL DETAIL (hasOne)
-        // -----------------------
         if ($request->section === 'personal_detail') {
             $personal = $cv->personalDetail()->first();
             if (!$personal) {
@@ -760,7 +793,6 @@ class CurriculumVitaeUserController extends Controller
                 'personal_summary',
             ];
 
-            // special "name" token (if you still send field === 'name')
             if ($field === 'name') {
                 $parts = preg_split('/\s+/', trim(strip_tags($value)), 2, PREG_SPLIT_NO_EMPTY);
                 $personal->update([
@@ -771,7 +803,6 @@ class CurriculumVitaeUserController extends Controller
             }
 
             if (in_array($field, $allowedPersonal, true)) {
-                // sanitize: text fields -> strip tags
                 $sanitized = in_array($field, ['personal_summary'], true) ? strip_tags($value, '<p><br><strong><em><ul><li>') : strip_tags($value);
                 $personal->update([$field => $sanitized]);
                 return response()->json(['success' => true, 'message' => 'Perubahan personal detail disimpan']);
@@ -780,14 +811,10 @@ class CurriculumVitaeUserController extends Controller
             return response()->json(['success' => false, 'message' => 'Field personal_detail tidak diizinkan'], 400);
         }
 
-        // -----------------------
-        // EXPERIENCES (hasMany)
-        // -----------------------
         if ($request->section === 'experiences') {
             $request->validate(['id' => 'required|integer']);
             $id = $request->id;
 
-            // ensure experience belongs to this CV
             $exp = \App\Models\Experience::where('id', $id)
                 ->where('curriculum_vitae_user_id', $cv->id) // adjust column name if different
                 ->first();
@@ -809,15 +836,12 @@ class CurriculumVitaeUserController extends Controller
                 return response()->json(['success' => false, 'message' => 'Field experiences tidak diizinkan'], 400);
             }
 
-            // sanitize:
             if ($field === 'description_experience') {
-                // allow limited HTML for lists / linebreaks
                 $sanitized = strip_tags($value, '<ul><li><br><p><strong><em><b>');
             } else {
                 $sanitized = strip_tags($value);
             }
 
-            // update using update() so Laravel mass-assignment checks apply
             $updated = $exp->update([$field => $sanitized]);
 
             if ($updated) {
@@ -827,9 +851,6 @@ class CurriculumVitaeUserController extends Controller
             }
         }
 
-        // -----------------------
-        // EDUCATIONS (hasMany)
-        // -----------------------
         if ($request->section === 'educations') {
             $request->validate(['id' => 'required|integer']);
             $id = $request->id;
@@ -870,9 +891,6 @@ class CurriculumVitaeUserController extends Controller
             }
         }
 
-        // -----------------------
-        // SKILLS (hasMany)
-        // -----------------------
         if ($request->section === 'skills') {
             $request->validate(['id' => 'required|integer']);
             $id = $request->id;
@@ -901,9 +919,6 @@ class CurriculumVitaeUserController extends Controller
             }
         }
 
-        // -----------------------
-        // ACHIEVEMENTS (hasMany)
-        // -----------------------
         if ($request->section === 'achievements') {
             $request->validate(['id' => 'required|integer']);
             $id = $request->id;
@@ -935,9 +950,6 @@ class CurriculumVitaeUserController extends Controller
             }
         }
 
-        // -----------------------
-        // LANGUAGES (hasMany)
-        // -----------------------
         if ($request->section === 'languages') {
             $request->validate(['id' => 'required|integer']);
             $id = $request->id;
@@ -967,9 +979,6 @@ class CurriculumVitaeUserController extends Controller
             }
         }
 
-        // -----------------------
-        // LINKS (hasMany)
-        // -----------------------
         if ($request->section === 'links') {
             $request->validate(['id' => 'required|integer']);
             $id = $request->id;
@@ -999,9 +1008,6 @@ class CurriculumVitaeUserController extends Controller
             }
         }
 
-        // -----------------------
-        // ORGANIZATIONS (hasMany)
-        // -----------------------
         if ($request->section === 'organizations') {
             $request->validate(['id' => 'required|integer']);
             $id = $request->id;
@@ -1035,19 +1041,16 @@ class CurriculumVitaeUserController extends Controller
         return response()->json(['success' => false, 'message' => 'Section tidak dikenali'], 400);
     }
 
-    // Daftar custom section yg diminta template + status isi/belum untuk CV user
     public function customIndex(CurriculumVitaeUser $curriculumVitaeUser)
     {
         $tpl = $curriculumVitaeUser->templateCurriculumVitae;
         $layout = $tpl?->layout_json ?? [];
 
-        // Ambil hanya section yang key-nya diawali "custom"
         $customConfigs = collect($layout)->filter(function ($it) {
             $key = $it['key'] ?? '';
             return is_string($key) && Str::startsWith($key, 'custom');
         })->values();
 
-        // existing records by section_key
         $existing = $curriculumVitaeUser->customSections()->get()->keyBy('section_key');
 
         return view('pelamar.curriculum_vitae.custom.index', [
@@ -1057,7 +1060,6 @@ class CurriculumVitaeUserController extends Controller
         ]);
     }
 
-    // Form create untuk 1 section_key custom (sesuai layout_json)
     public function customCreate(CurriculumVitaeUser $curriculumVitaeUser, string $section_key)
     {
         $tpl = $curriculumVitaeUser->templateCurriculumVitae;
@@ -1068,7 +1070,6 @@ class CurriculumVitaeUserController extends Controller
             abort(404, 'Section tidak ditemukan di template.');
         }
 
-        // prefer title/subtitle di layout_json; fallback ke null
         $defaultTitle = $config['title'] ?? ($config['section_title'] ?? null);
         $defaultSubtitle = $config['subtitle'] ?? null;
 
@@ -1080,7 +1081,6 @@ class CurriculumVitaeUserController extends Controller
         ]);
     }
 
-    // Simpan/Upsert isi custom section untuk 1 section_key
     public function customStore(Request $request, CurriculumVitaeUser $curriculumVitaeUser, string $section_key)
     {
         $validated = $request->validate([
@@ -1089,10 +1089,9 @@ class CurriculumVitaeUserController extends Controller
             'items'         => ['nullable', 'array'],
             'items.*.title' => ['nullable', 'string', 'max:255'],
             'items.*.meta'  => ['nullable', 'string', 'max:255'],
-            'items.*.desc'  => ['nullable', 'string'], // boleh HTML
+            'items.*.desc'  => ['nullable', 'string'],
         ]);
 
-        // Normalisasi payload
         $payload = ['items' => []];
         foreach (($validated['items'] ?? []) as $it) {
             if (!empty($it['title']) || !empty($it['meta']) || !empty($it['desc'])) {
@@ -1104,7 +1103,6 @@ class CurriculumVitaeUserController extends Controller
             }
         }
 
-        // Upsert by (cv_user_id, section_key)
         CustomSection::updateOrCreate(
             [
                 'curriculum_vitae_user_id' => $curriculumVitaeUser->id,
@@ -1124,7 +1122,6 @@ class CurriculumVitaeUserController extends Controller
 
     public function customEdit(CurriculumVitaeUser $curriculumVitaeUser, CustomSection $custom_section)
     {
-        // pastikan milik CV ini
         abort_if($custom_section->curriculum_vitae_user_id !== $curriculumVitaeUser->id, 404);
 
         $tpl = $curriculumVitaeUser->templateCurriculumVitae;
@@ -1189,16 +1186,14 @@ class CurriculumVitaeUserController extends Controller
 
     public function saveCv(Request $request)
     {
-        // LOG awal request untuk debugging
         Log::info('saveCv called', [
             'headers' => $request->headers->all(),
             'files_keys' => array_keys($request->files->all()),
             'inputs' => $request->except(['cv_file'])
         ]);
 
-        // VALIDASI: wajib ada file & template_id yang valid
         $validator = Validator::make($request->all(), [
-            'cv_file'    => 'required|file|mimes:pdf|max:20480', // max 20MB
+            'cv_file'    => 'required|file|mimes:pdf|max:20480',
             'template_id' => 'required|exists:template_curriculum_vitaes,id'
         ]);
 
@@ -1208,21 +1203,17 @@ class CurriculumVitaeUserController extends Controller
         }
 
         try {
-            // ambil file
             $file = $request->file('cv_file');
             if (!$file) {
                 Log::error('saveCv: file was null after validation (weird)', []);
                 return response()->json(['success' => false, 'message' => 'File tidak tersedia setelah validasi'], 400);
             }
 
-            // nama file
             $userId = auth()->id() ?? 'guest';
             $fileName = 'cv_' . $userId . '_' . time() . '.pdf';
 
-            // simpan ke storage/app/public/applicants
-            $filePath = $file->storeAs('applicants', $fileName, 'public'); // returns path like 'applicants/xxx.pdf'
+            $filePath = $file->storeAs('applicants', $fileName, 'public');
 
-            // SIMPAN ke DB dengan kondisi unik user+template (update jika sudah ada)
             $cv = CurriculumVitaeUser::updateOrCreate(
                 [
                     'user_id' => auth()->id(),
