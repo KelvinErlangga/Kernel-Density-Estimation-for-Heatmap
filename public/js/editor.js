@@ -1,6 +1,3 @@
-// ===============================
-// Helper
-// ===============================
 function hexToRgb(hex) {
   hex = hex.replace(/^#/, "");
   if (hex.length === 3) hex = hex.split("").map((x) => x + x).join("");
@@ -8,9 +5,7 @@ function hexToRgb(hex) {
   return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
 }
 
-// ===============================
 // Font & Background
-// ===============================
 function changeFont(selectElement) {
   const content = document.getElementById("content");
   if (content) content.style.fontFamily = selectElement.value;
@@ -90,9 +85,7 @@ function applyExportMask(root) {
   };
 }
 
-// ===============================
 // Download CV (Image / PDF)
-// ===============================
 async function downloadAsImage(type) {
   const content = document.getElementById("content");
   if (!content) return;
@@ -113,7 +106,8 @@ async function downloadAsPDF() {
   if (!content) return;
 
   const cleanup = applyExportMask(content);
-  const canvas = await html2canvas(content, { scale: 2, useCORS: true, allowTaint: true });
+  // Gunakan scale 1.5 (cukup tajam, file kecil)
+  const canvas = await html2canvas(content, { scale: 1.5, useCORS: true, allowTaint: true });
   cleanup();
 
   const imgWidthPx = canvas.width;
@@ -131,9 +125,11 @@ async function downloadAsPDF() {
   const pdfHeight = (imgProps.height * availableWidthMm) / imgProps.width;
 
   if (pdfHeight <= availableHeightMm) {
-    const imgData = canvas.toDataURL("image/png");
-    pdf.addImage(imgData, "PNG", marginLeft, marginTop, availableWidthMm, pdfHeight);
+    // Ubah ke JPEG kualitas 0.8 (80%)
+    const imgData = canvas.toDataURL("image/jpeg", 0.8);
+    pdf.addImage(imgData, "JPEG", marginLeft, marginTop, availableWidthMm, pdfHeight, undefined, 'FAST');
   } else {
+    // Logika untuk memotong gambar jika lebih dari 1 halaman
     const pxPerMm = imgWidthPx / pageWidthMm;
     const sliceHeightPx = Math.floor(availableHeightMm * pxPerMm);
     let positionY = 0, pageIndex = 0;
@@ -147,11 +143,11 @@ async function downloadAsPDF() {
 
       ctx.drawImage(canvas, 0, positionY, imgWidthPx, currentSliceHeightPx, 0, 0, imgWidthPx, currentSliceHeightPx);
 
-      const imgData = sliceCanvas.toDataURL("image/png");
+      const imgData = sliceCanvas.toDataURL("image/jpeg", 0.8); // JPEG
       const sliceHeightMm = currentSliceHeightPx / pxPerMm;
 
       if (pageIndex > 0) pdf.addPage();
-      pdf.addImage(imgData, "PNG", marginLeft, marginTop, availableWidthMm, sliceHeightMm);
+      pdf.addImage(imgData, "JPEG", marginLeft, marginTop, availableWidthMm, sliceHeightMm, undefined, 'FAST'); // JPEG
 
       positionY += currentSliceHeightPx;
       pageIndex++;
@@ -161,9 +157,7 @@ async function downloadAsPDF() {
   pdf.save("cv.pdf");
 }
 
-// ===============================
 // Email & Print
-// ===============================
 function sendByEmail() {
   const emailBody = "Silakan temukan CV terlampir di bawah ini.";
   const mailtoLink = `mailto:?subject=CV&body=${encodeURIComponent(emailBody)}`;
@@ -171,9 +165,7 @@ function sendByEmail() {
 }
 function printCV() { window.print(); }
 
-// ===============================
 // Spinner Button Helpers
-// ===============================
 function ensureSpinnerCss() {
   if (document.getElementById("btn-spinner-style")) return;
   const css = document.createElement("style");
@@ -220,9 +212,7 @@ function setBtnLoading(btn, isLoading, textWhenLoading = "Saving...") {
   }
 }
 
-// ===============================
 // Save to Dashboard (PDF upload)
-// ===============================
 async function savePdfToDashboard() {
   const btn = document.getElementById("saveToDashboardBtn");
   if (!btn) return;
@@ -233,16 +223,20 @@ async function savePdfToDashboard() {
     const content = document.getElementById("content");
 
     const cleanup = applyExportMask(content);
-    const canvas = await html2canvas(content, { scale: 2, useCORS: true, allowTaint: true });
+    // Gunakan scale 1.5
+    const canvas = await html2canvas(content, { scale: 1.5, useCORS: true, allowTaint: true });
     cleanup();
 
-    const imgData = canvas.toDataURL("image/png");
+    // Ubah ke JPEG kualitas 0.8 (80%)
+    const imgData = canvas.toDataURL("image/jpeg", 0.8);
 
     const pdf = new jspdf.jsPDF("p", "mm", "a4");
     const pageWidth = pdf.internal.pageSize.getWidth();
     const imgProps = pdf.getImageProperties(imgData);
     const pdfHeight = (imgProps.height * pageWidth) / imgProps.width;
-    pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pdfHeight);
+
+    // Tambahkan gambar JPEG
+    pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pdfHeight, undefined, 'FAST');
 
     const pdfBlob = pdf.output("blob");
 
@@ -275,14 +269,11 @@ async function savePdfToDashboard() {
     }
 
     if (data.success) {
-      // Simpan ID CV yang baru disimpan ke localStorage (untuk dipakai di Dashboard)
       const newId = (data.data && data.data.id) || data.new_cv_id;
       if (newId) {
         localStorage.setItem("cv_just_saved_id", String(newId));
-        // optional: timestamp (kalau mau “kadaluarsa” dalam beberapa menit)
         localStorage.setItem("cv_just_saved_at", String(Date.now()));
       }
-
       if (window.Swal) {
         await Swal.fire({
           icon: "success",
@@ -294,7 +285,6 @@ async function savePdfToDashboard() {
       } else {
         alert("CV berhasil disimpan");
       }
-      // TETAP di halaman preview. User bebas klik "Return to Dashboard" kapan saja.
     } else {
       const msg = data.message || JSON.stringify(data.errors) || "Unknown error";
       if (window.Swal) Swal.fire({ icon: "error", title: "Gagal", text: msg });
@@ -308,9 +298,7 @@ async function savePdfToDashboard() {
   }
 }
 
-// ===============================
 // Event Binding
-// ===============================
 document.addEventListener("DOMContentLoaded", () => {
   const btnSave = document.getElementById("saveToDashboardBtn");
   if (btnSave) btnSave.addEventListener("click", savePdfToDashboard);

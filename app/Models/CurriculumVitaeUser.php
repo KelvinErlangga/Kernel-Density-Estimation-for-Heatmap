@@ -108,4 +108,9 @@ class CurriculumVitaeUser extends Model
         return $this->hasMany(\App\Models\CustomSection::class)
             ->orderBy('sort_order');
     }
+
+    public function templateCurriculumVitae()
+    {
+        return $this->belongsTo(TemplateCurriculumVitae::class, 'template_curriculum_vitae_id');
+    }
 }

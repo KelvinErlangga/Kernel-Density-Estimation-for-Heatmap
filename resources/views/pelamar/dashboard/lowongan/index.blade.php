@@ -86,7 +86,9 @@
                         <select class="form-control" id="dashboard_cv" name="dashboard_cv">
                             <option value="">-- Pilih CV --</option>
                             @foreach($cvs as $cv)
-                                <option value="{{ $cv->id }}">{{ $cv->cv_name ?? 'CV #'.$cv->id }}</option>
+                                <option value="{{ $cv->id }}">
+                                    {{ $cv->templateCurriculumVitae->template_curriculum_vitae_name ?? 'CV #'.$cv->id }}
+                                </option>
                             @endforeach
                         </select>
                     </div>

@@ -6,6 +6,13 @@
     <title>Pengalaman Kerja | CVRE GENERATE</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
     <link rel="icon" href="{{ asset('assets/icons/logo.svg') }}" type="image/x-icon" />
+
+    <style>
+        /* Tooltip harus selalu di paling depan */
+        #global-stepper-tooltip {
+            z-index: 9999;
+        }
+    </style>
 </head>
 <body class="bg-gradient-to-b from-white via-purple-50 to-blue-50" style="font-family:'Poppins',sans-serif">
 
@@ -33,6 +40,18 @@
         'links'           => 'pelamar.curriculum_vitae.social_media.index',
     ];
 
+    // ==== TERJEMAHAN UNTUK TOOLTIP ====
+    $translations = [
+        'personal detail' => 'Detail Pribadi',
+        'experiences'     => 'Pengalaman Kerja',
+        'educations'      => 'Pendidikan',
+        'languages'       => 'Bahasa',
+        'skills'          => 'Keahlian',
+        'organizations'   => 'Organisasi',
+        'achievements'    => 'Penghargaan',
+        'links'           => 'Tautan & Media Sosial',
+    ];
+
     $allowed        = $allowedKeys ?? $flow;
     $confirmedKeys  = $confirmedKeys ?? [];
     $currentKey     = 'experiences';
@@ -53,8 +72,10 @@
     // ==== LOGIKA DONE (centang) ====
     $useConfirmed = !empty($confirmedKeys);
     $fallbackDoneSet = [];
-    if (!$useConfirmed) {
-        for ($i = 0; $i < $idx; $i++) { $fallbackDoneSet[$flow[$i]] = true; }
+    if (!$useConfirmed && $idx !== false) {
+        for ($i = 0; $i < $idx; $i++) {
+            $fallbackDoneSet[$flow[$i]] = true;
+        }
     }
 @endphp
 
@@ -78,7 +99,7 @@
     @endif
 </div>
 
-<!-- ===== STEPPER: centang hanya jika sudah "Next" (confirmed) ===== -->
+<!-- ===== STEPPER + TOOLTIP ===== -->
 <div class="absolute top-10 left-0 right-0 z-30 flex justify-center">
     <div class="flex items-center space-x-4 overflow-x-auto">
         @php $visualNum = 1; @endphp
@@ -89,19 +110,31 @@
 
                 $done = $useConfirmed ? in_array($k, $confirmedKeys, true)
                                       : isset($fallbackDoneSet[$k]);
+                // Pada halaman current, tetap angka (tidak dicentang)
+                if ($isCurrent) {
+                    $done = false;
+                }
 
                 $circleCls = $allowedStep ? 'bg-blue-700 text-white' : 'bg-gray-300 text-gray-700';
-                if ($isCurrent && $allowedStep) $circleCls .= ' ring-2 ring-blue-300';
+                if ($isCurrent && $allowedStep) {
+                    $circleCls .= ' ring-2 ring-blue-300';
+                }
 
                 $nextK = $loop->last ? null : $flow[$loop->index + 1];
                 $nextAllowed = $nextK ? in_array($nextK, $allowed, true) : false;
+
+                // Tooltip
+                $tooltipKey  = strtolower(str_replace('_', ' ', $k));
+                $tooltipText = $translations[$tooltipKey] ?? ucwords($tooltipKey);
             @endphp
 
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-4 group">
                 @if($allowedStep)
                     <a href="{{ route($routeOf[$k], $curriculumVitaeUser->id) }}"
-                       class="flex justify-center items-center w-11 h-11 rounded-full {{ $circleCls }}"
-                       aria-label="Step {{ $visualNum }}">
+                       class="stepper-link flex justify-center items-center w-11 h-11 rounded-full {{ $circleCls }} relative z-10"
+                       aria-label="Step {{ $visualNum }}"
+                       data-tooltip-text="{{ $tooltipText }}"
+                       data-step-id="{{ $k }}">
                         @if($done)
                             <img src="{{ asset('assets/images/done.svg') }}" alt="Selesai" class="w-6 h-6" />
                         @else
@@ -109,7 +142,9 @@
                         @endif
                     </a>
                 @else
-                    <div class="flex justify-center items-center w-11 h-11 rounded-full {{ $circleCls }}">
+                    <div class="stepper-link flex justify-center items-center w-11 h-11 rounded-full {{ $circleCls }} relative z-10"
+                         data-tooltip-text="{{ $tooltipText }}"
+                         data-step-id="{{ $k }}">
                         <span class="font-bold text-xl">{{ $visualNum }}</span>
                     </div>
                 @endif
@@ -201,7 +236,7 @@
                 </div>
             @endif
 
-            <!-- CTA Buttons (match style Index Bahasa) -->
+            <!-- CTA Buttons -->
             <div class="mt-6 space-y-3">
                 <a href="{{ route('pelamar.curriculum_vitae.experience.create', $curriculumVitaeUser->id) }}"
                    class="block w-full text-center py-3 md:py-4 bg-blue-100 text-blue-700 font-semibold rounded-xl shadow hover:bg-blue-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
@@ -209,7 +244,6 @@
                 </a>
 
                 @if($nextKey)
-                    {{-- IMPORTANT (di controller next): tambahkan 'experiences' ke $confirmedKeys lalu redirect --}}
                     <a href="{{ route($routeOf[$nextKey], $curriculumVitaeUser->id) }}"
                        class="block w-full text-center py-3 md:py-4 bg-blue-700 text-white font-semibold rounded-xl shadow hover:bg-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition">
                         Langkah Selanjutnya
@@ -224,6 +258,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // === SORTABLE UNTUK LIST PENGALAMAN ===
         const list = document.getElementById('experience-list');
         if (list) {
             Sortable.create(list, {
@@ -232,6 +267,33 @@
                 ghostClass: 'bg-blue-50',
             });
         }
+
+        // === TOOLTIP GLOBAL UNTUK STEPPER ===
+        const tooltip = document.createElement('span');
+        tooltip.id = 'global-stepper-tooltip';
+        tooltip.className = 'absolute z-[9999] opacity-0 transition-all duration-300 ease-out bg-gray-800 text-white text-xs font-medium rounded-lg px-3 py-1 shadow-lg whitespace-nowrap pointer-events-none transform -translate-x-1/2 scale-x-0 origin-center';
+        document.body.appendChild(tooltip);
+
+        const stepperLinks = document.querySelectorAll('.stepper-link');
+
+        stepperLinks.forEach(link => {
+            link.addEventListener('mouseenter', function() {
+                const text = this.getAttribute('data-tooltip-text');
+                const rect = this.getBoundingClientRect();
+
+                tooltip.textContent = text;
+                tooltip.style.left = (rect.left + rect.width / 2) + 'px';
+                tooltip.style.top  = (rect.top - 32) + 'px';
+
+                tooltip.classList.remove('opacity-0', 'scale-x-0');
+                tooltip.classList.add('opacity-100', 'scale-x-100');
+            });
+
+            link.addEventListener('mouseleave', function() {
+                tooltip.classList.remove('opacity-100', 'scale-x-100');
+                tooltip.classList.add('opacity-0', 'scale-x-0');
+            });
+        });
     });
 </script>
 </body>

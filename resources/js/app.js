@@ -256,6 +256,35 @@ function recomputeKDE() {
     heatLayer.setLatLngs(heat);
 }
 
+// ========================= FOKUSKAN MAP KE LOWONGAN TERTENTU =========================
+window.focusJobOnMap = function (id) {
+    if (!map || !jobs || !jobs.length) return;
+
+    const job = jobs.find((j) => String(j.id) === String(id));
+    if (!job) return;
+
+    const lat = toNum(job.lat);
+    const lon = toNum(job.lon);
+    if (!validLat(lat) || !validLon(lon)) return;
+
+    const target = L.latLng(lat, lon);
+    const targetZoom = Math.max(map.getZoom(), 16); // zoom dekat
+
+    map.flyTo(target, targetZoom, {
+        duration: 0.8,
+    });
+};
+
+// Wrapper: dipanggil dari card rekomendasi (panel kanan)
+window.handleJobCardClick = function (id) {
+    if (typeof window.focusJobOnMap === "function") {
+        window.focusJobOnMap(id);
+    }
+    if (typeof window.showJobDetail === "function") {
+        window.showJobDetail(id);
+    }
+};
+
 // ========================= MARKER & REKOMENDASI (UI) =========================
 const BRIEFCASE_PIN_ICON = L.divIcon({
     className: "job-briefcase-pin",
@@ -294,6 +323,14 @@ function renderRekomendasi(list, highlightQuery = "") {
         container.innerHTML = `<p class="text-center text-muted">Tidak ada rekomendasi lowongan</p>`;
         return;
     }
+
+    // Sort jobs by matching percentage (from highest to lowest)
+    list.sort((a, b) => {
+        const aMatch = toNum(a.matching_percentage);
+        const bMatch = toNum(b.matching_percentage);
+        return bMatch - aMatch;
+    });
+
     if (highlightQuery) {
         list.sort((a, b) => {
             const aMatch = (a.position_hiring ?? "")
@@ -305,6 +342,7 @@ function renderRekomendasi(list, highlightQuery = "") {
             return Number(bMatch) - Number(aMatch);
         });
     }
+
     container.innerHTML = list
         .map((job) => {
             const dist = Number.isFinite(toNum(job.distance_km))
@@ -312,10 +350,14 @@ function renderRekomendasi(list, highlightQuery = "") {
                       job.distance_km
                   ).toFixed(1)} km dari lokasi Anda</small>`
                 : "";
+
+            const match = Number.isFinite(toNum(job.matching_percentage))
+                ? `${Math.round(toNum(job.matching_percentage))}%`
+                : "0%";
+
             return `
-      <div class="card mb-3 border job-card" style="cursor:pointer;" onclick="showJobDetail('${
-          job.id
-      }')" tabindex="0">
+      <div class="card mb-3 border job-card" style="cursor:pointer;"
+           onclick="handleJobCardClick('${job.id}')" tabindex="0">
         <div class="d-flex p-3">
           <img src="${
               job.personal_company?.logo
@@ -341,6 +383,9 @@ function renderRekomendasi(list, highlightQuery = "") {
             <small class="text-muted">Diposting ${new Date(
                 job.created_at
             ).toLocaleDateString("id-ID")}</small>
+            <div class="mt-1 font-weight-bold">
+              Kecocokan CV kamu: ${match}
+            </div>
           </div>
         </div>
       </div>`;
@@ -375,7 +420,12 @@ function renderHint(job, animate = true) {
     const jarakTxt = Number.isFinite(dkm)
         ? ` dan jaraknya hanya ${dkm.toFixed(1)} km dari lokasi kamu`
         : "";
-    const msgHtml = `Posisi “${pos}” di ${comp} cocok dengan skill kamu${jarakTxt}, buruan daftar! <a href="#" id="hint-cta" class="ms-1">Lihat & daftar</a>`;
+
+    const match = Number.isFinite(toNum(job.matching_percentage))
+        ? `${Math.round(toNum(job.matching_percentage))}%`
+        : "0%";
+
+    const msgHtml = `Posisi “${pos}” di ${comp} cocok dengan CV kamu (${match})${jarakTxt}, buruan daftar! <a href="#" id="hint-cta" class="ms-1">Lihat & daftar</a>`;
 
     const setContent = () => {
         inner.innerHTML = msgHtml;
@@ -383,7 +433,11 @@ function renderHint(job, animate = true) {
         if (cta) {
             cta.onclick = (e) => {
                 e.preventDefault();
-                if (typeof showJobDetail === "function") showJobDetail(job.id);
+                if (typeof window.handleJobCardClick === "function") {
+                    window.handleJobCardClick(job.id);
+                } else if (typeof window.showJobDetail === "function") {
+                    window.showJobDetail(job.id);
+                }
                 const header = document.getElementById("detail-title");
                 if (header)
                     header.scrollIntoView({
@@ -591,112 +645,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             link.addEventListener("click", async (evt) => {
                 evt.preventDefault();
                 const id = link.dataset.id;
-                try {
-                    const r = await fetch(`/pelamar/hirings/${id}`, {
-                        credentials: "same-origin",
-                        headers: {
-                            "X-Requested-With": "XMLHttpRequest",
-                            Accept: "application/json",
-                        },
-                    });
-                    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-                    const job = await r.json();
-                    const target = document.getElementById("job-detail");
-                    const bullet = (text) => {
-                        if (!text) return "<p>-</p>";
-                        const parts = String(text)
-                            .split(";")
-                            .map((p) => p.trim())
-                            .filter(Boolean);
-                        return parts.length
-                            ? `<ul class="pl-3 mb-0">${parts
-                                  .map((p) => `<li>${p}</li>`)
-                                  .join("")}</ul>`
-                            : "<p>-</p>";
-                    };
-                    const comma = (text) => {
-                        if (!text) return "<p>-</p>";
-                        const parts = String(text)
-                            .split(",")
-                            .map((p) => p.trim())
-                            .filter(Boolean);
-                        return parts.length
-                            ? `<ul class="pl-3 mb-0">${parts
-                                  .map((p) => `<li>${p}</li>`)
-                                  .join("")}</ul>`
-                            : "<p>-</p>";
-                    };
-                    let btn = "";
-                    if (job.is_closed)
-                        btn = `<p class="text-danger mt-3">Lowongan Ditutup</p>`;
-                    else if (job.has_applied)
-                        btn = `<p class="text-success mt-3">Sudah Melamar</p>`;
-                    else
-                        btn = `<button class="btn btn-primary mt-3" onclick="openApplicationModal('${job.id}')">Kirim Lamaran</button>`;
 
-                    if (target) {
-                        target.innerHTML = `
-              <div class="d-flex align-items-center mb-4">
-                <img src="${
-                    job.personal_company_logo ?? "/images/default-company.png"
-                }"
-                     style="width:70px;height:70px;object-fit:contain;border-radius:8px;border:1px solid #ccc;background:#f5f5f5;" class="mr-3">
-                <div>
-                  <h5 class="font-weight-bold mb-1">${
-                      job.position_hiring ?? "-"
-                  }</h5>
-                  <small class="text-muted">${job.company_name ?? "-"}</small>
-                </div>
-              </div>
-              <ul class="list-unstyled mb-4">
-                <li class="d-flex align-items-center mb-2"><i class="fas fa-map-marker-alt mr-2 text-secondary" style="width:18px;text-align:center;"></i>
-                  <span>${job.kota ?? ""}${
-                            job.provinsi ? ", " + job.provinsi : ""
-                        }</span></li>
-                <li class="d-flex align-items-center mb-2"><i class="fas fa-building mr-2 text-secondary" style="width:18px;text-align:center;"></i>
-                  <span>${job.type_of_company ?? "-"}</span></li>
-                <li class="d-flex align-items-center mb-2"><i class="fas fa-money-bill-wave mr-2 text-secondary" style="width:18px;text-align:center;"></i>
-                  <span>Rp ${new Intl.NumberFormat("id-ID").format(
-                      job.gaji_min ?? 0
-                  )} - Rp ${new Intl.NumberFormat("id-ID").format(
-                            job.gaji_max ?? 0
-                        )} / Bulan</span></li>
-                <li class="d-flex align-items-center"><i class="fas fa-clock mr-2 text-secondary" style="width:18px;text-align:center;"></i>
-                  <span>Batas Waktu: ${
-                      job.deadline_hiring
-                          ? new Date(job.deadline_hiring).toLocaleDateString(
-                                "id-ID",
-                                {
-                                    day: "2-digit",
-                                    month: "long",
-                                    year: "numeric",
-                                }
-                            )
-                          : "-"
-                  }</span></li>
-              </ul>
-              <div class="mb-3"><h6 class="font-weight-bold">Deskripsi Pekerjaan</h6>${bullet(
-                  job.description_hiring
-              )}</div>
-              <div class="mb-3"><h6 class="font-weight-bold">Kualifikasi</h6>${bullet(
-                  job.kualifikasi
-              )}</div>
-              <div class="mb-3"><h6 class="font-weight-bold">Keterampilan Teknis</h6>${comma(
-                  job.keterampilan_teknis
-              )}</div>
-              <div class="mb-3"><h6 class="font-weight-bold">Keterampilan Non-Teknis</h6>${comma(
-                  job.keterampilan_non_teknis
-              )}</div>
-              ${btn}`;
-                    }
-                    if (window.scrollToDetailHeader)
-                        window.scrollToDetailHeader();
-                } catch (err) {
-                    console.error("[detail] gagal:", err);
-                    const target = document.getElementById("job-detail");
-                    if (target)
-                        target.innerHTML =
-                            '<div class="text-danger">Gagal memuat detail lowongan</div>';
+                if (typeof window.handleJobCardClick === "function") {
+                    window.handleJobCardClick(id);
+                    return;
+                }
+                if (typeof window.showJobDetail === "function") {
+                    window.showJobDetail(id);
                 }
             });
         });

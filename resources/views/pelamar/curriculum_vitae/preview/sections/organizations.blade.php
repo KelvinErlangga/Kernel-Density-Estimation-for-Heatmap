@@ -1,6 +1,8 @@
 @php
 $organizations = $cv->organizations;
 $s = $style['organizations'] ?? [];
+// AMBIL STYLE DARI EXPERIENCES SEBAGAI PATOKAN
+$s_exp = $style['experiences'] ?? [];
 @endphp
 
 @if($organizations && $organizations->count())
@@ -11,73 +13,102 @@ $s = $style['organizations'] ?? [];
     @foreach($organizations as $idx => $org)
       @php $orgId = $org->id ?? "org-{$idx}"; @endphp
 
-      <div style="{{ inlineStyle(array_merge($s['item'] ?? [], ['margin-bottom'=>'12px'])) }}">
-        {{-- NAMA ORGANISASI --}}
+      {{-- [PERUBAHAN 1]: Div item utama. Menggunakan style 'div' dari experiences --}}
+      <div style="{{ inlineStyle(array_merge($s_exp['div'] ?? [], ['color' => $s['div']['color'] ?? '#000'])) }}">
+
+        {{-- NAMA ORGANISASI (Padding sudah OK) --}}
         <strong>
-          <span contenteditable="true" class="inline-edit"
-                data-cv="{{ $cv->id }}" data-section="organizations"
-                data-id="{{ $orgId }}" data-field="organization_name"
-                style="{{ inlineStyle(array_merge($s['org'] ?? [], [
-                  'border'=>'1px dashed #ccc','padding'=>'2px 6px','border-radius'=>'4px','line-height'=>'1.1'
-                ])) }}">
-            {{ $org->organization_name }}
-          </span>
+            <span contenteditable="true"
+                  class="inline-edit"
+                  data-cv="{{ $cv->id }}"
+                  data-section="organizations"
+                  data-id="{{ $orgId }}"
+                  data-field="organization_name"
+                  style="{{ inlineStyle(array_merge($s['org'] ?? [], [
+                      'border'=>'1px dashed #ccc',
+                      'padding'=>'4px 6px',
+                      'border-radius'=>'4px',
+                  ])) }}">
+                {{ $org->organization_name }}
+            </span>
         </strong>
 
-        {{-- BARIS META: Posisi (kiri) | Tanggal (kanan) --}}
-        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; width:100%; margin-top:2px;">
+        {{-- [PERUBAHAN 2]: BARIS META. Menggunakan style 'meta' dari experiences --}}
+        <div style="{{ inlineStyle(array_merge($s_exp['meta'] ?? [], [
+            'overflow' => 'hidden',
+            'margin-bottom' => '4px',
+            'width' => '100%'
+        ])) }}">
+
+          {{-- Posisi (kiri). Menggunakan style 'position' from experiences --}}
           <em>
             <span contenteditable="true" class="inline-edit"
                   data-cv="{{ $cv->id }}" data-section="organizations"
                   data-id="{{ $orgId }}" data-field="position_organization"
                   data-placeholder="Jabatan"
-                  style="{{ inlineStyle(array_merge($s['position'] ?? [], [
-                    'border'=>'1px dashed #ccc','padding'=>'2px 6px','border-radius'=>'4px','line-height'=>'1.1'
+                  style="{{ inlineStyle(array_merge($s_exp['position'] ?? [], [
+                    'border'=>'1px dashed #ccc',
+                    'padding'=>'2px 4px',
+                    'border-radius'=>'4px',
+                    'margin-right' => '4px',
+                    'float' => 'left', // (dari JSON experiences.position)
+                    'font-style' => 'italic' // (dari JSON experiences.position)
                   ])) }}">
               {{ $org->position_organization }}
             </span>
           </em>
 
-          <span class="pill" style="margin-left:auto; display:inline-flex; align-items:center; gap:6px;">
-            <span contenteditable="true" class="inline-edit"
-                  data-cv="{{ $cv->id }}" data-section="organizations"
-                  data-id="{{ $orgId }}" data-field="start_date"
-                  style="{{ inlineStyle(array_merge($s['date'] ?? [], [
-                    'border'=>'1px dashed #ccc','padding'=>'2px 6px','border-radius'=>'4px'
-                  ])) }}">
-              {{ $org->start_date }}
+          {{-- [PERUBAHAN 3]: Tanggal (kanan). Menggunakan style 'date' from experiences --}}
+          <span style="{{ inlineStyle(array_merge($s_exp['date'] ?? [], [
+                    'border' => '1px dashed #ccc',
+                    'padding' => '2px 4px',
+                    'border-radius' => '4px',
+                    'float' => 'right',
+                    'font-size' => '12px',
+                    'color' => $s_exp['date']['color'] ?? '#555'
+                ])) }}">
+            <span contenteditable="true"
+                  class="inline-edit"
+                  data-cv="{{ $cv->id }}"
+                  data-section="organizations"
+                  data-id="{{ $orgId }}"
+                  data-field="start_date">
+                {{ $org->start_date ? \Carbon\Carbon::parse($org->start_date)->format('d-m-Y') : '...' }}
             </span>
-            <span> - </span>
-            <span contenteditable="true" class="inline-edit"
-                  data-cv="{{ $cv->id }}" data-section="organizations"
-                  data-id="{{ $orgId }}" data-field="end_date"
-                  style="{{ inlineStyle(array_merge($s['date'] ?? [], [
-                    'border'=>'1px dashed #ccc','padding'=>'2px 6px','border-radius'=>'4px'
-                  ])) }}">
-              {{ $org->end_date ?? 'Sekarang' }}
+            -
+            <span contenteditable="true"
+                  class="inline-edit"
+                  data-cv="{{ $cv->id }}"
+                  data-section="organizations"
+                  data-id="{{ $orgId }}"
+                  data-field="end_date">
+                {{ $org->end_date ? \Carbon\Carbon::parse($org->end_date)->format('d-m-Y') : 'Sekarang' }}
             </span>
           </span>
         </div>
 
         {{-- DESKRIPSI (opsional) --}}
         @php
-          $rawDesc = (string)($org->description ?? '');
-          // anggap kosong jika setelah strip_tags & trim masih kosong,
-          // juga buang &nbsp; dan <br> “kosong”
-          $plain = trim(preg_replace(['/&nbsp;/i','/<br\s*\/?>/i'], [' ',' '], strip_tags($rawDesc)));
+        $rawDesc = (string)($org->description_organization ?? '');
+
+        $plain = trim(strip_tags($rawDesc));
         @endphp
+
         @if($plain !== '')
-          <div contenteditable="true" class="inline-edit"
-               data-cv="{{ $cv->id }}" data-section="organizations"
-               data-id="{{ $orgId }}" data-field="description"
-               data-placeholder="Uraian singkat kegiatan & pencapaian"
-               style="{{ inlineStyle(array_merge($s['description'] ?? [], [
-                 'border'=>'1px dashed #ccc','padding'=>'4px 6px','border-radius'=>'4px','margin-top'=>'6px'
-               ])) }}">
-            {!! nl2br(e($rawDesc)) !!}
-          </div>
+        <div contenteditable="true"
+            class="inline-edit"
+            data-cv="{{ $cv->id }}"
+            data-section="organizations"
+            data-id="{{ $orgId }}"
+            data-field="description_organization"
+            data-placeholder="Uraian singkat kegiatan & pencapaian"
+            style="{{ inlineStyle(array_merge($s_exp['li'] ?? [], [
+                'border'=>'1px dashed #ccc','padding'=>'4px 6px','border-radius'=>'4px', 'margin-top' => '4px'
+            ])) }}">
+            {!! $rawDesc !!}
+        </div>
         @endif
-      </div>
+      </div> {{-- Akhir <div> item --}}
     @endforeach
   </div>
 </div>

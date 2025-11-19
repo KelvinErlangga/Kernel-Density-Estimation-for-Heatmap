@@ -360,6 +360,34 @@ function recomputeKDE() {
   heatLayer.setLatLngs(heat);
 }
 
+// ========================= FOKUSKAN MAP KE LOWONGAN TERTENTU =========================
+window.focusJobOnMap = function (id) {
+  if (!map || !jobs || !jobs.length) return;
+  var job = jobs.find(function (j) {
+    return String(j.id) === String(id);
+  });
+  if (!job) return;
+  var lat = toNum(job.lat);
+  var lon = toNum(job.lon);
+  if (!validLat(lat) || !validLon(lon)) return;
+  var target = leaflet__WEBPACK_IMPORTED_MODULE_0___default().latLng(lat, lon);
+  var targetZoom = Math.max(map.getZoom(), 16); // zoom dekat
+
+  map.flyTo(target, targetZoom, {
+    duration: 0.8
+  });
+};
+
+// Wrapper: dipanggil dari card rekomendasi (panel kanan)
+window.handleJobCardClick = function (id) {
+  if (typeof window.focusJobOnMap === "function") {
+    window.focusJobOnMap(id);
+  }
+  if (typeof window.showJobDetail === "function") {
+    window.showJobDetail(id);
+  }
+};
+
 // ========================= MARKER & REKOMENDASI (UI) =========================
 var BRIEFCASE_PIN_ICON = leaflet__WEBPACK_IMPORTED_MODULE_0___default().divIcon({
   className: "job-briefcase-pin",
@@ -393,6 +421,13 @@ function renderRekomendasi(list) {
     container.innerHTML = "<p class=\"text-center text-muted\">Tidak ada rekomendasi lowongan</p>";
     return;
   }
+
+  // Sort jobs by matching percentage (from highest to lowest)
+  list.sort(function (a, b) {
+    var aMatch = toNum(a.matching_percentage);
+    var bMatch = toNum(b.matching_percentage);
+    return bMatch - aMatch;
+  });
   if (highlightQuery) {
     list.sort(function (a, b) {
       var _a$position_hiring, _b$position_hiring;
@@ -404,7 +439,8 @@ function renderRekomendasi(list) {
   container.innerHTML = list.map(function (job) {
     var _job$personal_company, _job$personal_company2, _job$personal_company3, _job$position_hiring2, _job$personal_company4, _job$personal_company5, _job$gaji_min2, _job$gaji_max2;
     var dist = Number.isFinite(toNum(job.distance_km)) ? "<small class=\"d-block text-muted\">\u2248 ".concat(toNum(job.distance_km).toFixed(1), " km dari lokasi Anda</small>") : "";
-    return "\n      <div class=\"card mb-3 border job-card\" style=\"cursor:pointer;\" onclick=\"showJobDetail('".concat(job.id, "')\" tabindex=\"0\">\n        <div class=\"d-flex p-3\">\n          <img src=\"").concat((_job$personal_company = job.personal_company) !== null && _job$personal_company !== void 0 && _job$personal_company.logo ? "/storage/company_logo/" + job.personal_company.logo : "/images/default-company.png", "\"\n               alt=\"Logo ").concat((_job$personal_company2 = (_job$personal_company3 = job.personal_company) === null || _job$personal_company3 === void 0 ? void 0 : _job$personal_company3.name_company) !== null && _job$personal_company2 !== void 0 ? _job$personal_company2 : "Perusahaan", "\"\n               style=\"width:70px;height:70px;object-fit:contain;border-radius:6px;border:1px solid #ccc;background:#f5f5f5;\" class=\"mr-3\">\n          <div>\n            <h6 class=\"font-weight-bold mb-1\">").concat((_job$position_hiring2 = job.position_hiring) !== null && _job$position_hiring2 !== void 0 ? _job$position_hiring2 : "-", "</h6>\n            <small class=\"d-block text-muted\">").concat((_job$personal_company4 = (_job$personal_company5 = job.personal_company) === null || _job$personal_company5 === void 0 ? void 0 : _job$personal_company5.name_company) !== null && _job$personal_company4 !== void 0 ? _job$personal_company4 : "-", "</small>\n            <small class=\"d-block\">").concat([job.kota, job.provinsi].filter(Boolean).join(", "), "</small>\n            ").concat(dist, "\n            <small class=\"d-block text-dark\">Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_min2 = job.gaji_min) !== null && _job$gaji_min2 !== void 0 ? _job$gaji_min2 : 0), " - Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_max2 = job.gaji_max) !== null && _job$gaji_max2 !== void 0 ? _job$gaji_max2 : 0), "/Bulan</small>\n            <small class=\"text-muted\">Diposting ").concat(new Date(job.created_at).toLocaleDateString("id-ID"), "</small>\n          </div>\n        </div>\n      </div>");
+    var match = Number.isFinite(toNum(job.matching_percentage)) ? "".concat(Math.round(toNum(job.matching_percentage)), "%") : "0%";
+    return "\n      <div class=\"card mb-3 border job-card\" style=\"cursor:pointer;\"\n           onclick=\"handleJobCardClick('".concat(job.id, "')\" tabindex=\"0\">\n        <div class=\"d-flex p-3\">\n          <img src=\"").concat((_job$personal_company = job.personal_company) !== null && _job$personal_company !== void 0 && _job$personal_company.logo ? "/storage/company_logo/" + job.personal_company.logo : "/images/default-company.png", "\"\n               alt=\"Logo ").concat((_job$personal_company2 = (_job$personal_company3 = job.personal_company) === null || _job$personal_company3 === void 0 ? void 0 : _job$personal_company3.name_company) !== null && _job$personal_company2 !== void 0 ? _job$personal_company2 : "Perusahaan", "\"\n               style=\"width:70px;height:70px;object-fit:contain;border-radius:6px;border:1px solid #ccc;background:#f5f5f5;\" class=\"mr-3\">\n          <div>\n            <h6 class=\"font-weight-bold mb-1\">").concat((_job$position_hiring2 = job.position_hiring) !== null && _job$position_hiring2 !== void 0 ? _job$position_hiring2 : "-", "</h6>\n            <small class=\"d-block text-muted\">").concat((_job$personal_company4 = (_job$personal_company5 = job.personal_company) === null || _job$personal_company5 === void 0 ? void 0 : _job$personal_company5.name_company) !== null && _job$personal_company4 !== void 0 ? _job$personal_company4 : "-", "</small>\n            <small class=\"d-block\">").concat([job.kota, job.provinsi].filter(Boolean).join(", "), "</small>\n            ").concat(dist, "\n            <small class=\"d-block text-dark\">Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_min2 = job.gaji_min) !== null && _job$gaji_min2 !== void 0 ? _job$gaji_min2 : 0), " - Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_max2 = job.gaji_max) !== null && _job$gaji_max2 !== void 0 ? _job$gaji_max2 : 0), "/Bulan</small>\n            <small class=\"text-muted\">Diposting ").concat(new Date(job.created_at).toLocaleDateString("id-ID"), "</small>\n            <div class=\"mt-1 font-weight-bold\">\n              Kecocokan CV kamu: ").concat(match, "\n            </div>\n          </div>\n        </div>\n      </div>");
   }).join("");
 }
 
@@ -426,14 +462,19 @@ function renderHint(job) {
     dkm = computeDistanceKm(USER_HOME.lat, USER_HOME.lon, job.lat, job.lon);
   }
   var jarakTxt = Number.isFinite(dkm) ? " dan jaraknya hanya ".concat(dkm.toFixed(1), " km dari lokasi kamu") : "";
-  var msgHtml = "Posisi \u201C".concat(pos, "\u201D di ").concat(comp, " cocok dengan skill kamu").concat(jarakTxt, ", buruan daftar! <a href=\"#\" id=\"hint-cta\" class=\"ms-1\">Lihat & daftar</a>");
+  var match = Number.isFinite(toNum(job.matching_percentage)) ? "".concat(Math.round(toNum(job.matching_percentage)), "%") : "0%";
+  var msgHtml = "Posisi \u201C".concat(pos, "\u201D di ").concat(comp, " cocok dengan CV kamu (").concat(match, ")").concat(jarakTxt, ", buruan daftar! <a href=\"#\" id=\"hint-cta\" class=\"ms-1\">Lihat & daftar</a>");
   var setContent = function setContent() {
     inner.innerHTML = msgHtml;
     var cta = document.getElementById("hint-cta");
     if (cta) {
       cta.onclick = function (e) {
         e.preventDefault();
-        if (typeof showJobDetail === "function") showJobDetail(job.id);
+        if (typeof window.handleJobCardClick === "function") {
+          window.handleJobCardClick(job.id);
+        } else if (typeof window.showJobDetail === "function") {
+          window.showJobDetail(job.id);
+        }
         var header = document.getElementById("detail-title");
         if (header) header.scrollIntoView({
           behavior: "smooth",
@@ -824,75 +865,27 @@ document.addEventListener("DOMContentLoaded", /*#__PURE__*/_asyncToGenerator(/*#
           if (!link) return;
           link.addEventListener("click", /*#__PURE__*/function () {
             var _ref4 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(evt) {
-              var id, r, job, target, bullet, comma, btn, _job$personal_company8, _job$position_hiring4, _job$company_name, _job$kota, _job$type_of_company, _job$gaji_min3, _job$gaji_max3, _target;
+              var id;
               return _regeneratorRuntime().wrap(function _callee$(_context) {
                 while (1) switch (_context.prev = _context.next) {
                   case 0:
                     evt.preventDefault();
                     id = link.dataset.id;
-                    _context.prev = 2;
-                    _context.next = 5;
-                    return fetch("/pelamar/hirings/".concat(id), {
-                      credentials: "same-origin",
-                      headers: {
-                        "X-Requested-With": "XMLHttpRequest",
-                        Accept: "application/json"
-                      }
-                    });
-                  case 5:
-                    r = _context.sent;
-                    if (r.ok) {
-                      _context.next = 8;
+                    if (!(typeof window.handleJobCardClick === "function")) {
+                      _context.next = 5;
                       break;
                     }
-                    throw new Error("HTTP ".concat(r.status));
-                  case 8:
-                    _context.next = 10;
-                    return r.json();
-                  case 10:
-                    job = _context.sent;
-                    target = document.getElementById("job-detail");
-                    bullet = function bullet(text) {
-                      if (!text) return "<p>-</p>";
-                      var parts = String(text).split(";").map(function (p) {
-                        return p.trim();
-                      }).filter(Boolean);
-                      return parts.length ? "<ul class=\"pl-3 mb-0\">".concat(parts.map(function (p) {
-                        return "<li>".concat(p, "</li>");
-                      }).join(""), "</ul>") : "<p>-</p>";
-                    };
-                    comma = function comma(text) {
-                      if (!text) return "<p>-</p>";
-                      var parts = String(text).split(",").map(function (p) {
-                        return p.trim();
-                      }).filter(Boolean);
-                      return parts.length ? "<ul class=\"pl-3 mb-0\">".concat(parts.map(function (p) {
-                        return "<li>".concat(p, "</li>");
-                      }).join(""), "</ul>") : "<p>-</p>";
-                    };
-                    btn = "";
-                    if (job.is_closed) btn = "<p class=\"text-danger mt-3\">Lowongan Ditutup</p>";else if (job.has_applied) btn = "<p class=\"text-success mt-3\">Sudah Melamar</p>";else btn = "<button class=\"btn btn-primary mt-3\" onclick=\"openApplicationModal('".concat(job.id, "')\">Kirim Lamaran</button>");
-                    if (target) {
-                      target.innerHTML = "\n              <div class=\"d-flex align-items-center mb-4\">\n                <img src=\"".concat((_job$personal_company8 = job.personal_company_logo) !== null && _job$personal_company8 !== void 0 ? _job$personal_company8 : "/images/default-company.png", "\"\n                     style=\"width:70px;height:70px;object-fit:contain;border-radius:8px;border:1px solid #ccc;background:#f5f5f5;\" class=\"mr-3\">\n                <div>\n                  <h5 class=\"font-weight-bold mb-1\">").concat((_job$position_hiring4 = job.position_hiring) !== null && _job$position_hiring4 !== void 0 ? _job$position_hiring4 : "-", "</h5>\n                  <small class=\"text-muted\">").concat((_job$company_name = job.company_name) !== null && _job$company_name !== void 0 ? _job$company_name : "-", "</small>\n                </div>\n              </div>\n              <ul class=\"list-unstyled mb-4\">\n                <li class=\"d-flex align-items-center mb-2\"><i class=\"fas fa-map-marker-alt mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>").concat((_job$kota = job.kota) !== null && _job$kota !== void 0 ? _job$kota : "").concat(job.provinsi ? ", " + job.provinsi : "", "</span></li>\n                <li class=\"d-flex align-items-center mb-2\"><i class=\"fas fa-building mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>").concat((_job$type_of_company = job.type_of_company) !== null && _job$type_of_company !== void 0 ? _job$type_of_company : "-", "</span></li>\n                <li class=\"d-flex align-items-center mb-2\"><i class=\"fas fa-money-bill-wave mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_min3 = job.gaji_min) !== null && _job$gaji_min3 !== void 0 ? _job$gaji_min3 : 0), " - Rp ").concat(new Intl.NumberFormat("id-ID").format((_job$gaji_max3 = job.gaji_max) !== null && _job$gaji_max3 !== void 0 ? _job$gaji_max3 : 0), " / Bulan</span></li>\n                <li class=\"d-flex align-items-center\"><i class=\"fas fa-clock mr-2 text-secondary\" style=\"width:18px;text-align:center;\"></i>\n                  <span>Batas Waktu: ").concat(job.deadline_hiring ? new Date(job.deadline_hiring).toLocaleDateString("id-ID", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric"
-                      }) : "-", "</span></li>\n              </ul>\n              <div class=\"mb-3\"><h6 class=\"font-weight-bold\">Deskripsi Pekerjaan</h6>").concat(bullet(job.description_hiring), "</div>\n              <div class=\"mb-3\"><h6 class=\"font-weight-bold\">Kualifikasi</h6>").concat(bullet(job.kualifikasi), "</div>\n              <div class=\"mb-3\"><h6 class=\"font-weight-bold\">Keterampilan Teknis</h6>").concat(comma(job.keterampilan_teknis), "</div>\n              <div class=\"mb-3\"><h6 class=\"font-weight-bold\">Keterampilan Non-Teknis</h6>").concat(comma(job.keterampilan_non_teknis), "</div>\n              ").concat(btn);
+                    window.handleJobCardClick(id);
+                    return _context.abrupt("return");
+                  case 5:
+                    if (typeof window.showJobDetail === "function") {
+                      window.showJobDetail(id);
                     }
-                    if (window.scrollToDetailHeader) window.scrollToDetailHeader();
-                    _context.next = 25;
-                    break;
-                  case 20:
-                    _context.prev = 20;
-                    _context.t0 = _context["catch"](2);
-                    console.error("[detail] gagal:", _context.t0);
-                    _target = document.getElementById("job-detail");
-                    if (_target) _target.innerHTML = '<div class="text-danger">Gagal memuat detail lowongan</div>';
-                  case 25:
+                  case 6:
                   case "end":
                     return _context.stop();
                 }
-              }, _callee, null, [[2, 20]]);
+              }, _callee);
             }));
             return function (_x2) {
               return _ref4.apply(this, arguments);

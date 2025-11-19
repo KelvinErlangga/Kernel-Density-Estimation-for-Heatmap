@@ -35,9 +35,11 @@ class HiringController extends Controller
             return response()->json([]);
         }
 
-        // ====== Ambil skills user (tetap pakai logika Anda sekarang) ======
+        // ====================== 1. AMBIL CV USER ======================
         $cvIds = CurriculumVitaeUser::where('user_id', $user->id)->pluck('id');
-        $skills = \App\Models\SkillUser::whereIn('curriculum_vitae_user_id', $cvIds)
+
+        // --- Skill user (dibikin lowercase & unik) ---
+        $userSkills = SkillUser::whereIn('curriculum_vitae_user_id', $cvIds)
             ->pluck('skill_name')
             ->filter()
             ->map(fn($s) => strtolower(trim($s)))
@@ -45,21 +47,66 @@ class HiringController extends Controller
             ->values()
             ->all();
 
-        if (empty($skills)) {
+        if (empty($userSkills)) {
             return response()->json([]);
         }
 
-        // normalisasi kolom (pakai pembatas koma)
+        // --- Level pendidikan user (string mentah) ---
+        $educationLevelsRaw = \DB::table('education')
+            ->whereIn('curriculum_vitae_user_id', $cvIds)
+            ->pluck('education_level')
+            ->filter()
+            ->map(fn($v) => trim($v))
+            ->values();
+
+        // Mapping jenjang -> ranking angka (semakin tinggi, semakin besar)
+        $levelRank = [
+            'SD/MI'      => 1,
+            'SMP/MTS'    => 2,
+            'SMA/MA/SMK' => 3,
+            'SMA'        => 3,
+            'SMK'        => 3,
+            'D1'         => 4,
+            'D2'         => 5,
+            'D3'         => 6,
+            'D4'         => 7,
+            'S1'         => 8,
+            'S2'         => 9,
+            'S3'         => 10,
+        ];
+
+        // Cari level pendidikan user tertinggi dalam bentuk angka
+        $userEduScore = 0;
+        foreach ($educationLevelsRaw as $lvl) {
+            $key = strtoupper($lvl);
+            if (isset($levelRank[$key])) {
+                $userEduScore = max($userEduScore, $levelRank[$key]);
+            }
+        }
+
+        // Daftar jenjang yang boleh ditampilkan (<= level user)
+        $allowedEduLevels = [];
+        if ($userEduScore > 0) {
+            foreach ($levelRank as $name => $rank) {
+                if ($rank <= $userEduScore) {
+                    $allowedEduLevels[] = $name;
+                }
+            }
+        }
+
+        // ====================== 2. QUERY LOWONGAN ======================
+        // normalisasi kolom skill di tabel hiring
         $normTeknis = "LOWER(CONCAT(',', REPLACE(REPLACE(REPLACE(keterampilan_teknis, ', ', ','), ' ,', ','), ',,', ','), ','))";
         $normNonTek = "LOWER(CONCAT(',', REPLACE(REPLACE(REPLACE(keterampilan_non_teknis, ', ', ','), ' ,', ','), ',,', ','), ','))";
 
         $query = Hiring::with('personalCompany')
             ->whereNull('deleted_at')
             ->where(function ($q) {
-                $q->whereNull('deadline_hiring')->orWhere('deadline_hiring', '>=', now());
+                $q->whereNull('deadline_hiring')
+                    ->orWhere('deadline_hiring', '>=', now());
             })
-            ->where(function ($q) use ($skills, $normTeknis, $normNonTek) {
-                foreach ($skills as $s) {
+            ->where(function ($q) use ($userSkills, $normTeknis, $normNonTek) {
+                foreach ($userSkills as $s) {
                     $alts = match ($s) {
                         'javascript', 'js'                => ['javascript', 'js'],
                         'vue', 'vuejs', 'vue.js'          => ['vue', 'vuejs', 'vue.js'],
@@ -70,6 +117,7 @@ class HiringController extends Controller
                         'sql server', 'mssql'             => ['sql server', 'mssql'],
                         default                           => [$s],
                     };
+
                     foreach ($alts as $a) {
                         $needle = '%,' . strtolower($a) . ',%';
                         $q->orWhereRaw("$normTeknis LIKE ?", [$needle])
@@ -78,27 +126,30 @@ class HiringController extends Controller
                 }
             });
 
-        // Optional: filter teks sederhana (dari search bar)
+        // Filter text search (opsional)
         if ($request->filled('q')) {
-            $q = $request->query('q');
-            $query->where(function ($qq) use ($q) {
-                $qq->where('position_hiring', 'like', "%{$q}%")
-                    ->orWhere('kota', 'like', "%{$q}%")
-                    ->orWhere('provinsi', 'like', "%{$q}%");
+            $qText = $request->query('q');
+            $query->where(function ($qq) use ($qText) {
+                $qq->where('position_hiring', 'like', "%{$qText}%")
+                    ->orWhere('kota', 'like', "%{$qText}%")
+                    ->orWhere('provinsi', 'like', "%{$qText}%");
             });
         }
 
-        // ====== MODE NEARBY: filter by distance dari lat/lon user ======
+        // Filter pendidikan: hanya level yang <= level user
+        if (!empty($allowedEduLevels)) {
+            $query->whereIn('education_hiring', $allowedEduLevels);
+        }
+
+        // ====== MODE NEARBY (jarak) ======
         $mode = $request->query('mode', 'default');
         if ($mode === 'nearby' && $request->filled(['origin_lat', 'origin_lon'])) {
             $originLat = (float) $request->query('origin_lat');
             $originLon = (float) $request->query('origin_lon');
             $radiusKm  = (float) $request->query('radius_km', 30);
 
-            // pastikan punya koordinat
             $query->whereNotNull('latitude')->whereNotNull('longitude');
 
-            // Haversine/ACOS – MySQL/MariaDB friendly
             $query->select('*')
                 ->selectRaw(
                     "(6371 * acos(
@@ -114,7 +165,59 @@ class HiringController extends Controller
 
         $data = $query->get();
 
-        return response()->json($data);
+        // ====================== 3. HITUNG MATCHING PERCENTAGE ======================
+        $result = $data->map(function ($hiring) use ($userSkills, $userEduScore, $levelRank) {
+
+            // --- Siapkan daftar skill lowongan (teknis + non teknis, lowercase, unik) ---
+            $jobTech = array_filter(array_map(
+                fn($s) => strtolower(trim($s)),
+                explode(',', (string) $hiring->keterampilan_teknis)
+            ));
+            $jobNon = array_filter(array_map(
+                fn($s) => strtolower(trim($s)),
+                explode(',', (string) $hiring->keterampilan_non_teknis)
+            ));
+
+            $jobSkills = array_values(array_unique(array_merge($jobTech, $jobNon)));
+            $totalSkills = count($jobSkills);
+
+            // --- Hitung berapa skill user yang masuk di lowongan ini ---
+            $matchCount = 0;
+            if ($totalSkills > 0 && !empty($userSkills)) {
+                $matchCount = count(array_intersect($jobSkills, $userSkills));
+            }
+
+            // 60% bobot untuk skill
+            $skillScore = 0;
+            if ($totalSkills > 0 && $matchCount > 0) {
+                $ratio = $matchCount / $totalSkills; // 0..1
+                $skillScore = round($ratio * 60);    // 0..60
+            }
+
+            // --- Pendidikan: 40% bobot ---
+            $eduScore = 0;
+            $req = strtoupper(trim((string) $hiring->education_hiring));
+            $reqScore = $levelRank[$req] ?? null;
+
+            if ($reqScore !== null && $userEduScore > 0) {
+                if ($userEduScore >= $reqScore) {
+                    // pendidikan user >= syarat -> full 40
+                    $eduScore = 40;
+                } elseif ($userEduScore + 1 == $reqScore) {
+                    // beda satu tingkat (sedikit kurang) -> 25
+                    $eduScore = 25;
+                } else {
+                    // jauh di bawah -> 10 aja
+                    $eduScore = 10;
+                }
+            }
+
+            $hiring->matching_percentage = min(100, $skillScore + $eduScore);
+
+            return $hiring;
+        });
+
+        return response()->json($result);
     }
 
     // API untuk ambil detail lowongan tertentu

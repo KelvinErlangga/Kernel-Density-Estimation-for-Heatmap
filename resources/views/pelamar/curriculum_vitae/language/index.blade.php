@@ -6,6 +6,13 @@
     <title>Bahasa | CVRE GENERATE</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
     <link rel="icon" href="{{ asset('assets/icons/logo.svg') }}" type="image/x-icon" />
+
+    <style>
+        /* Tooltip global di atas semua elemen */
+        #global-stepper-tooltip {
+            z-index: 9999;
+        }
+    </style>
 </head>
 <body class="min-h-screen bg-gradient-to-b from-white via-purple-50 to-blue-50" style="font-family:'Poppins',sans-serif">
 
@@ -26,6 +33,18 @@
         'links'           => 'pelamar.curriculum_vitae.social_media.index',
     ];
 
+    // Label tooltip
+    $translations = [
+        'personal detail' => 'Detail Pribadi',
+        'experiences'     => 'Pengalaman Kerja',
+        'educations'      => 'Pendidikan',
+        'languages'       => 'Bahasa',
+        'skills'          => 'Keahlian',
+        'organizations'   => 'Organisasi',
+        'achievements'    => 'Penghargaan',
+        'links'           => 'Tautan & Media Sosial',
+    ];
+
     $allowed       = $allowedKeys   ?? $flow;
     $confirmedKeys = $confirmedKeys ?? [];
 
@@ -33,13 +52,21 @@
     $idx = array_search($currentKey, $flow, true);
 
     // prev / next allowed
-    $backKey = null; for ($i=$idx-1;$i>=0;$i--) if (in_array($flow[$i], $allowed, true)) {$backKey=$flow[$i]; break;}
-    $nextKey = null; for ($i=$idx+1;$i<count($flow);$i++) if (in_array($flow[$i], $allowed, true)) {$nextKey=$flow[$i]; break;}
+    $backKey = null;
+    for ($i=$idx-1;$i>=0;$i--) {
+        if (in_array($flow[$i], $allowed, true)) {$backKey=$flow[$i]; break;}
+    }
+    $nextKey = null;
+    for ($i=$idx+1;$i<count($flow);$i++) {
+        if (in_array($flow[$i], $allowed, true)) {$nextKey=$flow[$i]; break;}
+    }
 
     // centang hanya setelah klik Next; fallback: centang semua sebelum current bila confirmed kosong
     $useConfirmed = !empty($confirmedKeys);
     $fallbackDoneSet = [];
-    if (!$useConfirmed) { for ($i=0;$i<$idx;$i++) $fallbackDoneSet[$flow[$i]] = true; }
+    if (!$useConfirmed && $idx !== false) {
+        for ($i=0;$i<$idx;$i++) $fallbackDoneSet[$flow[$i]] = true;
+    }
 @endphp
 
 <!-- Background shape -->
@@ -67,17 +94,32 @@
                 @php
                     $allowedStep = in_array($k, $allowed, true);
                     $isCurrent   = $currentKey === $k;
-                    $done        = $useConfirmed ? in_array($k, $confirmedKeys, true) : isset($fallbackDoneSet[$k]);
+
+                    $done        = $useConfirmed ? in_array($k, $confirmedKeys, true)
+                                                 : isset($fallbackDoneSet[$k]);
+                    // current step jangan dicentang
+                    if ($isCurrent) {
+                        $done = false;
+                    }
+
                     $circleCls   = $allowedStep ? 'bg-blue-700 text-white' : 'bg-gray-300 text-gray-700';
                     if ($isCurrent && $allowedStep) $circleCls .= ' ring-2 ring-blue-300';
+
                     $nextK = $loop->last ? null : $flow[$loop->index + 1];
                     $nextAllowed = $nextK ? in_array($nextK, $allowed, true) : false;
+
+                    // tooltip
+                    $tooltipKey  = strtolower(str_replace('_', ' ', $k));
+                    $tooltipText = $translations[$tooltipKey] ?? ucwords($tooltipKey);
                 @endphp
 
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-4 group">
                     @if($allowedStep)
                         <a href="{{ route($routeOf[$k], $curriculumVitaeUser->id) }}"
-                           class="flex justify-center items-center w-11 h-11 rounded-full {{ $circleCls }}">
+                           class="stepper-link flex justify-center items-center w-11 h-11 rounded-full {{ $circleCls }} relative z-10"
+                           data-tooltip-text="{{ $tooltipText }}"
+                           data-step-id="{{ $k }}"
+                           aria-label="Step {{ $visualNum }}">
                             @if($done)
                                 <img src="{{ asset('assets/images/done.svg') }}" alt="" class="w-6 h-6" />
                             @else
@@ -85,7 +127,9 @@
                             @endif
                         </a>
                     @else
-                        <div class="flex justify-center items-center w-11 h-11 rounded-full {{ $circleCls }}">
+                        <div class="stepper-link flex justify-center items-center w-11 h-11 rounded-full {{ $circleCls }} relative z-10"
+                             data-tooltip-text="{{ $tooltipText }}"
+                             data-step-id="{{ $k }}">
                             <span class="font-bold text-xl">{{ $visualNum }}</span>
                         </div>
                     @endif
@@ -149,7 +193,7 @@
 
                         <!-- Proof -->
                         <div class="col-span-12 md:col-span-3">
-                            <label class="block text-sm text-gray-700 mb-1">Bukti/Sertifikat (opsional)</label>
+                            <label class="block text-sm text-gray-700 mb-1">Bukti/Sertifikat</label>
                             <input type="file" name="proof[]" accept=".pdf,image/*"
                                    class="proof-input w-full h-11 px-2 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700" />
                             <p class="text-xs text-gray-500 mt-1">PDF/JPG/PNG. Maks 2MB</p>
@@ -207,7 +251,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
                                      viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M19 7H5m0 0l1.5 13A2 2 0 008.5 22h7a2 2 0 002-1.87L19 7M5 7l1.5-4A2 2 0 018.5 2h7a2 2 0 012 1.87L19 7M10 11v6m4-6v6" />
+                                          d="M19 7H5m0 0l1.5-4A2 2 0 018.5 2h7a2 2 0 012 1.87L19 7M10 11v6m4-6v6" />
                                 </svg>
                             </button>
                         </div>
@@ -245,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Template baris baru yang rapi
+    // Template baris baru
     const template = () => `
         <li class="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
             <div class="grid grid-cols-12 gap-3 md:gap-4 items-center">
@@ -296,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function () {
         </li>
     `;
 
-    // Tambah baris baru — pastikan field yang ada sudah terisi
+    // Tambah baris baru
     document.getElementById('add-language-btn').addEventListener('click', function () {
         const names  = Array.from(document.querySelectorAll('input.language-input'));
         const levels = Array.from(document.querySelectorAll('select.level-select'));
@@ -319,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (li) li.remove();
     });
 
-    // Tampilkan nama file yang dipilih (truncate agar rapi)
+    // Tampilkan nama file yang dipilih
     document.addEventListener('change', function (e) {
         const input = e.target.closest('input.proof-input');
         if (!input) return;
@@ -331,6 +375,33 @@ document.addEventListener('DOMContentLoaded', function () {
             box.textContent = '';
             box.classList.add('hidden');
         }
+    });
+
+    // === TOOLTIP GLOBAL UNTUK STEPPER ===
+    const tooltip = document.createElement('span');
+    tooltip.id = 'global-stepper-tooltip';
+    tooltip.className = 'absolute z-[9999] opacity-0 transition-all duration-300 ease-out bg-gray-800 text-white text-xs font-medium rounded-lg px-3 py-1 shadow-lg whitespace-nowrap pointer-events-none transform -translate-x-1/2 scale-x-0 origin-center';
+    document.body.appendChild(tooltip);
+
+    const stepperLinks = document.querySelectorAll('.stepper-link');
+
+    stepperLinks.forEach(link => {
+        link.addEventListener('mouseenter', function() {
+            const text = this.getAttribute('data-tooltip-text');
+            const rect = this.getBoundingClientRect();
+
+            tooltip.textContent = text;
+            tooltip.style.left = (rect.left + rect.width / 2) + 'px';
+            tooltip.style.top  = (rect.top - 32) + 'px';
+
+            tooltip.classList.remove('opacity-0', 'scale-x-0');
+            tooltip.classList.add('opacity-100', 'scale-x-100');
+        });
+
+        link.addEventListener('mouseleave', function() {
+            tooltip.classList.remove('opacity-100', 'scale-x-100');
+            tooltip.classList.add('opacity-0', 'scale-x-0');
+        });
     });
 });
 </script>

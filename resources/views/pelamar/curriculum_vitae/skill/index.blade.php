@@ -6,6 +6,13 @@
     <title>Keahlian | CVRE GENERATE</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
     <link rel="icon" href="{{ asset('assets/icons/logo.svg') }}" type="image/x-icon" />
+
+    <style>
+        /* Tooltip global harus di atas semua elemen */
+        #global-stepper-tooltip {
+            z-index: 9999;
+        }
+    </style>
 </head>
 <body class="min-h-screen flex flex-col relative bg-gradient-to-b from-white via-purple-50 to-blue-50" style="font-family:'Poppins',sans-serif">
 
@@ -25,6 +32,18 @@
         'organizations'   => 'pelamar.curriculum_vitae.organization.index',
         'achievements'    => 'pelamar.curriculum_vitae.achievement.index',
         'links'           => 'pelamar.curriculum_vitae.social_media.index',
+    ];
+
+    // Label tooltip
+    $translations = [
+        'personal detail' => 'Detail Pribadi',
+        'experiences'     => 'Pengalaman Kerja',
+        'educations'      => 'Pendidikan',
+        'languages'       => 'Bahasa',
+        'skills'          => 'Keahlian',
+        'organizations'   => 'Organisasi',
+        'achievements'    => 'Penghargaan',
+        'links'           => 'Tautan & Media Sosial',
     ];
 
     $allowed       = $allowedKeys   ?? $flow;
@@ -72,7 +91,7 @@
     @endif
 </div>
 
-<!-- ===== STEPPER ===== -->
+<!-- ===== STEPPER + TOOLTIP ===== -->
 <div class="absolute top-10 left-0 right-0 z-30 flex justify-center">
     <div class="flex items-center space-x-4 overflow-x-auto">
         @php $visualNum = 1; @endphp
@@ -83,19 +102,29 @@
 
                 $done = $useConfirmed ? in_array($k, $confirmedKeys, true)
                                       : isset($fallbackDoneSet[$k]);
+                // di step current tetap angka, bukan centang
+                if ($isCurrent) {
+                    $done = false;
+                }
 
                 $circleCls = $allowedStep ? 'bg-blue-700 text-white' : 'bg-gray-300 text-gray-700';
                 if ($isCurrent && $allowedStep) $circleCls .= ' ring-2 ring-blue-300';
 
                 $nextK = $loop->last ? null : $flow[$loop->index + 1];
                 $nextAllowed = $nextK ? in_array($nextK, $allowed, true) : false;
+
+                // tooltip
+                $tooltipKey  = strtolower(str_replace('_', ' ', $k));
+                $tooltipText = $translations[$tooltipKey] ?? ucwords($tooltipKey);
             @endphp
 
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-4 group">
                 @if($allowedStep)
                     <a href="{{ route($routeOf[$k], $curriculumVitaeUser->id) }}"
-                       class="flex justify-center items-center w-11 h-11 rounded-full {{ $circleCls }}"
-                       aria-label="Step {{ $visualNum }}">
+                       class="stepper-link flex justify-center items-center w-11 h-11 rounded-full {{ $circleCls }} relative z-10"
+                       aria-label="Step {{ $visualNum }}"
+                       data-tooltip-text="{{ $tooltipText }}"
+                       data-step-id="{{ $k }}">
                         @if($done)
                             <img src="{{ asset('assets/images/done.svg') }}" alt="Selesai" class="w-6 h-6" />
                         @else
@@ -103,7 +132,9 @@
                         @endif
                     </a>
                 @else
-                    <div class="flex justify-center items-center w-11 h-11 rounded-full {{ $circleCls }}">
+                    <div class="stepper-link flex justify-center items-center w-11 h-11 rounded-full {{ $circleCls }} relative z-10"
+                         data-tooltip-text="{{ $tooltipText }}"
+                         data-step-id="{{ $k }}">
                         <span class="font-bold text-xl">{{ $visualNum }}</span>
                     </div>
                 @endif
@@ -359,6 +390,33 @@ document.addEventListener('DOMContentLoaded', () => {
         li.querySelector('input[name="skill_name[]"]').value = skill;
         skillList.appendChild(li);
     }
+
+    // === TOOLTIP GLOBAL UNTUK STEPPER ===
+    const tooltip = document.createElement('span');
+    tooltip.id = 'global-stepper-tooltip';
+    tooltip.className = 'absolute z-[9999] opacity-0 transition-all duration-300 ease-out bg-gray-800 text-white text-xs font-medium rounded-lg px-3 py-1 shadow-lg whitespace-nowrap pointer-events-none transform -translate-x-1/2 scale-x-0 origin-center';
+    document.body.appendChild(tooltip);
+
+    const stepperLinks = document.querySelectorAll('.stepper-link');
+
+    stepperLinks.forEach(link => {
+        link.addEventListener('mouseenter', function() {
+            const text = this.getAttribute('data-tooltip-text');
+            const rect = this.getBoundingClientRect();
+
+            tooltip.textContent = text;
+            tooltip.style.left = (rect.left + rect.width / 2) + 'px';
+            tooltip.style.top  = (rect.top - 32) + 'px';
+
+            tooltip.classList.remove('opacity-0', 'scale-x-0');
+            tooltip.classList.add('opacity-100', 'scale-x-100');
+        });
+
+        link.addEventListener('mouseleave', function() {
+            tooltip.classList.remove('opacity-100', 'scale-x-100');
+            tooltip.classList.add('opacity-0', 'scale-x-0');
+        });
+    });
 });
 </script>
 </body>

@@ -1,6 +1,8 @@
 @php
 $educations = $cv->educations;
 $s = $style['educations'] ?? [];
+// AMBIL STYLE DARI EXPERIENCES SEBAGAI PATOKAN
+$s_exp = $style['experiences'] ?? [];
 @endphp
 
 @if($educations && $educations->count() > 0)
@@ -10,14 +12,13 @@ $s = $style['educations'] ?? [];
 
     @foreach($educations as $index => $edu)
       @php
-        $descriptions = is_array($edu->description_education)
-            ? array_filter(array_map('trim', $edu->description_education))
-            : array_filter(array_map('trim', explode("\n", (string)($edu->description_education ?? ''))));
         $eduId = $edu->id ?? "edu-{$index}";
       @endphp
 
-      <div style="{{ inlineStyle($s['div'] ?? []) }}">
-        {{-- Nama Institusi --}}
+      {{-- Div item utama. Menggunakan style 'div' dari experiences --}}
+      <div style="{{ inlineStyle(array_merge($s_exp['div'] ?? [], ['color' => $s['div']['color'] ?? '#000'])) }}">
+
+        {{-- Nama Institusi (Padding disamakan) --}}
         <strong>
           <span contenteditable="true"
                 class="inline-edit"
@@ -26,115 +27,149 @@ $s = $style['educations'] ?? [];
                 data-id="{{ $eduId }}"
                 data-field="school_name"
                 style="{{ inlineStyle(array_merge($s['school_name'] ?? [], [
-                  'border' => '1px dashed #ccc',
-                  'padding' => '4px 6px',
-                  'border-radius' => '4px',
+                    'border' => '1px dashed #ccc',
+                    'padding' => '4px 6px', // Samakan dengan experiences
+                    'border-radius' => '4px',
                 ])) }}">
             {{ $edu->school_name }}
           </span>
         </strong>
 
-        {{-- BARIS META: Jurusan (kiri) | Kota & Tanggal (kanan) --}}
-        <div style="{{ inlineStyle(array_merge($s['meta'] ?? [], [
-            'display' => 'flex',
-            'align-items' => 'center',
-            'gap' => '8px',
-            'flex-wrap' => 'wrap',
-            'width' => '100%',
-            'margin-bottom' => '14px'    // JARAK ke item berikutnya -> tidak “nempel” ke school name di bawah
+        {{-- BARIS META. Menggunakan style 'meta' dari experiences (overflow: hidden) --}}
+        <div style="{{ inlineStyle(array_merge($s_exp['meta'] ?? [], [
+            'overflow' => 'hidden', // (dari JSON experiences.meta)
+            'margin-bottom' => '4px', // (dari JSON experiences.meta)
+            'width' => '100%'
         ])) }}">
-        {{-- Jurusan (kiri) --}}
-        <em>
-            <span contenteditable="true"
-                class="inline-edit"
-                data-cv="{{ $cv->id }}"
-                data-section="educations"
-                data-id="{{ $eduId }}"
-                data-field="field_of_study"
-                data-placeholder="Program studi / jurusan"
-                style="{{ inlineStyle(array_merge($s['field'] ?? [], [
-                    'border' => '1px dashed #ccc',
-                    'padding' => '2px 4px',
-                    'border-radius' => '4px',
-                ])) }}">
-            {{ $edu->field_of_study }}
-            </span>
-        </em>
 
-        {{-- Grup kanan: Kota + Tanggal (dipaksa ke kanan) --}}
-        <span style="margin-left:auto; display:inline-flex; align-items:center; gap:8px;">
+          {{-- Jurusan (kiri) + TAMBAHAN GPA --}}
+          <em style="float: left;"> {{-- [MODIFIKASI]: float:left dipindah ke <em> --}}
             <span contenteditable="true"
+                  class="inline-edit"
+                  data-cv="{{ $cv->id }}"
+                  data-section="educations"
+                  data-id="{{ $eduId }}"
+                  data-field="field_of_study"
+                  data-placeholder="Program studi / jurusan"
+                  style="{{ inlineStyle(array_merge($s_exp['position'] ?? [], [
+                      'border' => '1px dashed #ccc',
+                      'padding' => '2px 4px',
+                      'border-radius' => '4px',
+                      'float' => 'none', // [MODIFIKASI]: Hapus float dari sini
+                      'font-style' => 'italic',
+                      'min-width' => 'auto'  {{--  <-- PERBAIKAN DI SINI --}}
+                  ])) }}">
+                {{ $edu->field_of_study }}
+            </span>
+
+            {{-- === BLOK TAMBAHAN UNTUK GPA === --}}
+            @if($edu->gpa)
+                <span style="font-style: italic; margin-left: 0px;"> | </span>
+                <span contenteditable="true"
+                      class="inline-edit"
+                      data-cv="{{ $cv->id }}"
+                      data-section="educations"
+                      data-id="{{ $eduId }}"
+                      data-field="gpa"
+                      data-placeholder="GPA"
+                      style="{{ inlineStyle(array_merge($s_exp['position'] ?? [], [
+                          'border' => '1px dashed #ccc',
+                          'padding' => '2px 4px',
+                          'border-radius' => '4px',
+                          'margin-right' => '0px',
+                          'float' => 'none', // Tidak perlu float
+                          'font-style' => 'italic',
+                          'min-width' => 'auto'  {{--  <-- PERBAIKAN DI SINI --}}
+                      ])) }}">
+                    {{ $edu->gpa }}
+                </span>
+                <span style="font-style: italic;"></span>
+            @endif
+            {{-- === AKHIR BLOK GPA === --}}
+
+          </em>
+
+          {{-- Grup kanan (Tanggal + Kota) --}}
+
+          {{-- Tanggal (kanan) --}}
+          <span style="{{ inlineStyle(array_merge($s_exp['date'] ?? [], [
+                'border' => '1px dashed #ccc',
+                'padding' => '2px 4px',
+                'border-radius' => '4px',
+                'margin-right' => '4px',
+                'float' => 'right',
+                'font-size' => '12px',
+                'color' => $s_exp['date']['color'] ?? '#555'
+            ])) }}">
+            <span contenteditable="true"
+                  class="inline-edit"
+                  data-cv="{{ $cv->id }}"
+                  data-section="educations"
+                  data-id="{{ $eduId }}"
+                  data-field="start_date">
+                {{ $edu->start_date ? \Carbon\Carbon::parse($edu->start_date)->format('d-m-Y') : '...' }}
+            </span>
+            -
+            <span contenteditable="true"
+                  class="inline-edit"
+                  data-cv="{{ $cv->id }}"
+                  data-section="educations"
+                  data-id="{{ $eduId }}"
+                  data-field="end_date">
+                  {{-- [MODIFIKASI]: Gunakan 'is_current' --}}
+                  @if($edu->is_current)
+                      Sekarang
+                  @else
+                      {{ $edu->end_date ? \Carbon\Carbon::parse($edu->end_date)->format('d-m-Y') : '...' }}
+                  @endif
+            </span>
+          </span>
+
+          {{-- Kota (kanan) --}}
+          <span contenteditable="true"
                 class="inline-edit"
                 data-cv="{{ $cv->id }}"
                 data-section="educations"
                 data-id="{{ $eduId }}"
                 data-field="city_education"
                 data-placeholder="Kota"
-                style="{{ inlineStyle(array_merge($s['date'] ?? [], [
+                style="{{ inlineStyle(array_merge($s_exp['date'] ?? [], [
                     'border' => '1px dashed #ccc',
                     'padding' => '2px 4px',
                     'border-radius' => '4px',
+                    'float' => 'right',
+                    'font-size' => '12px',
+                    'color' => $s_exp['date']['color'] ?? '#555'
                 ])) }}">
             {{ $edu->city_education }}
-            </span>
+          </span>
 
-            <span style="{{ inlineStyle(array_merge($s['date'] ?? [], [
-                'border' => '1px dashed #ccc',
-                'padding' => '2px 4px',
-                'border-radius' => '4px',
-            ])) }}">
-            <span contenteditable="true"
-                    class="inline-edit"
-                    data-cv="{{ $cv->id }}"
-                    data-section="educations"
-                    data-id="{{ $eduId }}"
-                    data-field="start_date">
-                {{ $edu->start_date }}
-            </span>
-            -
-            <span contenteditable="true"
-                    class="inline-edit"
-                    data-cv="{{ $cv->id }}"
-                    data-section="educations"
-                    data-id="{{ $eduId }}"
-                    data-field="end_date">
-                {{ $edu->end_date ?? 'Sekarang' }}
-            </span>
-        </span>
         </div>
 
-        {{-- Deskripsi (opsional) --}}
-        @if(!empty($descriptions))
-          <ul style="{{ inlineStyle(array_merge($s['ul'] ?? [], [
-              'border' => '1px dashed #ccc',
-              'padding' => '4px 6px',
-              'border-radius' => '4px',
-              'margin-top' => '6px'
-          ])) }}">
-            @foreach($descriptions as $desc)
-              <li contenteditable="true"
-                  class="inline-edit"
-                  data-cv="{{ $cv->id }}"
-                  data-section="educations"
-                  data-id="{{ $eduId }}"
-                  data-field="description_education"
-                  style="{{ inlineStyle(array_merge($s['li'] ?? [], [
-                      'border' => '1px dashed #ccc',
-                      'padding' => '2px 4px',
-                      'border-radius' => '4px',
-                  ])) }}">
-                {{ $desc }}
-              </li>
-            @endforeach
-          </ul>
+        {{-- [MODIFIKASI]: Deskripsi (opsional) --}}
+        @php
+            // Ganti nama kolom ke 'description'
+            $rawDesc = (string)($edu->description ?? '');
+            $plain = trim(strip_tags($rawDesc));
+        @endphp
+
+        @if($plain !== '')
+            <div contenteditable="true"
+                 class="inline-edit"
+                 data-cv="{{ $cv->id }}"
+                 data-section="educations"
+                 data-id="{{ $eduId }}"
+                 data-field="description" {{-- Ganti data-field --}}
+                 data-placeholder="Deskripsi pendidikan"
+                 style="{{ inlineStyle(array_merge($s_exp['li'] ?? [], [
+                     'border'=>'1px dashed #ccc','padding'=>'4px 6px','border-radius'=>'4px','margin-top'=>'6px'
+                 ])) }}">
+                {!! $rawDesc !!}
+            </div>
         @endif
+
       </div>
     @endforeach
   </div>
 </div>
 @endif
-
-<style>
-.inline-edit:empty:before { content: attr(data-placeholder); color:#aaa; pointer-events:none; }
-.inline-edit { min-width:50px; display:inline-block; }
-</style>

@@ -40,16 +40,17 @@ class DashboardUserController extends Controller
     {
         $hirings = Hiring::all();
 
-        // Ambil CV user (bisa kosong)
         $user = Auth::user();
         $cvs = collect();
         if ($user) {
-            $cvs = CurriculumVitaeUser::where('user_id', $user->id)->get();
+            // Eager load the templateCurriculumVitae relationship
+            $cvs = CurriculumVitaeUser::with('templateCurriculumVitae')
+                ->where('user_id', $user->id)
+                ->get();
         }
 
         return view('pelamar.dashboard.lowongan.index', compact('hirings', 'cvs'));
     }
-
 
     public function getShowLowongan($id)
     {

@@ -128,20 +128,53 @@ class CurriculumVitaeUserController extends Controller
     // Buat section baru (default: Text Section)
     public function addCustomSection(Request $request, CurriculumVitaeUser $curriculumVitaeUser)
     {
-        $type = $request->input('type', 'custom_text'); // sekarang cuma 'custom_text'
+        $type = $request->input('type', 'custom_text'); // misal: custom_text, custom_date, dst
+
+        // ====== CONFIG TIAP TIPE SECTION ======
+        $types = [
+            'custom_text' => [
+                'default_title'   => 'Text section',
+                'default_payload' => ['body' => 'Your skills, certifications, interests, and more'],
+                'view'            => 'pelamar.curriculum_vitae.preview.sections.custom_text',
+            ],
+
+            'custom_date' => [
+                'default_title'   => 'Custom dated section',
+                'default_payload' => [
+                    'items' => [
+                        [
+                            'section_name' => 'Nama kegiatan / organisasi',
+                            'position'     => 'Jabatan atau peran Anda',
+                            'start_date'   => null, // disimpan "YYYY-MM-DD"
+                            'end_date'     => null, // null = "Sekarang"
+                            'description'  => 'Tuliskan secara singkat tanggung jawab, aktivitas utama, dan pencapaian Anda di kegiatan ini.',
+                        ],
+                ],
+                ],
+                'view'            => 'pelamar.curriculum_vitae.preview.sections.custom_date',
+            ],
+
+            // nanti kalau mau tambah tipe lain, tinggal tambahkan di sini
+            // 'custom_portfolio' => [ ... ],
+        ];
+
+        // fallback ke custom_text kalau typenya tidak dikenal
+        $config = $types[$type] ?? $types['custom_text'];
+
         $nextOrder = (int) $curriculumVitaeUser->customSections()->max('sort_order') + 1;
 
         $section = $curriculumVitaeUser->customSections()->create([
-            'section_key'   => $type,
-            'section_title' => $request->input('title', 'Text section'),
+            'section_key'   => $type, // penting: simpan type di sini
+            'section_title' => $request->input('title', $config['default_title']),
             'subtitle'      => $request->input('subtitle'),
-            'payload'       => ['body' => 'Your skills, certifications, interests, and more.'],
+            'payload'       => $config['default_payload'],
             'sort_order'    => $nextOrder,
         ]);
 
-        $html = view('pelamar.curriculum_vitae.preview.sections.custom_text', [
+        // render view sesuai type
+        $html = view($config['view'], [
             'cv'      => $curriculumVitaeUser,
-            'section' => $section
+            'section' => $section,
         ])->render();
 
         return response()->json([

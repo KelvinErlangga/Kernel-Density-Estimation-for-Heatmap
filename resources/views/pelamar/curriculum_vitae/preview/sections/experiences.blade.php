@@ -9,20 +9,6 @@ $s = $style['experiences'] ?? [];
 
         @forelse($experiences as $index => $exp)
             @php
-                $raw = $exp->description_experience ?? '';
-                $hasHtml = is_string($raw) &&
-                    (strpos($raw, '<ul') !== false || strpos($raw, '<li') !== false || strpos($raw, '<br') !== false);
-
-                if (!$hasHtml) {
-                    if (is_array($raw)) {
-                        $descriptions = array_filter(array_map('trim', $raw));
-                    } else {
-                        $descriptions = array_filter(array_map('trim', explode("\n", (string)$raw)));
-                    }
-                } else {
-                    $descriptions = [];
-                }
-
                 $expId = $exp->id ?? "new-{$index}";
             @endphp
 
@@ -78,7 +64,8 @@ $s = $style['experiences'] ?? [];
                               data-id="{{ $expId }}"
                               data-field="start_date"
                               data-placeholder="Tanggal Mulai">
-                            {{ $exp->start_date }}
+                            {{-- Format tanggal agar konsisten --}}
+                            {{ $exp->start_date ? \Carbon\Carbon::parse($exp->start_date)->format('d-m-Y') : '...' }}
                         </span>
                         -
                         <span contenteditable="true"
@@ -88,7 +75,12 @@ $s = $style['experiences'] ?? [];
                               data-id="{{ $expId }}"
                               data-field="end_date"
                               data-placeholder="Tanggal Selesai">
-                            {{ $exp->end_date ?? 'Sekarang' }}
+                            {{-- Cek 'is_current' jika ada, jika tidak, pakai 'end_date' --}}
+                            @if($exp->is_current ?? false)
+                                Sekarang
+                            @else
+                                {{ $exp->end_date ? \Carbon\Carbon::parse($exp->end_date)->format('d-m-Y') : 'Sekarang' }}
+                            @endif
                         </span>
                     </span>
 
@@ -108,27 +100,44 @@ $s = $style['experiences'] ?? [];
                     </span>
                 </div>
 
-                {{-- Description --}}
-                @if($hasHtml)
-                    <div contenteditable="true"
-                         class="inline-edit"
-                         data-cv="{{ $cv->id }}"
-                         data-section="experiences"
-                         data-id="{{ $expId }}"
-                         data-field="description_experience"
-                         data-placeholder="Deskripsi pengalaman kerja"
-                         style="{{ inlineStyle(array_merge($s['description'] ?? [], [
-                             'border' => '1px dashed #ccc',
-                             'border-radius' => '4px'
-                         ])) }}">
-                        {!! $raw !!}
-                    </div>
-                @else
-                    @if(!empty($descriptions))
+                {{-- [PERBAIKAN] Description --}}
+                @php
+                    $rawDesc = (string)($exp->description_experience ?? '');
+                    // Cek apakah benar-benar kosong setelah strip tag dan trim
+                    $plainDesc = trim(strip_tags($rawDesc));
+
+                    // Cek apakah mengandung HTML list
+                    $hasHtmlList = (strpos($rawDesc, '<ul') !== false || strpos($rawDesc, '<li') !== false);
+                @endphp
+
+                {{-- HANYA render jika $plainDesc TIDAK KOSONG --}}
+                @if($plainDesc !== '')
+
+                    {{-- Jika datanya adalah list HTML (seperti di job pertama) --}}
+                    @if($hasHtmlList)
+                        <div contenteditable="true"
+                             class="inline-edit"
+                             data-cv="{{ $cv->id }}"
+                             data-section="experiences"
+                             data-id="{{ $expId }}"
+                             data-field="description_experience"
+                             data-placeholder="Deskripsi pengalaman kerja"
+                             style="{{ inlineStyle(array_merge($s['ul'] ?? [], [ // Pakai style 'ul'
+                                 'border' => '1px dashed #ccc',
+                                 'padding' => '0px 1px',
+                                 'border-radius' => '4px',
+                             ])) }}">
+                            {!! $rawDesc !!}
+                        </div>
+                    @else
+                        {{-- Jika datanya plain text, kita buatkan list --}}
+                        @php
+                            $descriptions = array_filter(array_map('trim', explode("\n", $rawDesc)));
+                        @endphp
                         <ul style="{{ inlineStyle(array_merge($s['ul'] ?? [], [
                             'border' => '1px dashed #ccc',
-                            'padding' => '4px 6px',
-                            'border-radius' => '4px'
+                            'padding' => '0px 1px',
+                            'border-radius' => '4px',
                         ])) }}">
                             @foreach($descriptions as $desc)
                                 <li contenteditable="true"
@@ -139,30 +148,18 @@ $s = $style['experiences'] ?? [];
                                     data-field="description_experience"
                                     data-placeholder="Tulis deskripsi..."
                                     style="{{ inlineStyle(array_merge($s['li'] ?? [], [
-                                        'border' => '1px dashed #ccc',
-                                        'padding' => '2px 4px',
+                                        'border' => '1tpx dashed #ccc',
+                                        'padding' => '0px 1px',
                                         'border-radius' => '4px'
                                     ])) }}">
                                     {{ $desc }}
                                 </li>
                             @endforeach
                         </ul>
-                    @else
-                        <p contenteditable="true"
-                           class="inline-edit"
-                           data-cv="{{ $cv->id }}"
-                           data-section="experiences"
-                           data-id="{{ $expId }}"
-                           data-field="description_experience"
-                           data-placeholder="Tulis deskripsi pengalaman kerja"
-                           style="{{ inlineStyle(array_merge($s['li'] ?? [], [
-                               'border' => '1px dashed #ccc',
-                               'padding' => '2px 4px',
-                               'border-radius' => '4px'
-                           ])) }}">
-                        </p>
                     @endif
-                @endif
+
+                @endif {{-- Akhir cek $plainDesc --}}
+
             </div>
         @empty
             {{-- Jika belum ada pengalaman --}}
@@ -177,12 +174,67 @@ $s = $style['experiences'] ?? [];
                           data-placeholder="Nama Perusahaan"
                           style="{{ inlineStyle(array_merge($s['company'] ?? [], [
                               'border' => '1px dashed #ccc',
-                              'padding' => '4px 6px',
+                              'padding' => '0px 1px',
                               'border-radius' => '4px',
                           ])) }}">
                     </span>
                 </strong>
                 {{-- Lanjutkan untuk position, date, city, description dengan cara sama --}}
+                 <div style="{{ inlineStyle($s['meta'] ?? []) }}">
+                    <em>
+                        <span contenteditable="true"
+                              class="inline-edit"
+                              data-cv="{{ $cv->id }}"
+                              data-section="experiences"
+                              data-id="new-0"
+                              data-field="position_experience"
+                              data-placeholder="Jabatan"
+                              style="{{ inlineStyle(array_merge($s['position'] ?? [], [
+                                  'border' => '1px dashed #ccc',
+                                  'padding' => '2px 4px',
+                                  'border-radius' => '4px',
+                                  'margin-right' => '4px'
+                              ])) }}">
+                        </span>
+                    </em>
+                    <span style="{{ inlineStyle(array_merge($s['date'] ?? [], [
+                        'border' => '1px dashed #ccc',
+                        'padding' => '2px 4px',
+                        'border-radius' => '4px',
+                        'margin-right' => '4px'
+                    ])) }}">
+                        <span contenteditable="true"
+                              class="inline-edit"
+                              data-cv="{{ $cv->id }}"
+                              data-section="experiences"
+                              data-id="new-0"
+                              data-field="start_date"
+                              data-placeholder="Tanggal Mulai">
+                        </span>
+                        -
+                        <span contenteditable="true"
+                              class="inline-edit"
+                              data-cv="{{ $cv->id }}"
+                              data-section="experiences"
+                              data-id="new-0"
+                              data-field="end_date"
+                              data-placeholder="Tanggal Selesai">
+                        </span>
+                    </span>
+                    <span contenteditable="true"
+                          class="inline-edit"
+                          data-cv="{{ $cv->id }}"
+                          data-section="experiences"
+                          data-id="new-0"
+                          data-field="city_experience"
+                          data-placeholder="Kota"
+                          style="{{ inlineStyle(array_merge($s['date'] ?? [], [
+                              'border' => '1px dashed #ccc',
+                              'padding' => '2px 4px',
+                              'border-radius' => '4px'
+                          ])) }}">
+                    </span>
+                </div>
             </div>
         @endforelse
     </div>

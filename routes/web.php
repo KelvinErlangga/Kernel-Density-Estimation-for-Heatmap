@@ -148,13 +148,9 @@ Route::middleware('auth', 'verified')->group(function () {
         Route::prefix('/curriculum-vitae/{curriculum_vitae_user}/custom-sections')
             ->as('pelamar.curriculum_vitae.custom.')
             ->group(function () {
-                // Tambah section baru
                 Route::post('/', [CurriculumVitaeUserController::class, 'addCustomSection'])->name('add');
-                // Update judul/isi (inline)
                 Route::put('/{section}', [CurriculumVitaeUserController::class, 'updateCustomSection'])->name('update');
-                // Hapus section
                 Route::delete('/{section}', [CurriculumVitaeUserController::class, 'deleteCustomSection'])->name('delete');
-                // Reorder beberapa custom section
                 Route::post('/reorder', [CurriculumVitaeUserController::class, 'reorderCustomSections'])->name('reorder');
             });
 
