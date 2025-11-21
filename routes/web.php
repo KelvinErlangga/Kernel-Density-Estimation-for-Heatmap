@@ -233,6 +233,22 @@ Route::middleware('auth', 'verified')->group(function () {
             // Recommended Skills
             Route::resource('recommended_skills', RecommendedSkillController::class);
             Route::post('recommended_skills/{id}/restore', [RecommendedSkillController::class, 'restore'])->name('recommended_skills.restore');
+
+            // ====== EDITOR GRAPESJS UNTUK TEMPLATE KREATIF ======
+            Route::get(
+                'template_curriculum_vitae/{templateCurriculumVitae}/designer',
+                [TemplateCurriculumVitaeController::class, 'designer']
+            )
+                ->name('template_curriculum_vitae.designer');
+
+            Route::put(
+                'template_curriculum_vitae/{templateCurriculumVitae}/designer',
+                [TemplateCurriculumVitaeController::class, 'updateDesigner']
+            )
+                ->name('template_curriculum_vitae.updateDesigner');
+
+            Route::get('template_curriculum_vitae/{template}/visual-edit', [TemplateCurriculumVitaeController::class, 'editVisual'])
+                ->name('template_curriculum_vitae.edit_visual');
         });
     });
 });

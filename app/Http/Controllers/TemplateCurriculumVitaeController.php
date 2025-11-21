@@ -155,4 +155,76 @@ class TemplateCurriculumVitaeController extends Controller
         return redirect()->route('admin.template_curriculum_vitae.index')
             ->with('success', 'Template CV berhasil diaktifkan kembali.');
     }
+    /**
+     * Halaman editor visual (GrapesJS) khusus template kreatif.
+     */
+    public function designer(TemplateCurriculumVitae $templateCurriculumVitae)
+    {
+        // jaga-jaga: paksa type kreatif
+        if ($templateCurriculumVitae->template_type !== 'kreatif') {
+            abort(404, 'Editor visual hanya untuk template kreatif.');
+        }
+
+        // Ambil layout & style dari JSON yang sudah ada
+        $layout = is_array($templateCurriculumVitae->layout_json)
+            ? $templateCurriculumVitae->layout_json
+            : [];
+
+        $style = is_array($templateCurriculumVitae->style_json)
+            ? $templateCurriculumVitae->style_json
+            : [];
+
+        $isGrapes = isset($layout['engine']) && $layout['engine'] === 'grapesjs';
+
+        $initialHtml = $isGrapes ? ($layout['html'] ?? '') : '';
+        $initialCss  = $isGrapes ? ($style['css'] ?? '') : '';
+
+        return view('admin.template_curriculum_vitae.grapes_editor', [
+            'template'    => $templateCurriculumVitae,
+            'initialHtml' => $initialHtml,
+            'initialCss'  => $initialCss,
+        ]);
+    }
+
+    /**
+     * Simpan hasil dari editor GrapesJS (HTML+CSS) ke layout_json & style_json.
+     */
+    public function updateDesigner(Request $request, TemplateCurriculumVitae $templateCurriculumVitae)
+    {
+        $data = $request->validate([
+            'template_curriculum_vitae_name' => 'required|string|max:255',
+            'html' => 'required|string',
+            'css'  => 'nullable|string',
+        ]);
+
+        $templateCurriculumVitae->update([
+            'template_curriculum_vitae_name' => $data['template_curriculum_vitae_name'],
+            'template_type'                  => 'kreatif', // pastikan flag kreatif
+            'layout_json' => json_encode([
+                'engine' => 'grapesjs',
+                'html'   => $data['html'],
+            ]),
+            'style_json'  => json_encode([
+                'engine' => 'grapesjs',
+                'css'    => $data['css'] ?? '',
+            ]),
+        ]);
+
+        return redirect()
+            ->route('admin.template_curriculum_vitae.index')
+            ->with('success', 'Template kreatif berhasil diperbarui dengan editor visual.');
+    }
+
+    public function editVisual(TemplateCurriculumVitae $template)
+    {
+        // optional: pastikan hanya untuk kreatif
+        if (strtolower($template->template_type) !== 'kreatif') {
+            abort(404);
+        }
+
+        // view builder (bisa pakai layout yang sama dengan create, tapi untuk update)
+        return view('admin.template_curriculum_vitae.edit_visual', [
+            'template' => $template,
+        ]);
+    }
 }

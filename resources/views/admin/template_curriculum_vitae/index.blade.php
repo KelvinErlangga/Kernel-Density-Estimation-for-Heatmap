@@ -42,35 +42,51 @@
                                     </span>
                                 </td>
                                 <td class="align-middle text-center">
-                                    <div class="action-buttons">
-                                        <!-- Edit -->
-                                        <a href="{{ route('admin.template_curriculum_vitae.edit', $templateCV->id) }}"
-                                           class="btn btn-outline-primary">
-                                            <i class="far fa-edit"></i> Edit
-                                        </a>
+    <div class="action-buttons d-flex justify-content-center flex-wrap gap-2">
 
-                                        <!-- Nonaktif / Aktifkan -->
-                                        @if(!$templateCV->trashed())
-                                            <form action="{{ route('admin.template_curriculum_vitae.destroy', $templateCV->id) }}"
-                                                  method="POST"
-                                                  onsubmit="return confirm('Apakah Anda yakin ingin menonaktifkan template ini?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-outline-danger">
-                                                    <i class="fas fa-ban"></i> Nonaktifkan
-                                                </button>
-                                            </form>
-                                        @else
-                                            <form action="{{ route('admin.template_curriculum_vitae.restore', $templateCV->id) }}"
-                                                  method="POST">
-                                                @csrf
-                                                <button type="submit" class="btn btn-outline-success">
-                                                    <i class="fas fa-check"></i> Aktifkan
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </td>
+        {{-- ========== EDIT / EDIT VISUAL ========== --}}
+        @php
+            $type = strtolower($templateCV->template_type ?? '');
+        @endphp
+
+        @if($type === 'kreatif')
+            {{-- KHUSUS TEMPLATE KREATIF: pakai builder visual --}}
+            <a href="{{ route('admin.template_curriculum_vitae.edit_visual', $templateCV->id) }}"
+               class="btn btn-primary btn-sm">
+                <i class="far fa-edit"></i> Edit Visual
+            </a>
+        @else
+            {{-- ATS & tipe lain: edit biasa seperti sebelumnya --}}
+            <a href="{{ route('admin.template_curriculum_vitae.edit', $templateCV->id) }}"
+               class="btn btn-outline-primary btn-sm">
+                <i class="far fa-edit"></i> Edit
+            </a>
+        @endif
+
+        {{-- ========== NONAKTIF / AKTIFKAN (TIDAK DIUBAH) ========== --}}
+        @if(!$templateCV->trashed())
+            <form action="{{ route('admin.template_curriculum_vitae.destroy', $templateCV->id) }}"
+                  method="POST"
+                  onsubmit="return confirm('Apakah Anda yakin ingin menonaktifkan template ini?');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                    <i class="fas fa-ban"></i> Nonaktifkan
+                </button>
+            </form>
+        @else
+            <form action="{{ route('admin.template_curriculum_vitae.restore', $templateCV->id) }}"
+                  method="POST">
+                @csrf
+                <button type="submit" class="btn btn-outline-success btn-sm">
+                    <i class="fas fa-check"></i> Aktifkan
+                </button>
+            </form>
+        @endif
+
+    </div>
+</td>
+
                             </tr>
                             @endforeach
                         </tbody>
