@@ -101,58 +101,176 @@ async function downloadAsImage(type) {
   link.click();
 }
 
+/**
+ * Cari garis "aman" (baris putih/kosong) dekat batas bawah slice,
+ * supaya page break tidak memotong teks.
+ *
+ * - startY: awal slice (px)
+ * - targetHeight: tinggi slice ideal (px)
+ * - scanBackPx: mundur dari batas bawah untuk cari whitespace
+ */
+function findSafeCutY(canvas, startY, targetHeight, scanBackPx = 180) {
+  const w = canvas.width;
+  const h = canvas.height;
+  const endY = Math.min(startY + targetHeight, h);
+  const scanTop = Math.max(startY + Math.floor(targetHeight * 0.65), endY - scanBackPx);
+  if (scanTop >= endY) return endY;
+
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const scanHeight = endY - scanTop;
+
+  // Ambil blok imageData sekali (lebih cepat)
+  const img = ctx.getImageData(0, scanTop, w, scanHeight).data;
+
+  // sampling supaya ringan
+  const xStep = Math.max(8, Math.floor(w / 250)); // kira2 250 sample per baris
+  const whiteThreshold = 245; // pixel dianggap "putih" kalau RGB > 245
+  const minWhiteRatio = 0.985; // harus hampir full putih biar dianggap whitespace
+
+  // scan dari bawah ke atas cari baris yg paling putih
+  for (let localY = scanHeight - 1; localY >= 0; localY--) {
+    let whiteCount = 0;
+    let total = 0;
+
+    const rowOffset = localY * w * 4;
+    for (let x = 0; x < w; x += xStep) {
+      const idx = rowOffset + x * 4;
+      const r = img[idx];
+      const g = img[idx + 1];
+      const b = img[idx + 2];
+      const a = img[idx + 3];
+
+      total++;
+      if (a > 0 && r >= whiteThreshold && g >= whiteThreshold && b >= whiteThreshold) {
+        whiteCount++;
+      }
+    }
+
+    const ratio = whiteCount / total;
+    if (ratio >= minWhiteRatio) {
+      return scanTop + localY;
+    }
+  }
+
+  return endY; // fallback: potong di batas ideal
+}
+
+/**
+ * Build PDF dari canvas dengan:
+ * - margin page 1 normal (seperti kode awal)
+ * - margin page 2 dst lebih besar
+ * - pemotongan lebih aman (safe cut + overlap)
+ */
+function buildPdfFromCanvasPaged(canvas, opts = {}) {
+  const {
+    // margin page 1 (KEMBALIKAN KE AWAL)
+    marginFirstTop = 10,
+    marginFirstBottom = 15,
+
+    // margin page 2 dst (DIBESARKAN)
+    marginOtherTop = 25,
+    marginOtherBottom = 25,
+
+    // kiri kanan bisa tetap
+    marginLeft = 8,
+    marginRight = 8,
+
+    // overlap antar halaman supaya teks yang kepotong tidak hilang
+    overlapPx = 36,
+
+    // kualitas gambar
+    imageQuality = 0.85,
+  } = opts;
+
+  const pdf = new jspdf.jsPDF("p", "mm", "a4");
+
+  const pageWidthMm = pdf.internal.pageSize.getWidth();
+  const pageHeightMm = pdf.internal.pageSize.getHeight();
+
+  const availableWidthMm = pageWidthMm - marginLeft - marginRight;
+
+  const imgWidthPx = canvas.width;
+  const imgHeightPx = canvas.height;
+
+  // px per mm mengikuti width yang dipakai di PDF
+  const pxPerMm = imgWidthPx / availableWidthMm;
+
+  // fungsi helper ambil availableHeightPx sesuai pageIndex
+  const getAvailHeightPx = (pageIndex) => {
+    const mt = pageIndex === 0 ? marginFirstTop : marginOtherTop;
+    const mb = pageIndex === 0 ? marginFirstBottom : marginOtherBottom;
+    const availableHeightMm = pageHeightMm - mt - mb;
+    return Math.floor(availableHeightMm * pxPerMm);
+  };
+
+  let positionY = 0;
+  let pageIndex = 0;
+
+  while (positionY < imgHeightPx) {
+    const mt = pageIndex === 0 ? marginFirstTop : marginOtherTop;
+    const mb = pageIndex === 0 ? marginFirstBottom : marginOtherBottom;
+
+    const sliceTargetHeightPx = getAvailHeightPx(pageIndex);
+    const safeCutY = findSafeCutY(canvas, positionY, sliceTargetHeightPx, 180);
+
+    // tinggi slice final
+    let sliceHeightPx = safeCutY - positionY;
+    if (sliceHeightPx <= 0) sliceHeightPx = Math.min(sliceTargetHeightPx, imgHeightPx - positionY);
+
+    // bikin slice canvas
+    const sliceCanvas = document.createElement("canvas");
+    sliceCanvas.width = imgWidthPx;
+    sliceCanvas.height = sliceHeightPx;
+
+    const ctx = sliceCanvas.getContext("2d");
+    ctx.drawImage(
+      canvas,
+      0,
+      positionY,
+      imgWidthPx,
+      sliceHeightPx,
+      0,
+      0,
+      imgWidthPx,
+      sliceHeightPx
+    );
+
+    const imgData = sliceCanvas.toDataURL("image/jpeg", imageQuality);
+    const sliceHeightMm = sliceHeightPx / pxPerMm;
+
+    if (pageIndex > 0) pdf.addPage();
+
+    // taruh dengan margin per halaman
+    pdf.addImage(imgData, "JPEG", marginLeft, mt, availableWidthMm, sliceHeightMm, undefined, "FAST");
+
+    // maju posisiY untuk halaman berikutnya (pakai overlap biar teks tidak hilang)
+    const advance = Math.max(1, sliceHeightPx - overlapPx);
+    positionY += advance;
+    pageIndex++;
+  }
+
+  return pdf;
+}
+
 async function downloadAsPDF() {
   const content = document.getElementById("content");
   if (!content) return;
 
   const cleanup = applyExportMask(content);
-  // Gunakan scale 1.5 (cukup tajam, file kecil)
   const canvas = await html2canvas(content, { scale: 1.5, useCORS: true, allowTaint: true });
   cleanup();
 
-  const imgWidthPx = canvas.width;
-  const imgHeightPx = canvas.height;
-
-  const pdf = new jspdf.jsPDF("p", "mm", "a4");
-  const pageWidthMm  = pdf.internal.pageSize.getWidth();
-  const pageHeightMm = pdf.internal.pageSize.getHeight();
-
-  const marginTop = 10, marginBottom = 15, marginLeft = 8, marginRight = 8;
-  const availableWidthMm  = pageWidthMm  - marginLeft - marginRight;
-  const availableHeightMm = pageHeightMm - marginTop  - marginBottom;
-
-  const imgProps = pdf.getImageProperties(canvas);
-  const pdfHeight = (imgProps.height * availableWidthMm) / imgProps.width;
-
-  if (pdfHeight <= availableHeightMm) {
-    // Ubah ke JPEG kualitas 0.8 (80%)
-    const imgData = canvas.toDataURL("image/jpeg", 0.8);
-    pdf.addImage(imgData, "JPEG", marginLeft, marginTop, availableWidthMm, pdfHeight, undefined, 'FAST');
-  } else {
-    // Logika untuk memotong gambar jika lebih dari 1 halaman
-    const pxPerMm = imgWidthPx / pageWidthMm;
-    const sliceHeightPx = Math.floor(availableHeightMm * pxPerMm);
-    let positionY = 0, pageIndex = 0;
-
-    while (positionY < imgHeightPx) {
-      const currentSliceHeightPx = Math.min(sliceHeightPx, imgHeightPx - positionY);
-      const sliceCanvas = document.createElement("canvas");
-      sliceCanvas.width  = imgWidthPx;
-      sliceCanvas.height = currentSliceHeightPx;
-      const ctx = sliceCanvas.getContext("2d");
-
-      ctx.drawImage(canvas, 0, positionY, imgWidthPx, currentSliceHeightPx, 0, 0, imgWidthPx, currentSliceHeightPx);
-
-      const imgData = sliceCanvas.toDataURL("image/jpeg", 0.8); // JPEG
-      const sliceHeightMm = currentSliceHeightPx / pxPerMm;
-
-      if (pageIndex > 0) pdf.addPage();
-      pdf.addImage(imgData, "JPEG", marginLeft, marginTop, availableWidthMm, sliceHeightMm, undefined, 'FAST'); // JPEG
-
-      positionY += currentSliceHeightPx;
-      pageIndex++;
-    }
-  }
+  // PAGE 1 margin normal, PAGE 2 dst margin besar
+  const pdf = buildPdfFromCanvasPaged(canvas, {
+    marginFirstTop: 10,
+    marginFirstBottom: 15,
+    marginOtherTop: 28,      // <= kamu bisa besarin lagi
+    marginOtherBottom: 28,   // <= kamu bisa besarin lagi
+    marginLeft: 8,
+    marginRight: 8,
+    overlapPx: 40,           // <= semakin besar, makin aman (tapi ada duplikasi kecil)
+    imageQuality: 0.85,
+  });
 
   pdf.save("cv.pdf");
 }
@@ -191,7 +309,6 @@ function setBtnLoading(btn, isLoading, textWhenLoading = "Saving...") {
     btn.classList.add("btn-loading");
     btn.disabled = true;
 
-    // SVG spinner kecil (tanpa dependensi)
     const spinnerSvg = `
       <span class="spinner" aria-hidden="true">
         <svg viewBox="0 0 50 50" fill="none">
@@ -207,7 +324,7 @@ function setBtnLoading(btn, isLoading, textWhenLoading = "Saving...") {
       btn.innerHTML = btn.dataset.originalHtml;
       delete btn.dataset.originalHtml;
     } else {
-      btn.textContent = "Save to Dashboard";
+      btn.textContent = "Simpan ke Dashboard";
     }
   }
 }
@@ -221,22 +338,23 @@ async function savePdfToDashboard() {
 
   try {
     const content = document.getElementById("content");
+    if (!content) return;
 
     const cleanup = applyExportMask(content);
-    // Gunakan scale 1.5
     const canvas = await html2canvas(content, { scale: 1.5, useCORS: true, allowTaint: true });
     cleanup();
 
-    // Ubah ke JPEG kualitas 0.8 (80%)
-    const imgData = canvas.toDataURL("image/jpeg", 0.8);
-
-    const pdf = new jspdf.jsPDF("p", "mm", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfHeight = (imgProps.height * pageWidth) / imgProps.width;
-
-    // Tambahkan gambar JPEG
-    pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pdfHeight, undefined, 'FAST');
+    // SAMAKAN DENGAN DOWNLOAD: page 1 normal, page 2 dst lega
+    const pdf = buildPdfFromCanvasPaged(canvas, {
+      marginFirstTop: 10,
+      marginFirstBottom: 15,
+      marginOtherTop: 28,
+      marginOtherBottom: 28,
+      marginLeft: 8,
+      marginRight: 8,
+      overlapPx: 40,
+      imageQuality: 0.85,
+    });
 
     const pdfBlob = pdf.output("blob");
 

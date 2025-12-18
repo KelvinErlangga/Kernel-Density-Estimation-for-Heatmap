@@ -9,206 +9,6 @@ use Illuminate\Support\Str;
 
 class HiringSeeder extends Seeder
 {
-    // public function run()
-    // {
-    //     // ===================== Lokasi dasar =====================
-    //     $cities = [
-    //         ['kota' => 'Lamongan',   'provinsi' => 'Jawa Timur', 'lat' => -7.1167, 'lon' => 112.4167],
-    //         ['kota' => 'Gresik',     'provinsi' => 'Jawa Timur', 'lat' => -7.1667, 'lon' => 112.6500],
-    //         ['kota' => 'Surabaya',   'provinsi' => 'Jawa Timur', 'lat' => -7.2500, 'lon' => 112.7500],
-    //         ['kota' => 'Sidoarjo',   'provinsi' => 'Jawa Timur', 'lat' => -7.4460, 'lon' => 112.7170],
-    //         ['kota' => 'Mojokerto',  'provinsi' => 'Jawa Timur', 'lat' => -7.4667, 'lon' => 112.4333],
-    //         ['kota' => 'Malang',     'provinsi' => 'Jawa Timur', 'lat' => -7.9667, 'lon' => 112.6333],
-    //     ];
-
-    //     $workSystems = ['Full Time', 'Part Time', 'Hybrid', 'Remote'];
-    //     $polaKerja   = ['Shift', 'Non-shift'];
-    //     $educations  = ['SMA/SMK', 'D3', 'S1', 'S2'];
-
-    //     // ===================== Definisi per bidang =====================
-    //     $domains = [
-    //         'Teknologi Informasi' => [
-    //             'positions' => [
-    //                 'Backend Developer (Laravel)','Frontend Developer (React)',
-    //                 'Fullstack Developer','Mobile Developer (Flutter)',
-    //                 'DevOps Engineer','QA Engineer','Data Engineer',
-    //                 'Data Analyst','ML Engineer (Jr)','UI/UX Designer'
-    //             ],
-    //             'tech' => [
-    //                 'PHP','Laravel','MySQL','JavaScript','React','Vue.js','Node.js',
-    //                 'Python','Django','Flask','Java','Spring Boot','Kotlin','Swift',
-    //                 'Flutter','Dart','REST API','GraphQL','Docker','Kubernetes','Git',
-    //                 'CI/CD','AWS','GCP','Azure','Linux','Redis','PostgreSQL','MongoDB',
-    //                 'Unit Testing','Selenium','Cypress'
-    //             ],
-    //             'soft' => [
-    //                 'Problem Solving','Komunikasi','Teamwork','Analytical Thinking',
-    //                 'Time Management','Attention to Detail','Dokumentasi','Agile/Scrum',
-    //                 'Adaptif','Kolaborasi lintas tim'
-    //             ],
-    //             // kisaran gaji (IDR)
-    //             'salary' => [ 6_000_000, 18_000_000 ],
-    //         ],
-
-    //         'Marketing' => [
-    //             'positions' => [
-    //                 'Digital Marketing Specialist','SEO/SEM Specialist','Content Strategist',
-    //                 'Social Media Specialist','Performance Marketing Analyst','Brand Executive',
-    //                 'Copywriter','CRM Specialist','Marketing Analyst','Partnership Executive'
-    //             ],
-    //             'tech' => [
-    //                 'SEO','SEM','Google Ads','Facebook Ads','Instagram Ads','Content Marketing',
-    //                 'Copywriting','Email Marketing','CRM','Marketing Automation','A/B Testing',
-    //                 'Google Analytics','Data Studio','Canva','Photoshop','Video Editing','Landing Page',
-    //                 'Keyword Research','Influencer Marketing','Social Media Management'
-    //             ],
-    //             'soft' => [
-    //                 'Komunikasi','Kreativitas','Negosiasi','Presentasi','Riset Pasar',
-    //                 'Project Management','Storytelling','Kolaborasi','Problem Solving','Adaptasi'
-    //             ],
-    //             'salary' => [ 4_000_000, 12_000_000 ],
-    //         ],
-
-    //         'Kesehatan' => [
-    //             'positions' => [
-    //                 'Perawat','Asisten Apoteker','Analis Kesehatan','Admin Rekam Medis',
-    //                 'Nutrisionis (Gizi)','Radiografer','Bidan','Petugas Lab','Staf Klaim BPJS',
-    //                 'Petugas Farmasi'
-    //             ],
-    //             'tech' => [
-    //                 'SIMRS','Rekam Medis Elektronik','ICD-10 Coding','BPJS Claim',
-    //                 'Phlebotomy','Vital Signs Monitoring','Sterilisasi Alat','First Aid',
-    //                 'Patient Care','Triage','Manajemen Obat','Inventory Farmasi','MS Office',
-    //                 'Protokol K3 RS','Prosedur SOP Klinik'
-    //             ],
-    //             'soft' => [
-    //                 'Empati','Komunikasi Pasien','Kerja Tim (Shift)','Ketelitian',
-    //                 'Manajemen Stres','Disiplin','Tanggung Jawab','Etika Profesi',
-    //                 'Pelayanan Prima','Kesabaran'
-    //             ],
-    //             'salary' => [ 3_500_000, 9_000_000 ],
-    //         ],
-
-    //         'Manufaktur' => [
-    //             'positions' => [
-    //                 'Operator Produksi','QC Inspector','Maintenance Technician',
-    //                 'PPIC Staff','Warehouse Staff','Logistics Coordinator',
-    //                 'HSE Officer','Line Leader','CNC Operator','Planner'
-    //             ],
-    //             'tech' => [
-    //                 'ISO 9001','ISO 14001','5S','Kaizen','TPM','SPC','OEE','Lean Manufacturing',
-    //                 'AutoCAD','CNC','PLC','Welding','Caliper/Micrometer','ERP','SAP',
-    //                 'Forklift Operation','Inventory Control','Preventive Maintenance'
-    //             ],
-    //             'soft' => [
-    //                 'Disiplin','Kesadaran K3','Problem Solving','Teamwork',
-    //                 'Komunikasi','Ketelitian','Inisiatif','Kerja di Bawah Tekanan',
-    //                 'Manajemen Waktu','Kepemimpinan (Line)'
-    //             ],
-    //             'salary' => [ 3_800_000, 10_000_000 ],
-    //         ],
-
-    //         'Pendidikan' => [
-    //             'positions' => [
-    //                 'Guru Matematika','Guru Bahasa Inggris','Guru Informatika',
-    //                 'Asisten Dosen','Admin Akademik','Instructional Designer',
-    //                 'Laboran','Pustakawan','Pengembang e-Learning','Konselor Siswa'
-    //             ],
-    //             'tech' => [
-    //                 'Curriculum Design','Classroom Management','Assessment',
-    //                 'E-Learning (Moodle)','Google Classroom','MS Office',
-    //                 'Lesson Planning','Public Speaking','Research Methods','SPSS',
-    //                 'Canva','Slide Design','Observasi Kelas','LMS Administration'
-    //             ],
-    //             'soft' => [
-    //                 'Komunikasi','Kesabaran','Kreativitas','Manajemen Waktu',
-    //                 'Empati','Kolaborasi','Problem Solving','Mentoring',
-    //                 'Etika Profesi','Adaptasi'
-    //             ],
-    //             'salary' => [ 3_500_000, 8_000_000 ],
-    //         ],
-    //     ];
-
-    //     // ===================== Helper =====================
-    //     $randFrom = function(array $arr) {
-    //         return $arr[array_rand($arr)];
-    //     };
-
-    //     $pickSkills = function(array $pool, int $min = 5, int $max = 7) {
-    //         $take = rand($min, min($max, count($pool)));
-    //         $keys = array_rand($pool, $take);
-    //         if (!is_array($keys)) $keys = [$keys];
-    //         $picked = array_map(fn($k) => $pool[$k], $keys);
-    //         // jaga-jaga: hilangkan duplikat & urutkan acak
-    //         $picked = array_values(array_unique($picked));
-    //         shuffle($picked);
-    //         return implode(', ', $picked);
-    //     };
-
-    //     $randCompanyId = function() {
-    //         // sesuaikan dengan id perusahaan yang ada
-    //         return rand(2, 6); // contoh: 2..6
-    //     };
-
-    //     $randSalary = function(array $range) {
-    //         [$min, $max] = $range;
-    //         $gajiMin = rand($min, (int)floor(($min + $max) / 2));
-    //         $gajiMax = rand(max($gajiMin + 500_000, $gajiMin + 1), $max);
-    //         return [$gajiMin, $gajiMax];
-    //     };
-
-    //     $hirings = [];
-
-    //     // ===================== Generate 200 lowongan (40 per domain) =====================
-    //     foreach ($domains as $industryName => $conf) {
-    //         for ($i = 0; $i < 40; $i++) {
-    //             $city = $cities[array_rand($cities)];
-
-    //             // random sekitar kota (kurangi radius biar tetap sekitar)
-    //             $lat = $city['lat'] + mt_rand(-700, 700) / 10000; // ±0.07°
-    //             $lon = $city['lon'] + mt_rand(-700, 700) / 10000;
-
-    //             // posisi, skill, gaji sesuai domain
-    //             $position  = $randFrom($conf['positions']);
-    //             $techSkill = $pickSkills($conf['tech'], 5, 7);
-    //             $softSkill = $pickSkills($conf['soft'], 5, 7);
-    //             [$gMin, $gMax] = $randSalary($conf['salary']);
-
-    //             $hirings[] = [
-    //                 'personal_company_id'      => 4,
-    //                 'position_hiring'          => $position,
-    //                 'address_hiring'           => "Jl. ".Str::title(Str::random(8))." No.".rand(1,200),
-    //                 'work_system'              => $randFrom($workSystems),
-    //                 'pola_kerja'               => $randFrom($polaKerja),
-    //                 'education_hiring'         => $randFrom($educations),
-    //                 'deadline_hiring'          => Carbon::now()->addDays(rand(7,90)),
-    //                 'description_hiring'       => "Bertanggung jawab pada fungsi ".$industryName." – ".Str::title(Str::random(12)),
-    //                 'created_at'               => Carbon::now(),
-    //                 'updated_at'               => Carbon::now(),
-    //                 'deleted_at'               => null,
-    //                 'ukuran_perusahaan'        => rand(10,500)." karyawan",
-    //                 'sektor_industri'          => $industryName,
-    //                 'kualifikasi'              => "Pengalaman ".rand(0,5)." tahun; mampu bekerja dalam tim; siap belajar.",
-    //                 'pengalaman_minimal_tahun' => rand(0,5),
-    //                 'usia_maksimal'            => rand(25,40),
-    //                 'keterampilan_teknis'      => $techSkill,
-    //                 'keterampilan_non_teknis'  => $softSkill,
-    //                 'jenis_pekerjaan'          => rand(0,1) ? 'Kontrak' : 'Tetap',
-    //                 'gaji_min'                 => $gMin,
-    //                 'gaji_max'                 => $gMax,
-    //                 'kota'                     => $city['kota'],
-    //                 'provinsi'                 => $city['provinsi'],
-    //                 'latitude'                 => $lat,
-    //                 'longitude'                => $lon,
-    //             ];
-    //         }
-    //     }
-
-    //     // ===================== Insert =====================
-    //     DB::table('hirings')->insert($hirings);
-    // }
-
-
     public function run()
     {
         // ===================== Zona Surabaya (tanpa Utara) =====================
@@ -223,258 +23,106 @@ class HiringSeeder extends Seeder
         $polaKerja   = ['Shift', 'Non-shift'];
         $educations  = ['SMA/SMK', 'D3', 'S1', 'S2'];
 
-        // ===================== Definisi per bidang =====================
+        // ===================== Domain + Role-specific Skills (RELEVAN) =====================
         $domains = [
             'Teknologi Informasi' => [
-                'positions' => [
-                    'Backend Developer (Laravel)',
-                    'Frontend Developer (React)',
-                    'Fullstack Developer',
-                    'Mobile Developer (Flutter)',
-                    'DevOps Engineer',
-                    'QA Engineer',
-                    'Data Engineer',
-                    'Data Analyst',
-                    'ML Engineer (Jr)',
-                    'UI/UX Designer'
-                ],
-                'tech' => [
-                    'PHP',
-                    'Laravel',
-                    'MySQL',
-                    'JavaScript',
-                    'React',
-                    'Vue.js',
-                    'Node.js',
-                    'Python',
-                    'Django',
-                    'Flask',
-                    'Java',
-                    'Spring Boot',
-                    'Kotlin',
-                    'Swift',
-                    'Flutter',
-                    'Dart',
-                    'REST API',
-                    'GraphQL',
-                    'Docker',
-                    'Kubernetes',
-                    'Git',
-                    'CI/CD',
-                    'AWS',
-                    'GCP',
-                    'Azure',
-                    'Linux',
-                    'Redis',
-                    'PostgreSQL',
-                    'MongoDB',
-                    'Unit Testing',
-                    'Selenium',
-                    'Cypress'
-                ],
-                'soft' => [
-                    'Problem Solving',
-                    'Komunikasi',
-                    'Teamwork',
-                    'Analytical Thinking',
-                    'Time Management',
-                    'Attention to Detail',
-                    'Dokumentasi',
-                    'Agile/Scrum',
-                    'Adaptif',
-                    'Kolaborasi lintas tim'
-                ],
                 'salary' => [6_000_000, 18_000_000],
+                'roles' => [
+                    'Backend Developer (Laravel)' => [
+                        'tech' => ['PHP','Laravel','MySQL','REST API','Eloquent ORM','Git','Docker','Redis','Unit Testing','Linux'],
+                        'soft' => ['Problem Solving','Analytical Thinking','Attention to Detail','Komunikasi','Teamwork','Agile/Scrum','Dokumentasi','Time Management'],
+                    ],
+                    'Frontend Developer (React)' => [
+                        'tech' => ['JavaScript','React','HTML','CSS','REST API','State Management (Redux/Context)','Git','Vite/Webpack','Testing (Jest)','Responsive Design'],
+                        'soft' => ['Komunikasi','Kolaborasi lintas tim','Attention to Detail','Problem Solving','Time Management','Adaptif','Agile/Scrum'],
+                    ],
+                    'Fullstack Developer' => [
+                        'tech' => ['JavaScript','PHP','Laravel','React/Vue.js','MySQL','REST API','Git','Docker','CI/CD','Testing'],
+                        'soft' => ['Problem Solving','Komunikasi','Teamwork','Analytical Thinking','Time Management','Adaptif','Agile/Scrum','Dokumentasi'],
+                    ],
+                    'Mobile Developer (Flutter)' => [
+                        'tech' => ['Flutter','Dart','REST API','State Management','Firebase','Git','UI Implementation','Debugging','SQLite/Local Storage'],
+                        'soft' => ['Problem Solving','Attention to Detail','Komunikasi','Teamwork','Time Management','Adaptif'],
+                    ],
+                    'DevOps Engineer' => [
+                        'tech' => ['Linux','Docker','Kubernetes','CI/CD','Git','Nginx','AWS/GCP','Monitoring (Prometheus/Grafana)','Scripting','Networking'],
+                        'soft' => ['Problem Solving','Analytical Thinking','Komunikasi','Kolaborasi lintas tim','Time Management','Attention to Detail'],
+                    ],
+                    'QA Engineer' => [
+                        'tech' => ['Test Case','Bug Tracking','API Testing','Postman','Selenium/Cypress','Regression Testing','Unit Testing','SQL Basic','Git'],
+                        'soft' => ['Attention to Detail','Analytical Thinking','Komunikasi','Time Management','Teamwork','Dokumentasi'],
+                    ],
+                    'Data Engineer' => [
+                        'tech' => ['Python','SQL','ETL','Data Warehouse','Airflow','PostgreSQL','BigQuery','Data Modeling','Git','Linux'],
+                        'soft' => ['Analytical Thinking','Problem Solving','Komunikasi','Attention to Detail','Time Management','Kolaborasi lintas tim'],
+                    ],
+                    'Data Analyst' => [
+                        'tech' => ['SQL','Excel/Spreadsheet','Data Visualization','Google Data Studio/Looker','Python (Pandas)','Google Analytics','A/B Testing','Reporting'],
+                        'soft' => ['Analytical Thinking','Komunikasi','Storytelling','Attention to Detail','Time Management','Problem Solving'],
+                    ],
+                    'ML Engineer (Jr)' => [
+                        'tech' => ['Python','Machine Learning','Data Preprocessing','Model Evaluation','TensorFlow/PyTorch','Experiment Tracking','Git','SQL Basic'],
+                        'soft' => ['Analytical Thinking','Problem Solving','Adaptif','Komunikasi','Teamwork','Time Management'],
+                    ],
+                    'UI/UX Designer' => [
+                        'tech' => ['Figma','Wireframing','Prototyping','Design System','User Research','Usability Testing','Information Architecture','Responsive Design'],
+                        'soft' => ['Komunikasi','Empati','Kreativitas','Kolaborasi lintas tim','Problem Solving','Time Management','Attention to Detail'],
+                    ],
+                ],
             ],
+
             'Marketing' => [
-                'positions' => [
-                    'Digital Marketing Specialist',
-                    'SEO/SEM Specialist',
-                    'Content Strategist',
-                    'Social Media Specialist',
-                    'Performance Marketing Analyst',
-                    'Brand Executive',
-                    'Copywriter',
-                    'CRM Specialist',
-                    'Marketing Analyst',
-                    'Partnership Executive'
-                ],
-                'tech' => [
-                    'SEO',
-                    'SEM',
-                    'Google Ads',
-                    'Facebook Ads',
-                    'Instagram Ads',
-                    'Content Marketing',
-                    'Copywriting',
-                    'Email Marketing',
-                    'CRM',
-                    'Marketing Automation',
-                    'A/B Testing',
-                    'Google Analytics',
-                    'Data Studio',
-                    'Canva',
-                    'Photoshop',
-                    'Video Editing',
-                    'Landing Page',
-                    'Keyword Research',
-                    'Influencer Marketing',
-                    'Social Media Management'
-                ],
-                'soft' => [
-                    'Komunikasi',
-                    'Kreativitas',
-                    'Negosiasi',
-                    'Presentasi',
-                    'Riset Pasar',
-                    'Project Management',
-                    'Storytelling',
-                    'Kolaborasi',
-                    'Problem Solving',
-                    'Adaptasi'
-                ],
                 'salary' => [4_000_000, 12_000_000],
-            ],
-            'Kesehatan' => [
-                'positions' => [
-                    'Perawat',
-                    'Asisten Apoteker',
-                    'Analis Kesehatan',
-                    'Admin Rekam Medis',
-                    'Nutrisionis (Gizi)',
-                    'Radiografer',
-                    'Bidan',
-                    'Petugas Lab',
-                    'Staf Klaim BPJS',
-                    'Petugas Farmasi'
+                'roles' => [
+                    'Digital Marketing Specialist' => [
+                        'tech' => ['Campaign Planning','Meta Ads','Google Ads','Copywriting','Content Marketing','Landing Page','A/B Testing','Google Analytics','UTM Tracking'],
+                        'soft' => ['Komunikasi','Kreativitas','Problem Solving','Time Management','Kolaborasi','Adaptasi','Riset Pasar'],
+                    ],
+                    'SEO/SEM Specialist' => [
+                        'tech' => ['SEO','Keyword Research','On-page SEO','Technical SEO','Link Building','Google Search Console','Google Ads','Google Analytics','Content Optimization'],
+                        'soft' => ['Analytical Thinking','Problem Solving','Komunikasi','Ketekunan','Time Management','Kolaborasi'],
+                    ],
+                    'Content Strategist' => [
+                        'tech' => ['Content Planning','Content Calendar','SEO','Copywriting','Content Marketing','Audience Research','Brand Guideline','Performance Reporting'],
+                        'soft' => ['Storytelling','Kreativitas','Komunikasi','Kolaborasi','Time Management','Problem Solving'],
+                    ],
+                    'Social Media Specialist' => [
+                        'tech' => ['Social Media Management','Content Creation','Instagram/TikTok Strategy','Community Management','Canva','Basic Video Editing','Social Analytics','Scheduling Tools'],
+                        'soft' => ['Komunikasi','Kreativitas','Adaptasi','Kolaborasi','Time Management','Problem Solving'],
+                    ],
+                    'Performance Marketing Analyst' => [
+                        'tech' => ['Meta Ads','Google Ads','Conversion Tracking','A/B Testing','Google Analytics','Data Studio/Looker','Cohort/Retention Insight','Budget Optimization'],
+                        'soft' => ['Analytical Thinking','Problem Solving','Komunikasi','Attention to Detail','Time Management','Kolaborasi'],
+                    ],
+                    'Brand Executive' => [
+                        'tech' => ['Brand Strategy','Campaign Planning','Market Research','Competitor Analysis','Briefing Creative','Brand Guideline','Reporting'],
+                        'soft' => ['Komunikasi','Presentasi','Negosiasi','Kolaborasi','Kreativitas','Problem Solving'],
+                    ],
+                    'Copywriter' => [
+                        'tech' => ['Copywriting','Content Marketing','Ad Copy','SEO Writing','Brand Tone','Storytelling','Landing Page Copy'],
+                        'soft' => ['Kreativitas','Komunikasi','Attention to Detail','Time Management','Kolaborasi','Adaptasi'],
+                    ],
+                    'CRM Specialist' => [
+                        'tech' => ['Email Marketing','CRM','Segmentation','Marketing Automation','A/B Testing','Retention Strategy','Customer Journey','Reporting'],
+                        'soft' => ['Analytical Thinking','Komunikasi','Problem Solving','Attention to Detail','Kolaborasi','Time Management'],
+                    ],
+                    'Marketing Analyst' => [
+                        'tech' => ['Market Research','Google Analytics','Data Visualization','Excel/Spreadsheet','Reporting','A/B Testing','Customer Insight','Dashboarding'],
+                        'soft' => ['Analytical Thinking','Komunikasi','Problem Solving','Attention to Detail','Time Management','Kolaborasi'],
+                    ],
+                    'Partnership Executive' => [
+                        'tech' => ['Partnership Strategy','Negotiation','Proposal Writing','Pipeline Management','Business Development','Market Research','Reporting'],
+                        'soft' => ['Negosiasi','Komunikasi','Presentasi','Kolaborasi','Problem Solving','Adaptasi','Time Management'],
+                    ],
                 ],
-                'tech' => [
-                    'SIMRS',
-                    'Rekam Medis Elektronik',
-                    'ICD-10 Coding',
-                    'BPJS Claim',
-                    'Phlebotomy',
-                    'Vital Signs Monitoring',
-                    'Sterilisasi Alat',
-                    'First Aid',
-                    'Patient Care',
-                    'Triage',
-                    'Manajemen Obat',
-                    'Inventory Farmasi',
-                    'MS Office',
-                    'Protokol K3 RS',
-                    'Prosedur SOP Klinik'
-                ],
-                'soft' => [
-                    'Empati',
-                    'Komunikasi Pasien',
-                    'Kerja Tim (Shift)',
-                    'Ketelitian',
-                    'Manajemen Stres',
-                    'Disiplin',
-                    'Tanggung Jawab',
-                    'Etika Profesi',
-                    'Pelayanan Prima',
-                    'Kesabaran'
-                ],
-                'salary' => [3_500_000, 9_000_000],
-            ],
-            'Manufaktur' => [
-                'positions' => [
-                    'Operator Produksi',
-                    'QC Inspector',
-                    'Maintenance Technician',
-                    'PPIC Staff',
-                    'Warehouse Staff',
-                    'Logistics Coordinator',
-                    'HSE Officer',
-                    'Line Leader',
-                    'CNC Operator',
-                    'Planner'
-                ],
-                'tech' => [
-                    'ISO 9001',
-                    'ISO 14001',
-                    '5S',
-                    'Kaizen',
-                    'TPM',
-                    'SPC',
-                    'OEE',
-                    'Lean Manufacturing',
-                    'AutoCAD',
-                    'CNC',
-                    'PLC',
-                    'Welding',
-                    'Caliper/Micrometer',
-                    'ERP',
-                    'SAP',
-                    'Forklift Operation',
-                    'Inventory Control',
-                    'Preventive Maintenance'
-                ],
-                'soft' => [
-                    'Disiplin',
-                    'Kesadaran K3',
-                    'Problem Solving',
-                    'Teamwork',
-                    'Komunikasi',
-                    'Ketelitian',
-                    'Inisiatif',
-                    'Kerja di Bawah Tekanan',
-                    'Manajemen Waktu',
-                    'Kepemimpinan (Line)'
-                ],
-                'salary' => [3_800_000, 10_000_000],
-            ],
-            'Pendidikan' => [
-                'positions' => [
-                    'Guru Matematika',
-                    'Guru Bahasa Inggris',
-                    'Guru Informatika',
-                    'Asisten Dosen',
-                    'Admin Akademik',
-                    'Instructional Designer',
-                    'Laboran',
-                    'Pustakawan',
-                    'Pengembang e-Learning',
-                    'Konselor Siswa'
-                ],
-                'tech' => [
-                    'Curriculum Design',
-                    'Classroom Management',
-                    'Assessment',
-                    'E-Learning (Moodle)',
-                    'Google Classroom',
-                    'MS Office',
-                    'Lesson Planning',
-                    'Public Speaking',
-                    'Research Methods',
-                    'SPSS',
-                    'Canva',
-                    'Slide Design',
-                    'Observasi Kelas',
-                    'LMS Administration'
-                ],
-                'soft' => [
-                    'Komunikasi',
-                    'Kesabaran',
-                    'Kreativitas',
-                    'Manajemen Waktu',
-                    'Empati',
-                    'Kolaborasi',
-                    'Problem Solving',
-                    'Mentoring',
-                    'Etika Profesi',
-                    'Adaptasi'
-                ],
-                'salary' => [3_500_000, 8_000_000],
             ],
         ];
 
         // ===================== Helper =====================
         $randFrom = fn(array $arr) => $arr[array_rand($arr)];
 
-        $pickSkills = function (array $pool, int $min = 5, int $max = 7) {
+        $pickSkills = function (array $pool, int $min = 6, int $max = 8) {
+            $pool = array_values(array_unique($pool));
             $take = rand($min, min($max, count($pool)));
             $keys = array_rand($pool, $take);
             if (!is_array($keys)) $keys = [$keys];
@@ -497,30 +145,83 @@ class HiringSeeder extends Seeder
             return [$lat, $lon];
         };
 
-        $makeOne = function (array $conf, string $industryName) use ($zones, $randFrom, $randCoord, $pickSkills, $randSalary, $workSystems, $polaKerja, $educations) {
+        $makeQualification = function (string $industry, string $role) {
+            // Pakai separator ";" biar cocok dengan fungsi makeBulletList() kamu (split ;)
+            if ($industry === 'Teknologi Informasi') {
+                return implode('; ', [
+                    "Pengalaman 0–2 tahun pada posisi {$role}",
+                    "Memahami dasar clean code dan version control (Git)",
+                    "Terbiasa bekerja dengan API dan debugging",
+                    "Mampu bekerja dalam tim dan mengikuti proses Agile/Scrum",
+                    "Bersedia belajar teknologi baru dan mengikuti deadline",
+                ]);
+            }
+
+            // Marketing
+            return implode('; ', [
+                "Pengalaman 0–2 tahun pada posisi {$role}",
+                "Mampu membuat laporan dan membaca data performa kampanye/konten",
+                "Memahami target audience dan strategi komunikasi brand",
+                "Terbiasa koordinasi lintas tim (desain, konten, sales)",
+                "Mampu bekerja dengan target dan timeline",
+            ]);
+        };
+
+        $makeDescription = function (string $industry, string $role) {
+            if ($industry === 'Teknologi Informasi') {
+                return implode('; ', [
+                    "Mengembangkan dan memelihara fitur sesuai kebutuhan bisnis",
+                    "Kolaborasi dengan tim produk/QA untuk memastikan kualitas rilis",
+                    "Melakukan debugging, optimasi, dan dokumentasi teknis",
+                    "Berpartisipasi dalam code review dan perbaikan berkelanjutan",
+                ]);
+            }
+
+            return implode('; ', [
+                "Menyusun dan menjalankan aktivitas pemasaran sesuai target",
+                "Melakukan evaluasi performa kampanye/konten dan membuat laporan",
+                "Kolaborasi dengan tim kreatif untuk menghasilkan materi promosi",
+                "Mengoptimalkan strategi berdasarkan data dan insight pasar",
+            ]);
+        };
+
+        $makeOne = function (string $industryName, array $conf) use (
+            $zones, $randFrom, $randCoord, $pickSkills, $randSalary,
+            $workSystems, $polaKerja, $educations, $makeQualification, $makeDescription
+        ) {
             $zone = $zones[array_rand($zones)];
             [$lat, $lon] = $randCoord($zone);
+
+            $roles = array_keys($conf['roles']);
+            $roleName = $randFrom($roles);
+
+            $roleConf = $conf['roles'][$roleName];
+
             [$gMin, $gMax] = $randSalary($conf['salary']);
+
+            // Skills sesuai role (relevan)
+            $techSkill = $pickSkills($roleConf['tech'], 6, 8);
+            $softSkill = $pickSkills($roleConf['soft'], 6, 8);
 
             return [
                 'personal_company_id'      => 4, // sesuaikan jika perlu
-                'position_hiring'          => $randFrom($conf['positions']),
+                'position_hiring'          => $roleName,
                 'address_hiring'           => "Jl. " . Str::title(Str::random(8)) . " No." . rand(1, 200),
                 'work_system'              => $randFrom($workSystems),
                 'pola_kerja'               => $randFrom($polaKerja),
                 'education_hiring'         => $randFrom($educations),
                 'deadline_hiring'          => Carbon::now()->addDays(rand(7, 90)),
-                'description_hiring'       => "Bertanggung jawab pada fungsi " . $industryName . " – " . Str::title(Str::random(12)),
+                'description_hiring'       => $makeDescription($industryName, $roleName),
                 'created_at'               => Carbon::now(),
                 'updated_at'               => Carbon::now(),
                 'deleted_at'               => null,
-                'ukuran_perusahaan'        => rand(10, 500) . " karyawan",
+                'ukuran_perusahaan'        => rand(30, 600) . " karyawan",
                 'sektor_industri'          => $industryName,
-                'kualifikasi'              => "Pengalaman " . rand(0, 5) . " tahun; mampu bekerja dalam tim; siap belajar.",
-                'pengalaman_minimal_tahun' => rand(0, 5),
-                'usia_maksimal'            => rand(25, 40),
-                'keterampilan_teknis'      => $pickSkills($conf['tech'], 5, 7),
-                'keterampilan_non_teknis'  => $pickSkills($conf['soft'], 5, 7),
+                'kualifikasi'              => $makeQualification($industryName, $roleName),
+                'pengalaman_minimal_tahun' => rand(0, 2),
+                'usia_maksimal'            => rand(24, 40),
+                'keterampilan_teknis'      => $techSkill,
+                'keterampilan_non_teknis'  => $softSkill,
                 'jenis_pekerjaan'          => rand(0, 1) ? 'Kontrak' : 'Tetap',
                 'gaji_min'                 => $gMin,
                 'gaji_max'                 => $gMax,
@@ -531,19 +232,18 @@ class HiringSeeder extends Seeder
             ];
         };
 
+        // (Opsional) biar tidak numpuk kalau seed berkali-kali:
+        // DB::table('hirings')->truncate();
+
         $hirings = [];
 
-        // ========== 100 lowongan awal: 20 per domain ==========
-        foreach ($domains as $industryName => $conf) {
-            for ($i = 0; $i < 20; $i++) {
-                $hirings[] = $makeOne($conf, $industryName);
-            }
+        // ===================== Generate 100: 50 IT + 50 Marketing =====================
+        for ($i = 0; $i < 50; $i++) {
+            $hirings[] = $makeOne('Teknologi Informasi', $domains['Teknologi Informasi']);
         }
 
-        // ========== Tambahan 100 lowongan khusus IT di Surabaya ==========
-        $it = $domains['Teknologi Informasi'];
-        for ($i = 0; $i < 100; $i++) {
-            $hirings[] = $makeOne($it, 'Teknologi Informasi');
+        for ($i = 0; $i < 50; $i++) {
+            $hirings[] = $makeOne('Marketing', $domains['Marketing']);
         }
 
         DB::table('hirings')->insert($hirings);

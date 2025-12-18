@@ -24,6 +24,24 @@ const USER_HOME = window.USER_DOMICILE || {
     radiusKmDefault: 60,
 };
 
+const KDE_CONFIG = {
+    mode: "fixed",
+    code: "K2", // pilih: 'K1', 'K2', 'K3', 'K4', 'K5', 'K6', 'K7', 'K8', 'K9'
+    presets: {
+        K1: { bandwidthM: 1000, bins: [100, 100] }, // BW kecil, grid kasar
+        K2: { bandwidthM: 1000, bins: [150, 150] }, // BW kecil, grid sedang
+        K3: { bandwidthM: 1000, bins: [200, 200] }, // BW kecil, grid halus
+
+        K4: { bandwidthM: 2000, bins: [100, 100] }, // BW sedang, grid kasar
+        K5: { bandwidthM: 2000, bins: [150, 150] }, // BW sedang, grid sedang
+        K6: { bandwidthM: 2000, bins: [200, 200] }, // BW sedang, grid halus
+
+        K7: { bandwidthM: 3000, bins: [100, 100] }, // BW besar, grid kasar
+        K8: { bandwidthM: 3000, bins: [150, 150] }, // BW besar, grid sedang
+        K9: { bandwidthM: 3000, bins: [200, 200] }, // BW besar, grid halus
+    },
+};
+
 // ===== Hint carousel state
 let hintTimer = null;
 let hintIdx = 0;
@@ -174,13 +192,34 @@ function convolveSeparable(data, w, h, kernel) {
 }
 
 // ========================= PARAMETER GRID (tampilan) =========================
-function getAdaptiveParams() {
+function getKDEParams() {
     const b = map.getBounds();
     const [minx, miny] = lngLatToMeters(b.getWest(), b.getSouth());
     const [maxx, maxy] = lngLatToMeters(b.getEast(), b.getNorth());
     const widthM = maxx - minx;
     const heightM = maxy - miny;
 
+    // ================== MODE FIXED (K1–K6) ==================
+    if (KDE_CONFIG.mode === "fixed") {
+        const preset = KDE_CONFIG.presets[KDE_CONFIG.code];
+        if (preset) {
+            const [binsX, binsY] = preset.bins;
+            const cellX = widthM / binsX;
+            const cellY = heightM / binsY;
+
+            return {
+                extent: [
+                    [minx, maxx],
+                    [miny, maxy],
+                ],
+                bins: [binsX, binsY],
+                cell: [cellX, cellY],
+                sigmaM: preset.bandwidthM, // bandwidth langsung memakai nilai meter dari tabel
+            };
+        }
+    }
+
+    // ================== MODE ADAPTIF (versi lama) ==================
     const px = map.getSize();
     const binsX = Math.max(96, Math.min(256, Math.round(px.x / 5)));
     const binsY = Math.max(96, Math.min(256, Math.round(px.y / 5)));
@@ -200,6 +239,84 @@ function getAdaptiveParams() {
     };
 }
 
+// ========================= STATISTIK KDE (UNTUK BAB 4) =========================
+function evalKDEStats(density, dmax, w, h, sigmaM) {
+    const N = w * h;
+    if (!N || dmax <= 0) return null;
+
+    // Batas kelas sesuai rumus di Bab 4: T1 = 1/4 z_max, dst
+    const T1 = dmax / 4;
+    const T2 = dmax / 2;
+    const T3 = (3 * dmax) / 4;
+
+    let nLow = 0,
+        nMed = 0,
+        nHigh = 0,
+        nVery = 0;
+
+    for (let i = 0; i < density.length; i++) {
+        const z = density[i];
+
+        // 0 juga dihitung sebagai Low (area sangat jarang / kosong)
+        if (z < T1) nLow++;
+        else if (z < T2) nMed++;
+        else if (z < T3) nHigh++;
+        else nVery++;
+    }
+
+    const pLow = (nLow / N) * 100;
+    const pMed = (nMed / N) * 100;
+    const pHigh = (nHigh / N) * 100;
+    const pVery = (nVery / N) * 100;
+
+    const stats = {
+        code: KDE_CONFIG.code,
+        bandwidthM: sigmaM,
+        w,
+        h,
+        N,
+        zMax: dmax,
+        T1,
+        T2,
+        T3,
+        nLow,
+        nMed,
+        nHigh,
+        nVery,
+        pLow,
+        pMed,
+        pHigh,
+        pVery,
+    };
+
+    // Simpan ke global supaya bisa dicek di console
+    if (!window.KDE_EVAL) window.KDE_EVAL = [];
+    window.KDE_EVAL.push(stats);
+
+    // Log yang enak dicopy ke Excel / Word
+    console.log(
+        `[KDE-EVAL] ${stats.code}  BW=${stats.bandwidthM}m  grid=${w}x${h}` +
+            ` | Low=${pLow.toFixed(2)}%  Med=${pMed.toFixed(2)}%` +
+            `  High=${pHigh.toFixed(2)}%  VeryHigh=${pVery.toFixed(2)}%`
+    );
+    console.table({
+        code: stats.code,
+        BW_m: stats.bandwidthM,
+        grid: `${w}x${h}`,
+        N,
+        Low_cells: nLow,
+        Med_cells: nMed,
+        High_cells: nHigh,
+        VeryHigh_cells: nVery,
+        Low_pct: pLow,
+        Med_pct: pMed,
+        High_pct: pHigh,
+        VeryHigh_pct: pVery,
+    });
+
+    return stats;
+}
+
 // ========================= KDE -> HEAT (TAMPILAN SAJA) =========================
 function recomputeKDE() {
     if (!mPoints || !mPoints.length) {
@@ -207,7 +324,7 @@ function recomputeKDE() {
         return;
     }
 
-    const { extent, bins, cell, sigmaM } = getAdaptiveParams();
+    const { extent, bins, cell, sigmaM } = getKDEParams();
     const [w, h] = bins;
     const [minx, miny] = [extent[0][0], extent[1][0]];
     const [cellX, cellY] = cell;
@@ -217,14 +334,21 @@ function recomputeKDE() {
     const kernel = gaussianKernel1D(sigmaPx);
     const density = convolveSeparable(hist, w, h, kernel);
 
-    // normalisasi & cutoff visual
+    // ================== BLOK STATISTIK KDE UNTUK PENGUJIAN ==================
     let dmax = 0;
-    for (let i = 0; i < density.length; i++)
+    for (let i = 0; i < density.length; i++) {
         if (density[i] > dmax) dmax = density[i];
+    }
     if (dmax <= 0) {
         heatLayer.setLatLngs([]);
         return;
     }
+
+    // hitung Low/Medium/High/Very High + persentase
+    evalKDEStats(density, dmax, w, h, sigmaM);
+    // ================== AKHIR BLOK STATISTIK =================================
+
+    // normalisasi & cutoff visual (seperti semula)
     const zRaster = new Float32Array(w * h);
     const vals = [];
     for (let i = 0; i < density.length; i++) {
@@ -232,6 +356,7 @@ function recomputeKDE() {
         zRaster[i] = v;
         if (v > 0) vals.push(v);
     }
+
     vals.sort((a, b) => a - b);
 
     const zZoom = map.getZoom();

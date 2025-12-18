@@ -12,6 +12,7 @@ use App\Http\Controllers\RecommendedSkillController;
 use App\Http\Controllers\SkillController;
 use App\Http\Controllers\TemplateCurriculumVitaeController;
 use App\Http\Controllers\UserAdminController;
+use App\Http\Controllers\KdeExperimentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -54,6 +55,9 @@ Route::middleware('auth', 'verified')->group(function () {
     Route::get('/pelamar/heatmap/data', [HiringController::class, 'heatmapData'])->name('pelamar.heatmap.data');
     Route::get('/pelamar/hirings/{id}', [HiringController::class, 'show'])->name('pelamar.hirings.show');
     Route::get('/api/job-suggestions', [HiringController::class, 'jobSuggestions'])->name('pelamar.job.suggestions');
+
+    // routes/web.php
+    Route::get('/api/kde/experiment-results', [KdeExperimentController::class, 'getResults']);
 
     // ===================== PELAMAR =====================
     Route::middleware('role:pelamar')->group(function () {

@@ -62,6 +62,60 @@ var USER_HOME = window.USER_DOMICILE || {
   city: null,
   radiusKmDefault: 60
 };
+var KDE_CONFIG = {
+  mode: "fixed",
+  // ubah ke 'adaptive' kalau mau kembali ke versi dinamis
+  code: "K2",
+  // pilih: 'K1', 'K2', 'K3', 'K4', 'K5', 'K6', 'K7', 'K8', 'K9'
+  presets: {
+    K1: {
+      bandwidthM: 1000,
+      bins: [100, 100]
+    },
+    // BW kecil, grid kasar
+    K2: {
+      bandwidthM: 1000,
+      bins: [150, 150]
+    },
+    // BW kecil, grid sedang
+    K3: {
+      bandwidthM: 1000,
+      bins: [200, 200]
+    },
+    // BW kecil, grid halus
+
+    K4: {
+      bandwidthM: 2000,
+      bins: [100, 100]
+    },
+    // BW sedang, grid kasar
+    K5: {
+      bandwidthM: 2000,
+      bins: [150, 150]
+    },
+    // BW sedang, grid sedang
+    K6: {
+      bandwidthM: 2000,
+      bins: [200, 200]
+    },
+    // BW sedang, grid halus
+
+    K7: {
+      bandwidthM: 3000,
+      bins: [100, 100]
+    },
+    // BW besar, grid kasar
+    K8: {
+      bandwidthM: 3000,
+      bins: [150, 150]
+    },
+    // BW besar, grid sedang
+    K9: {
+      bandwidthM: 3000,
+      bins: [200, 200]
+    } // BW besar, grid halus
+  }
+};
 
 // ===== Hint carousel state
 var hintTimer = null;
@@ -267,7 +321,7 @@ function convolveSeparable(data, w, h, kernel) {
 }
 
 // ========================= PARAMETER GRID (tampilan) =========================
-function getAdaptiveParams() {
+function getKDEParams() {
   var b = map.getBounds();
   var _lngLatToMeters = lngLatToMeters(b.getWest(), b.getSouth()),
     _lngLatToMeters2 = _slicedToArray(_lngLatToMeters, 2),
@@ -279,6 +333,26 @@ function getAdaptiveParams() {
     maxy = _lngLatToMeters4[1];
   var widthM = maxx - minx;
   var heightM = maxy - miny;
+
+  // ================== MODE FIXED (K1–K6) ==================
+  if (KDE_CONFIG.mode === "fixed") {
+    var preset = KDE_CONFIG.presets[KDE_CONFIG.code];
+    if (preset) {
+      var _preset$bins = _slicedToArray(preset.bins, 2),
+        _binsX = _preset$bins[0],
+        _binsY = _preset$bins[1];
+      var _cellX = widthM / _binsX;
+      var _cellY = heightM / _binsY;
+      return {
+        extent: [[minx, maxx], [miny, maxy]],
+        bins: [_binsX, _binsY],
+        cell: [_cellX, _cellY],
+        sigmaM: preset.bandwidthM // bandwidth langsung memakai nilai meter dari tabel
+      };
+    }
+  }
+
+  // ================== MODE ADAPTIF (versi lama) ==================
   var px = map.getSize();
   var binsX = Math.max(96, Math.min(256, Math.round(px.x / 5)));
   var binsY = Math.max(96, Math.min(256, Math.round(px.y / 5)));
@@ -293,6 +367,72 @@ function getAdaptiveParams() {
   };
 }
 
+// ========================= STATISTIK KDE (UNTUK BAB 4) =========================
+function evalKDEStats(density, dmax, w, h, sigmaM) {
+  var N = w * h;
+  if (!N || dmax <= 0) return null;
+
+  // Batas kelas sesuai rumus di Bab 4: T1 = 1/4 z_max, dst
+  var T1 = dmax / 4;
+  var T2 = dmax / 2;
+  var T3 = 3 * dmax / 4;
+  var nLow = 0,
+    nMed = 0,
+    nHigh = 0,
+    nVery = 0;
+  for (var i = 0; i < density.length; i++) {
+    var z = density[i];
+
+    // 0 juga dihitung sebagai Low (area sangat jarang / kosong)
+    if (z < T1) nLow++;else if (z < T2) nMed++;else if (z < T3) nHigh++;else nVery++;
+  }
+  var pLow = nLow / N * 100;
+  var pMed = nMed / N * 100;
+  var pHigh = nHigh / N * 100;
+  var pVery = nVery / N * 100;
+  var stats = {
+    code: KDE_CONFIG.code,
+    bandwidthM: sigmaM,
+    w: w,
+    h: h,
+    N: N,
+    zMax: dmax,
+    T1: T1,
+    T2: T2,
+    T3: T3,
+    nLow: nLow,
+    nMed: nMed,
+    nHigh: nHigh,
+    nVery: nVery,
+    pLow: pLow,
+    pMed: pMed,
+    pHigh: pHigh,
+    pVery: pVery
+  };
+
+  // Simpan ke global supaya bisa dicek di console
+  if (!window.KDE_EVAL) window.KDE_EVAL = [];
+  window.KDE_EVAL.push(stats);
+
+  // Log yang enak dicopy ke Excel / Word
+  console.log("[KDE-EVAL] ".concat(stats.code, "  BW=").concat(stats.bandwidthM, "m  grid=").concat(w, "x").concat(h) + " | Low=".concat(pLow.toFixed(2), "%  Med=").concat(pMed.toFixed(2), "%") + "  High=".concat(pHigh.toFixed(2), "%  VeryHigh=").concat(pVery.toFixed(2), "%"));
+  console.table({
+    code: stats.code,
+    BW_m: stats.bandwidthM,
+    grid: "".concat(w, "x").concat(h),
+    N: N,
+    Low_cells: nLow,
+    Med_cells: nMed,
+    High_cells: nHigh,
+    VeryHigh_cells: nVery,
+    Low_pct: pLow,
+    Med_pct: pMed,
+    High_pct: pHigh,
+    VeryHigh_pct: pVery
+  });
+  return stats;
+}
+
 // ========================= KDE -> HEAT (TAMPILAN SAJA) =========================
 function recomputeKDE() {
   var _vals$qIdx;
@@ -300,11 +440,11 @@ function recomputeKDE() {
     heatLayer.setLatLngs([]);
     return;
   }
-  var _getAdaptiveParams = getAdaptiveParams(),
-    extent = _getAdaptiveParams.extent,
-    bins = _getAdaptiveParams.bins,
-    cell = _getAdaptiveParams.cell,
-    sigmaM = _getAdaptiveParams.sigmaM;
+  var _getKDEParams = getKDEParams(),
+    extent = _getKDEParams.extent,
+    bins = _getKDEParams.bins,
+    cell = _getKDEParams.cell,
+    sigmaM = _getKDEParams.sigmaM;
   var _bins2 = _slicedToArray(bins, 2),
     w = _bins2[0],
     h = _bins2[1];
@@ -320,13 +460,21 @@ function recomputeKDE() {
   var kernel = gaussianKernel1D(sigmaPx);
   var density = convolveSeparable(hist, w, h, kernel);
 
-  // normalisasi & cutoff visual
+  // ================== BLOK STATISTIK KDE UNTUK PENGUJIAN ==================
   var dmax = 0;
-  for (var i = 0; i < density.length; i++) if (density[i] > dmax) dmax = density[i];
+  for (var i = 0; i < density.length; i++) {
+    if (density[i] > dmax) dmax = density[i];
+  }
   if (dmax <= 0) {
     heatLayer.setLatLngs([]);
     return;
   }
+
+  // hitung Low/Medium/High/Very High + persentase
+  evalKDEStats(density, dmax, w, h, sigmaM);
+  // ================== AKHIR BLOK STATISTIK =================================
+
+  // normalisasi & cutoff visual (seperti semula)
   var zRaster = new Float32Array(w * h);
   var vals = [];
   for (var _i2 = 0; _i2 < density.length; _i2++) {

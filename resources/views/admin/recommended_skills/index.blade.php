@@ -30,8 +30,8 @@
                             <tbody>
                                 @foreach($recommended_skills as $recommendedSkill)
                                 <tr>
-                                    <td>{{ $recommendedSkill->job->job_name }}</td>
-                                    <td>{{ $recommendedSkill->skill->skill_name }}</td>
+                                    <td>{{ $recommendedSkill->job->job_name ?? '-' }}</td>
+                                    <td>{{ $recommendedSkill->skill->skill_name ?? '-' }}</td>
                                     <td class="text-center">
                                         <div class="action-buttons justify-content-center">
                                             @if(is_null($recommendedSkill->deleted_at))

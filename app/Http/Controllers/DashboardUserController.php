@@ -154,39 +154,76 @@ class DashboardUserController extends Controller
     {
         $user = Auth::user();
 
-        DB::transaction(function () use ($request, $user) {
-            $validated = $request->validated();
+        try {
+            DB::transaction(function () use ($request, $user) {
+                $validated = $request->validated();
 
-            if ($request->cv_option === 'upload') {
-                if ($request->hasFile('file_applicant')) {
-                    $file_applicantPath = $request->file('file_applicant')->store('applicants', 'public');
-                    $validated['file_applicant'] = $file_applicantPath;
-                } else {
-                    throw new \Exception('File CV wajib diunggah ketika memilih upload.');
+                // CEK: sudah pernah melamar (opsional tapi disarankan)
+                $already = Applicant::where('user_id', $user->id)
+                    ->where('hiring_id', $validated['hiring_id'])
+                    ->exists();
+
+                if ($already) {
+                    throw new \Exception('Anda sudah pernah mengirim lamaran untuk lowongan ini.');
                 }
-            } elseif ($request->cv_option === 'dashboard') {
-                $cv = CurriculumVitaeUser::where('user_id', $user->id)
-                    ->where('id', $request->dashboard_cv)
-                    ->firstOrFail();
 
-                $validated['curriculum_vitae_user_id'] = $cv->id;
-                $validated['file_applicant'] = $cv->pdf_file;
+                if ($request->cv_option === 'upload') {
+                    if ($request->hasFile('file_applicant')) {
+                        $file_applicantPath = $request->file('file_applicant')->store('applicants', 'public');
+                        $validated['file_applicant'] = $file_applicantPath;
+                    } else {
+                        throw new \Exception('File CV wajib diunggah ketika memilih opsi "Unggah File CV".');
+                    }
+                } elseif ($request->cv_option === 'dashboard') {
+                    if (empty($request->dashboard_cv)) {
+                        throw new \Exception('Silakan pilih CV dari Dashboard terlebih dahulu.');
+                    }
+
+                    $cv = CurriculumVitaeUser::where('user_id', $user->id)
+                        ->where('id', $request->dashboard_cv)
+                        ->firstOrFail();
+
+                    $validated['curriculum_vitae_user_id'] = $cv->id;
+
+                    // pastikan kolom ini memang ada di tabel CV kamu
+                    if (empty($cv->pdf_file)) {
+                        throw new \Exception('CV Dashboard belum memiliki file PDF. Silakan generate/unggah CV terlebih dahulu.');
+                    }
+
+                    $validated['file_applicant'] = $cv->pdf_file;
+                } else {
+                    throw new \Exception('Opsi CV tidak valid.');
+                }
+
+                $validated['user_id'] = $user->id;
+                $validated['status']  = 'Pending';
+
+                Applicant::create($validated);
+            });
+
+            // redirect tujuan
+            if ($request->redirect_to === 'heatmap') {
+                return redirect()
+                    ->route('pelamar.dashboard.heatmap.index')
+                    ->with('swal_success', 'Lamaran berhasil dikirim.');
             }
 
-            $validated['user_id'] = $user->id;
-            $validated['status'] = 'Pending';
+            return redirect()
+                ->route('pelamar.dashboard.lowongan.index')
+                ->with('swal_success', 'Lamaran berhasil dikirim.');
+        } catch (\Throwable $e) {
 
-            Applicant::create($validated);
-        });
+            // redirect tujuan + kirim error
+            if ($request->redirect_to === 'heatmap') {
+                return redirect()
+                    ->route('pelamar.dashboard.heatmap.index')
+                    ->with('swal_error', $e->getMessage());
+            }
 
-        // Cek redirect tujuan
-        if ($request->redirect_to === 'heatmap') {
-            return redirect()->route('pelamar.dashboard.heatmap.index')
-                ->with('success', 'Lamaran berhasil dikirim');
+            return redirect()
+                ->route('pelamar.dashboard.lowongan.index')
+                ->with('swal_error', $e->getMessage());
         }
-
-        return redirect()->route('pelamar.dashboard.lowongan.index')
-            ->with('success', 'Lamaran berhasil dikirim');
     }
 
     // heatmap
@@ -194,7 +231,16 @@ class DashboardUserController extends Controller
     {
         $hirings = Hiring::all();
 
-        return view('pelamar.dashboard.heatmap.index', compact('hirings'));
+        $user = Auth::user();
+        $cvs = collect();
+
+        if ($user) {
+            $cvs = CurriculumVitaeUser::with('templateCurriculumVitae')
+                ->where('user_id', $user->id)
+                ->get();
+        }
+
+        return view('pelamar.dashboard.heatmap.index', compact('hirings', 'cvs'));
     }
 
     // Curriculum Vitae

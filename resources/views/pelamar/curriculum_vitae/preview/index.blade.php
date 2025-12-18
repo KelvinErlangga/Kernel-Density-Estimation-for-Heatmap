@@ -48,12 +48,12 @@
 
         <div class="editor-item">
             <img src="{{ asset('assets/images/download.svg') }}" alt="Save Icon" style="width:24px;height:24px;margin-right:8px;" />
-            <button id="saveToDashboardBtn" data-template-id="{{ $cv->template_curriculum_vitae_id ?? 1 }}">Save to Dashboard</button>
+            <button id="saveToDashboardBtn" data-template-id="{{ $cv->template_curriculum_vitae_id ?? 1 }}">Simpan ke Dashboard</button>
         </div>
 
         <div class="editor-item">
             <img src="{{ asset('assets/images/home.svg') }}" alt="Home Icon" style="width:24px;height:24px;margin-right:8px;" />
-            <a href="{{ route('pelamar.dashboard.curriculum_vitae.index') }}" class="editor-btn">Return to Dashboard</a>
+            <a href="{{ route('pelamar.dashboard.curriculum_vitae.index') }}" class="editor-btn">Kembali ke Dashboard</a>
         </div>
     </div>
 

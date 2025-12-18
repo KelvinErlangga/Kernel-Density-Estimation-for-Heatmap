@@ -266,40 +266,40 @@ class CurriculumVitaeUserController extends Controller
     }
 
     // Ambil daftar key yang diizinkan dari layout_json template
-private function allowedKeysForTemplate(?\App\Models\TemplateCurriculumVitae $template): array
-{
-    if (!$template) return [];
+    private function allowedKeysForTemplate(?\App\Models\TemplateCurriculumVitae $template): array
+    {
+        if (!$template) return [];
 
-    // ==== KHUSUS TEMPLATE KREATIF (GRAPESJS) ====
-    // Untuk kreatif, kita izinkan semua section standar,
-    // karena layout_json-nya tidak lagi berupa array "key" per section,
-    // tapi berupa { "engine": "grapesjs", "html": "..." }.
-    if (strtolower($template->template_type ?? '') === 'kreatif') {
-        return [
-            'personal_detail',
-            'experiences',
-            'educations',
-            'languages',
-            'skills',
-            'organizations',
-            'achievements',
-            'links',
-        ];
+        // ==== KHUSUS TEMPLATE KREATIF (GRAPESJS) ====
+        // Untuk kreatif, kita izinkan semua section standar,
+        // karena layout_json-nya tidak lagi berupa array "key" per section,
+        // tapi berupa { "engine": "grapesjs", "html": "..." }.
+        if (strtolower($template->template_type ?? '') === 'kreatif') {
+            return [
+                'personal_detail',
+                'experiences',
+                'educations',
+                'languages',
+                'skills',
+                'organizations',
+                'achievements',
+                'links',
+            ];
+        }
+
+        // ==== TEMPLATE ATS (lama) ====
+        $raw = $template->layout_json;
+
+        $layout = is_string($raw)
+            ? (json_decode($raw, true) ?: [])
+            : (is_array($raw) ? $raw : []);
+
+        return collect($layout)
+            ->pluck('key')
+            ->filter(fn($k) => is_string($k) && $k !== '')
+            ->values()
+            ->all();
     }
-
-    // ==== TEMPLATE ATS (lama) ====
-    $raw = $template->layout_json;
-
-    $layout = is_string($raw)
-        ? (json_decode($raw, true) ?: [])
-        : (is_array($raw) ? $raw : []);
-
-    return collect($layout)
-        ->pluck('key')
-        ->filter(fn ($k) => is_string($k) && $k !== '')
-        ->values()
-        ->all();
-}
 
 
     // private function allowedKeysForTemplate(?TemplateCurriculumVitae $template): array
@@ -591,24 +591,37 @@ private function allowedKeysForTemplate(?\App\Models\TemplateCurriculumVitae $te
     // tambah data bahasa ke database
     public function addLanguage(AddLanguageRequest $request, CurriculumVitaeUser $curriculumVitaeUser)
     {
+        // kalau form tidak mengirim bahasa sama sekali
         if (!$request->has('language_name') || empty($request->input('language_name'))) {
             $curriculumVitaeUser->languages()->delete();
-
             return redirect()->route('pelamar.curriculum_vitae.skill.index', $curriculumVitaeUser->id);
         }
 
         DB::transaction(function () use ($request, $curriculumVitaeUser) {
+            // reset data lama
             $curriculumVitaeUser->languages()->delete();
 
             $validated = $request->validated();
 
-            foreach ($validated['language_name'] as $index => $languageName) {
+            $names  = $validated['language_name'] ?? [];
+            $levels = $validated['level'] ?? [];
+
+            foreach ($names as $index => $languageName) {
+                $languageName = trim((string) $languageName);
+                $level = $levels[$index] ?? null;
+
+                // skip baris yang kosong (biar tidak insert null-null)
+                if ($languageName === '' || empty($level)) {
+                    continue;
+                }
+
                 $curriculumVitaeUser->languages()->create([
-                    'language_name' => $languageName,
-                    'category_level' => $validated['level'][$index],
+                    'language_name'   => $languageName,
+                    'category_level'  => $level, // A1..C2
                 ]);
             }
         });
+
         return redirect()->route('pelamar.curriculum_vitae.skill.index', $curriculumVitaeUser->id);
     }
 
@@ -849,106 +862,105 @@ private function allowedKeysForTemplate(?\App\Models\TemplateCurriculumVitae $te
     // }
 
     public function previewCV(CurriculumVitaeUser $curriculumVitaeUser)
-{
-    $curriculumVitaeUser->load([
-        'personalDetail',
-        'educations',
-        'experiences',
-        'skills',
-        'languages',
-        'organizations',
-        'achievements',
-        'links',
-        'templateCV'
-    ]);
+    {
+        $curriculumVitaeUser->load([
+            'personalDetail',
+            'educations',
+            'experiences',
+            'skills',
+            'languages',
+            'organizations',
+            'achievements',
+            'links',
+            'templateCV'
+        ]);
 
-    $template = $curriculumVitaeUser->templateCV;
+        $template = $curriculumVitaeUser->templateCV;
 
-    if (!$template) {
-        return redirect()->back()->with('error', 'Template CV belum tersedia!');
-    }
+        if (!$template) {
+            return redirect()->back()->with('error', 'Template CV belum tersedia!');
+        }
 
-    // ==== BACA layout_json & style_json ====
-    $rawLayout = $template->layout_json;
-    $rawStyle  = $template->style_json;
+        // ==== BACA layout_json & style_json ====
+        $rawLayout = $template->layout_json;
+        $rawStyle  = $template->style_json;
 
-    $layout = is_string($rawLayout)
-        ? (json_decode($rawLayout, true) ?: [])
-        : (is_array($rawLayout) ? $rawLayout : []);
+        $layout = is_string($rawLayout)
+            ? (json_decode($rawLayout, true) ?: [])
+            : (is_array($rawLayout) ? $rawLayout : []);
 
-    $style = is_string($rawStyle)
-        ? (json_decode($rawStyle, true) ?: [])
-        : (is_array($rawStyle) ? $rawStyle : []);
+        $style = is_string($rawStyle)
+            ? (json_decode($rawStyle, true) ?: [])
+            : (is_array($rawStyle) ? $rawStyle : []);
 
-    // ==== DETEKSI: ini template GrapesJS atau ATS lama? ====
-    $isGrapesTemplate = is_array($layout) && ($layout['engine'] ?? null) === 'grapesjs';
+        // ==== DETEKSI: ini template GrapesJS atau ATS lama? ====
+        $isGrapesTemplate = is_array($layout) && ($layout['engine'] ?? null) === 'grapesjs';
 
-    $grapesRenderedHtml = null;
+        $grapesRenderedHtml = null;
 
-    if ($isGrapesTemplate) {
-        // ---------------- GRAPES TEMPLATE ----------------
-        $html = $layout['html'] ?? '';
+        if ($isGrapesTemplate) {
+            // ---------------- GRAPES TEMPLATE ----------------
+            $html = $layout['html'] ?? '';
 
-        // kalau ada <body>...</body> dari Grapes, kita buang tag bodynya saja
-        $html = preg_replace('~<\/?body[^>]*>~i', '', $html);
+            // kalau ada <body>...</body> dari Grapes, kita buang tag bodynya saja
+            $html = preg_replace('~<\/?body[^>]*>~i', '', $html);
 
-        // mapping section key -> nama view partial
-        $sectionViews = [
-            'personal_detail' => 'pelamar.curriculum_vitae.preview.sections.personal_detail',
-            'experiences'     => 'pelamar.curriculum_vitae.preview.sections.experiences',
-            'educations'      => 'pelamar.curriculum_vitae.preview.sections.educations',
-            'languages'       => 'pelamar.curriculum_vitae.preview.sections.languages',
-            'skills'          => 'pelamar.curriculum_vitae.preview.sections.skills',
-            'organizations'   => 'pelamar.curriculum_vitae.preview.sections.organizations',
-            'achievements'    => 'pelamar.curriculum_vitae.preview.sections.achievements',
-            'links'           => 'pelamar.curriculum_vitae.preview.sections.links',
-        ];
+            // mapping section key -> nama view partial
+            $sectionViews = [
+                'personal_detail' => 'pelamar.curriculum_vitae.preview.sections.personal_detail',
+                'experiences'     => 'pelamar.curriculum_vitae.preview.sections.experiences',
+                'educations'      => 'pelamar.curriculum_vitae.preview.sections.educations',
+                'languages'       => 'pelamar.curriculum_vitae.preview.sections.languages',
+                'skills'          => 'pelamar.curriculum_vitae.preview.sections.skills',
+                'organizations'   => 'pelamar.curriculum_vitae.preview.sections.organizations',
+                'achievements'    => 'pelamar.curriculum_vitae.preview.sections.achievements',
+                'links'           => 'pelamar.curriculum_vitae.preview.sections.links',
+            ];
 
-        foreach ($sectionViews as $key => $viewName) {
-            if (!view()->exists($viewName)) {
-                continue;
+            foreach ($sectionViews as $key => $viewName) {
+                if (!view()->exists($viewName)) {
+                    continue;
+                }
+
+                // render partial lama yang sudah DINAMIS
+                $sectionHtml = view($viewName, [
+                    'cv' => $curriculumVitaeUser,
+                ])->render();
+
+                // ganti <div data-section="key">...</div> dengan isi partial
+                $pattern = sprintf(
+                    '/<div\b[^>]*data-section=[\'"]%s[\'"][^>]*>.*?<\/div>/is',
+                    preg_quote($key, '/')
+                );
+
+                $replacement = '<div data-section="' . e($key) . '">' . $sectionHtml . '</div>';
+
+                $html = preg_replace($pattern, $replacement, $html);
             }
 
-            // render partial lama yang sudah DINAMIS
-            $sectionHtml = view($viewName, [
-                'cv' => $curriculumVitaeUser,
-            ])->render();
+            $grapesRenderedHtml = $html;
 
-            // ganti <div data-section="key">...</div> dengan isi partial
-            $pattern = sprintf(
-                '/<div\b[^>]*data-section=[\'"]%s[\'"][^>]*>.*?<\/div>/is',
-                preg_quote($key, '/')
-            );
-
-            $replacement = '<div data-section="' . e($key) . '">' . $sectionHtml . '</div>';
-
-            $html = preg_replace($pattern, $replacement, $html);
+            // style_json Grapes: { "engine":"grapesjs", "css":"..." }
+            if (isset($style['engine']) && $style['engine'] === 'grapesjs') {
+                $style = ['css' => $style['css'] ?? ''];
+            }
+        } else {
+            // ---------------- ATS TEMPLATE LAMA ----------------
+            // pastikan $layout adalah array list section
+            if (!is_array($layout)) {
+                $layout = [];
+            }
         }
 
-        $grapesRenderedHtml = $html;
-
-        // style_json Grapes: { "engine":"grapesjs", "css":"..." }
-        if (isset($style['engine']) && $style['engine'] === 'grapesjs') {
-            $style = ['css' => $style['css'] ?? ''];
-        }
-
-    } else {
-        // ---------------- ATS TEMPLATE LAMA ----------------
-        // pastikan $layout adalah array list section
-        if (!is_array($layout)) {
-            $layout = [];
-        }
+        return view('pelamar.curriculum_vitae.preview.index', [
+            'cv'                 => $curriculumVitaeUser,
+            'layout'             => $layout,
+            'style'              => $style,
+            'template'           => $template,
+            'isGrapesTemplate'   => $isGrapesTemplate,
+            'grapesRenderedHtml' => $grapesRenderedHtml,
+        ]);
     }
-
-    return view('pelamar.curriculum_vitae.preview.index', [
-        'cv'                 => $curriculumVitaeUser,
-        'layout'             => $layout,
-        'style'              => $style,
-        'template'           => $template,
-        'isGrapesTemplate'   => $isGrapesTemplate,
-        'grapesRenderedHtml' => $grapesRenderedHtml,
-    ]);
-}
 
 
     public function updateInline(Request $request)

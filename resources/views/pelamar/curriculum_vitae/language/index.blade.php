@@ -67,6 +67,9 @@
     if (!$useConfirmed && $idx !== false) {
         for ($i=0;$i<$idx;$i++) $fallbackDoneSet[$flow[$i]] = true;
     }
+
+    // ===== LEVEL CEFR =====
+    $levelOptions = ['A1','A2','B1','B2','C1','C2'];
 @endphp
 
 <!-- Background shape -->
@@ -179,21 +182,23 @@
                                    placeholder="Bahasa" required>
                         </div>
 
-                        <!-- Level -->
+                        <!-- Level (CEFR) -->
                         <div class="col-span-12 md:col-span-3">
                             <select name="level[]"
                                     class="level-select w-full h-11 px-3 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     required>
-                                <option value="{{ $language->category_level }}">{{ $language->category_level }}</option>
-                                <option value="Beginer">Beginer</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Expert">Expert</option>
+                                <option value="" disabled {{ empty($language->category_level) ? 'selected' : '' }}>Pilih Level (CEFR)</option>
+                                @foreach($levelOptions as $lv)
+                                    <option value="{{ $lv }}" {{ ($language->category_level === $lv) ? 'selected' : '' }}>
+                                        {{ $lv }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
 
                         <!-- Proof -->
                         <div class="col-span-12 md:col-span-3">
-                            <label class="block text-sm text-gray-700 mb-1">Bukti/Sertifikat</label>
+                            <label class="block text-sm text-gray-700 mb-1">Bukti/Sertifikat (wajib)</label>
                             <input type="file" name="proof[]" accept=".pdf,image/*"
                                    class="proof-input w-full h-11 px-2 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700" />
                             <p class="text-xs text-gray-500 mt-1">PDF/JPG/PNG. Maks 2MB</p>
@@ -229,18 +234,21 @@
                                    class="language-input w-full h-11 px-3 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                    placeholder="Bahasa" required>
                         </div>
+
+                        <!-- Level (CEFR) -->
                         <div class="col-span-12 md:col-span-3">
                             <select name="level[]"
                                     class="level-select w-full h-11 px-3 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     required>
-                                <option value="" disabled selected>Pilih Level</option>
-                                <option value="Beginer">Beginer</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Expert">Expert</option>
+                                <option value="" disabled selected>Pilih Level (CEFR)</option>
+                                @foreach($levelOptions as $lv)
+                                    <option value="{{ $lv }}">{{ $lv }}</option>
+                                @endforeach
                             </select>
                         </div>
+
                         <div class="col-span-12 md:col-span-3">
-                            <label class="block text-sm text-gray-700 mb-1">Bukti/Sertifikat (opsional)</label>
+                            <label class="block text-sm text-gray-700 mb-1">Bukti/Sertifikat (wajib)</label>
                             <input type="file" name="proof[]" accept=".pdf,image/*"
                                    class="proof-input w-full h-11 px-2 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700" />
                             <p class="text-xs text-gray-500 mt-1">PDF/JPG/PNG. Maks ~2MB.</p>
@@ -251,7 +259,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
                                      viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M19 7H5m0 0l1.5-4A2 2 0 018.5 2h7a2 2 0 012 1.87L19 7M10 11v6m4-6v6" />
+                                          d="M19 7H5m0 0l1.5-4A2 2 0 008.5 2h7a2 2 0 012 1.87L19 7M10 11v6m4-6v6" />
                                 </svg>
                             </button>
                         </div>
@@ -289,6 +297,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // ===== Level options (CEFR) untuk template JS =====
+    const levelOptions = ['A1','A2','B1','B2','C1','C2'];
+
     // Template baris baru
     const template = () => `
         <li class="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
@@ -312,10 +323,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     <select name="level[]"
                             class="level-select w-full h-11 px-3 rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             required>
-                        <option value="" disabled selected>Pilih Level</option>
-                        <option value="Beginer">Beginer</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Expert">Expert</option>
+                        <option value="" disabled selected>Pilih Level (CEFR)</option>
+                        ${levelOptions.map(lv => `<option value="${lv}">${lv}</option>`).join('')}
                     </select>
                 </div>
 

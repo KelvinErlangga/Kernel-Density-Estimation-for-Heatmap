@@ -51,6 +51,7 @@
         padding-left:.25rem;padding-right:1.5rem;
         height:36px;border-radius:10px;font-weight:600;
     }
+
     /* chip domisili */
     .chip{
         background:var(--chip-bg);
@@ -105,13 +106,13 @@
 
     /* ===== Hint Banner ===== */
     .hint-banner{
-    background: rgba(250, 204, 21, .18); /* kuning transparan */
-    border: 1px solid #facc15;           /* amber-400 */
-    color: #78350f;                      /* amber-900 */
-    border-radius: 12px;
-    padding: .65rem .85rem;
-    display: flex; align-items: center; gap: .5rem;
-    box-shadow: var(--soft-shadow);
+        background: rgba(250, 204, 21, .18);
+        border: 1px solid #facc15;
+        color: #78350f;
+        border-radius: 12px;
+        padding: .65rem .85rem;
+        display: flex; align-items: center; gap: .5rem;
+        box-shadow: var(--soft-shadow);
     }
     .hint-banner a{ color:#1d4ed8; font-weight:700; text-decoration: underline; }
     .hint-banner .icon{ width:18px; text-align:center; }
@@ -120,22 +121,19 @@
     .hint-banner { position: relative; overflow: hidden; }
     .hint-banner .icon { width:18px; text-align:center; }
 
-    /* kontainer isi yang dianimasikan */
     .hint-inner{
-    display:inline-block;
-    opacity:1;
-    transform: translateY(0);
-    transition: opacity .35s ease, transform .35s ease;
+        display:inline-block;
+        opacity:1;
+        transform: translateY(0);
+        transition: opacity .35s ease, transform .35s ease;
     }
-
     .hint-inner.fade-out{
-    opacity:0;
-    transform: translateY(6px);
+        opacity:0;
+        transform: translateY(6px);
     }
-
     .hint-inner.fade-in{
-    opacity:1;
-    transform: translateY(0);
+        opacity:1;
+        transform: translateY(0);
     }
 
     /* ===== Suggestions dropdown ===== */
@@ -159,6 +157,15 @@
     $domCity = $me->personalPelamar->city_pelamar ?? null;
     $domLat  = $me->personalPelamar->latitude ?? null;
     $domLon  = $me->personalPelamar->longitude ?? null;
+
+    // Domisili dianggap lengkap jika city + koordinat ada
+    $domMissing = empty($domCity) || empty($domLat) || empty($domLon);
+
+    /**
+     * IMPORTANT:
+     * Sesuaikan URL ini dengan halaman "Pengaturan -> Akun" di project kamu.
+     */
+    $accountSettingUrl = url('/dashboard-user/akun');
 @endphp
 
 <script>
@@ -166,11 +173,24 @@ window.USER_DOMICILE = {
     city: @json($domCity),
     lat: {{ $domLat ? (float)$domLat : 'null' }},
     lon: {{ $domLon ? (float)$domLon : 'null' }},
+    missing: {{ $domMissing ? 'true' : 'false' }},
+    accountSettingUrl: @json($accountSettingUrl),
     radiusKmDefault: 20
 };
 </script>
 
 <div class="container-fluid mt-4">
+
+    {{-- ===== Banner Domisili (opsional, tetap informatif) ===== --}}
+    @if($domMissing)
+        <div id="domicile-alert" class="hint-banner mb-3">
+            <i class="fas fa-triangle-exclamation icon"></i>
+            <span>
+                Domisili belum diatur. Lengkapi domisili agar sistem dapat memberikan <b>rekomendasi lowongan</b> yang lebih relevan
+                dan mendukung fitur berbasis lokasi. Silakan atur melalui <a href="{{ $accountSettingUrl }}">Pengaturan → Akun</a>.
+            </span>
+        </div>
+    @endif
 
     <!-- ===== Hint Banner (auto diisi oleh JS) ===== -->
     <div id="match-hint" class="hint-banner mb-3 d-none">
@@ -280,6 +300,68 @@ window.USER_DOMICILE = {
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{{ mix('js/app.js') }}"></script>
+
+{{-- ===================== FLASH SWEETALERT LAMARAN (SUKSES / GAGAL) ===================== --}}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Flash dari backend (controller setelah submit lamaran)
+    const swalSuccess = @json(session('swal_success'));
+    const swalError   = @json(session('swal_error'));
+    const swalInfo    = @json(session('swal_info'));
+
+    // Error validasi Laravel (misal CV wajib, file terlalu besar, dll)
+    const validationErrors = @json($errors->all());
+
+    // Prioritas: error validasi -> swal_error -> swal_success -> swal_info
+    if (validationErrors && validationErrors.length) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal mengirim lamaran',
+            html: `<div style="text-align:left">
+                    <p class="mb-2">Periksa kembali data yang diunggah:</p>
+                    <ul style="margin:0;padding-left:18px;">
+                        ${validationErrors.map(e => `<li>${e}</li>`).join('')}
+                    </ul>
+                   </div>`,
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    if (swalError) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Lamaran gagal dikirim',
+            text: swalError,
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+
+    if (swalSuccess) {
+        Swal.fire({
+            icon: 'success',
+            title: 'Lamaran berhasil dikirim',
+            text: swalSuccess,
+            confirmButtonText: 'OK'
+        });
+
+        // kalau modal masih kebuka, tutup (aman walau tidak kebuka)
+        try { $('#applicationModal').modal('hide'); } catch(e) {}
+        return;
+    }
+
+    if (swalInfo) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Informasi',
+            text: swalInfo,
+            confirmButtonText: 'OK'
+        });
+    }
+});
+</script>
+
 <script>
     function toggleCVOption() {
         const upload = document.getElementById('upload_cv_group');
@@ -379,15 +461,18 @@ window.USER_DOMICILE = {
             });
     }
 
-    // ===== Radius UI wiring (frontend) =====
-    document.addEventListener("DOMContentLoaded", () => {
+    // ===== Radius UI wiring (frontend) + Notif Domisili dengan "Jangan ingatkan lagi" =====
+    document.addEventListener("DOMContentLoaded", async () => {
         const modeSelect  = document.getElementById("mode-select");
         const radiusWrap  = document.getElementById("radius-wrap");
         const radiusRange = document.getElementById("radius-km");
         const radiusOut   = document.getElementById("radius-out");
 
-        // init dari USER_DOMICILE
-        const initial = Number(window.USER_DOMICILE?.radiusKmDefault ?? 20);
+        const dom = window.USER_DOMICILE || {};
+        const domicileOk = !!dom.city && dom.lat !== null && dom.lon !== null;
+        const accountUrl = dom.accountSettingUrl || "//akun";
+
+        const initial = Number(dom.radiusKmDefault ?? 20);
         radiusRange.value = initial;
         radiusOut.textContent = initial;
 
@@ -395,38 +480,106 @@ window.USER_DOMICILE = {
             radiusWrap.setAttribute("aria-disabled", enabled ? "false" : "true");
         }
 
-        // toggle enable/disable sesuai mode terpilih
+        const nearbyOpt = modeSelect.querySelector('option[value="nearby"]');
+        if (!domicileOk && nearbyOpt) {
+            nearbyOpt.disabled = true;
+            nearbyOpt.textContent = "Dekat Domisili (lengkapi domisili dulu)";
+            modeSelect.value = "default";
+            setRadiusEnabled(false);
+        }
+
+        try {
+            const keyDont = "cvre_heatmap_domicile_dont_remind";
+            const dontRemind = localStorage.getItem(keyDont) === "1";
+
+            if (!domicileOk && !dontRemind) {
+                await Swal.fire({
+                    icon: "warning",
+                    title: "Domisili belum diatur",
+                    html: `
+                        <div style="text-align:left">
+                            <div class="mb-2" style="display:flex;align-items:flex-start;gap:.5rem;">
+                                <input id="dont-remind" type="checkbox" style="margin-top:.25rem;">
+                                <label for="dont-remind" style="margin:0;cursor:pointer;">
+                                    <b>Jangan ingatkan lagi</b>
+                                </label>
+                            </div>
+
+                            <p class="mb-2">
+                                Lengkapi domisili agar sistem dapat memberikan <b>rekomendasi lowongan</b> yang lebih relevan
+                                dan mendukung fitur berbasis lokasi.
+                            </p>
+                            <p class="mb-0">
+                                Silakan atur melalui menu: <b>Pengaturan → Akun</b>.
+                            </p>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: "Buka Pengaturan → Akun",
+                    cancelButtonText: "Nanti saja",
+                    preConfirm: () => {
+                        const checked = document.getElementById("dont-remind")?.checked;
+                        if (checked) localStorage.setItem(keyDont, "1");
+                        return true;
+                    },
+                    didClose: () => {
+                        const checked = document.getElementById("dont-remind")?.checked;
+                        if (checked) localStorage.setItem(keyDont, "1");
+                    }
+                }).then((r) => {
+                    if (r.isConfirmed) {
+                        window.location.href = accountUrl;
+                    }
+                });
+            }
+        } catch (e) {
+            if (!domicileOk) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Domisili belum diatur",
+                    text: "Lengkapi domisili di Pengaturan → Akun agar rekomendasi lowongan lebih relevan dan fitur berbasis lokasi dapat digunakan."
+                });
+            }
+        }
+
         function syncModeUI(){
             const mode = modeSelect.value;
+
+            if (mode === "nearby" && !domicileOk) {
+                modeSelect.value = "default";
+                setRadiusEnabled(false);
+
+                Swal.fire({
+                    icon: "info",
+                    title: "Lengkapi domisili dulu",
+                    text: "Lengkapi domisili di Pengaturan → Akun agar rekomendasi lowongan lebih relevan dan mode Dekat Domisili dapat digunakan."
+                });
+                return;
+            }
+
             setRadiusEnabled(mode === "nearby");
+
             if (mode === "nearby") {
-                // push radius saat ini ke peta (app.js akan dengar event ini)
                 const km = Number(radiusRange.value);
                 document.dispatchEvent(new CustomEvent("HEATMAP:radius-change", { detail: { radiusKm: km } }));
             } else {
-                // mode default – minta app.js refresh tanpa radius (mode default diset di app.js)
                 document.dispatchEvent(new CustomEvent("HEATMAP:radius-change", { detail: { radiusKm: null } }));
             }
         }
 
-        // perubahan nilai slider -> refresh nearby
         radiusRange.addEventListener("input", () => {
             const km = Number(radiusRange.value);
             radiusOut.textContent = km;
         });
+
         radiusRange.addEventListener("change", () => {
             const km = Number(radiusRange.value);
             radiusOut.textContent = km;
-            // simpan default radius di window agar fetch berikutnya konsisten
             window.USER_DOMICILE.radiusKmDefault = km;
-            // kabari app.js untuk redraw circle + fetch data berdasarkan radius baru
             document.dispatchEvent(new CustomEvent("HEATMAP:radius-change", { detail: { radiusKm: km } }));
         });
 
-        // perubahan mode
         modeSelect.addEventListener("change", syncModeUI);
-
-        // set awal
         syncModeUI();
     });
 </script>
