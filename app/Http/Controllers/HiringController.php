@@ -59,27 +59,55 @@ class HiringController extends Controller
             ->map(fn($v) => trim($v))
             ->values();
 
-        // Mapping jenjang -> ranking angka (semakin tinggi, semakin besar)
+        /**
+         * NORMALISASI pendidikan agar input apa pun (misal: "s1", "S.1", "Strata 1")
+         * jadi 1 format yang sama dengan key pada $levelRank.
+         * SD/MI dan SMP/MTS DISENGAJA tidak di-map (dianggap tidak valid/diabaikan).
+         */
+        $normalizeEdu = function (?string $v): ?string {
+            $v = strtoupper(trim((string) $v));
+            $v = preg_replace('/\s+/', ' ', $v);
+
+            // buang titik/strip biar lebih fleksibel
+            $vClean = str_replace(['.', '-', '_'], '', $v);
+
+            return match (true) {
+                // SMA/SMK/MA (kamu minta SD & SMP dihapus, jadi tidak ada case SD/SMP di sini)
+                in_array($vClean, ['SMA', 'SMK', 'MA', 'SMAMA', 'SMASMK', 'SMAMASMK', 'SMAMASMK'], true) => 'SMA/MA/SMK',
+                str_contains($v, 'SMA') || str_contains($v, 'SMK') || str_contains($v, 'MA') => 'SMA/MA/SMK',
+
+                // Diploma & Strata
+                $vClean === 'D1' || str_contains($vClean, 'D1') => 'D1',
+                $vClean === 'D2' || str_contains($vClean, 'D2') => 'D2',
+                $vClean === 'D3' || str_contains($vClean, 'D3') => 'D3',
+                $vClean === 'D4' || str_contains($vClean, 'D4') => 'D4',
+
+                $vClean === 'S1' || str_contains($vClean, 'S1') || str_contains($v, 'STRATA 1') => 'S1',
+                $vClean === 'S2' || str_contains($vClean, 'S2') || str_contains($v, 'STRATA 2') => 'S2',
+                $vClean === 'S3' || str_contains($vClean, 'S3') || str_contains($v, 'STRATA 3') => 'S3',
+
+                default => null,
+            };
+        };
+
+        // Mapping jenjang -> ranking angka (SESUDAH SD/MI & SMP/MTS DIHAPUS)
+        // Dibuat berurutan biar logika "beda 1 tingkat" tetap valid.
         $levelRank = [
-            'SD/MI'      => 1,
-            'SMP/MTS'    => 2,
-            'SMA/MA/SMK' => 3,
-            'SMA'        => 3,
-            'SMK'        => 3,
-            'D1'         => 4,
-            'D2'         => 5,
-            'D3'         => 6,
-            'D4'         => 7,
-            'S1'         => 8,
-            'S2'         => 9,
-            'S3'         => 10,
+            'SMA/MA/SMK' => 1,
+            'D1'         => 2,
+            'D2'         => 3,
+            'D3'         => 4,
+            'D4'         => 5,
+            'S1'         => 6,
+            'S2'         => 7,
+            'S3'         => 8,
         ];
 
         // Cari level pendidikan user tertinggi dalam bentuk angka
         $userEduScore = 0;
         foreach ($educationLevelsRaw as $lvl) {
-            $key = strtoupper($lvl);
-            if (isset($levelRank[$key])) {
+            $key = $normalizeEdu($lvl);
+            if ($key && isset($levelRank[$key])) {
                 $userEduScore = max($userEduScore, $levelRank[$key]);
             }
         }
@@ -95,7 +123,6 @@ class HiringController extends Controller
         }
 
         // ====================== 2. QUERY LOWONGAN ======================
-        // normalisasi kolom skill di tabel hiring
         $normTeknis = "LOWER(CONCAT(',', REPLACE(REPLACE(REPLACE(keterampilan_teknis, ', ', ','), ' ,', ','), ',,', ','), ','))";
         $normNonTek = "LOWER(CONCAT(',', REPLACE(REPLACE(REPLACE(keterampilan_non_teknis, ', ', ','), ' ,', ','), ',,', ','), ','))";
 
@@ -103,19 +130,19 @@ class HiringController extends Controller
             ->whereNull('deleted_at')
             ->where(function ($q) {
                 $q->whereNull('deadline_hiring')
-                    ->orWhere('deadline_hiring', '>=', now());
+                    ->orWhereDate('deadline_hiring', '>=', today());
             })
             ->where(function ($q) use ($userSkills, $normTeknis, $normNonTek) {
                 foreach ($userSkills as $s) {
                     $alts = match ($s) {
-                        'javascript', 'js'                => ['javascript', 'js'],
-                        'vue', 'vuejs', 'vue.js'          => ['vue', 'vuejs', 'vue.js'],
-                        'node', 'nodejs', 'node.js'       => ['node', 'nodejs', 'node.js'],
-                        'postgres', 'postgresql'          => ['postgresql', 'postgres', 'psql'],
-                        'power bi', 'powerbi'             => ['power bi', 'powerbi'],
+                        'javascript', 'js'                      => ['javascript', 'js'],
+                        'vue', 'vuejs', 'vue.js'                => ['vue', 'vuejs', 'vue.js'],
+                        'node', 'nodejs', 'node.js'             => ['node', 'nodejs', 'node.js'],
+                        'postgres', 'postgresql'                => ['postgresql', 'postgres', 'psql'],
+                        'power bi', 'powerbi'                   => ['power bi', 'powerbi'],
                         'microsoft office', 'ms office', 'office' => ['microsoft office', 'ms office', 'office'],
-                        'sql server', 'mssql'             => ['sql server', 'mssql'],
-                        default                           => [$s],
+                        'sql server', 'mssql'                   => ['sql server', 'mssql'],
+                        default                                 => [$s],
                     };
 
                     foreach ($alts as $a) {
@@ -136,9 +163,19 @@ class HiringController extends Controller
             });
         }
 
-        // Filter pendidikan: hanya level yang <= level user
+        // Filter pendidikan: cocokkan yang "mengandung" level (bukan harus sama persis)
         if (!empty($allowedEduLevels)) {
-            $query->whereIn('education_hiring', $allowedEduLevels);
+            $query->where(function ($qq) use ($allowedEduLevels) {
+                foreach ($allowedEduLevels as $lvl) {
+                    if ($lvl === 'SMA/MA/SMK') {
+                        // match salah satu dari SMA/SMK/MA di input perusahaan
+                        $qq->orWhereRaw("UPPER(education_hiring) REGEXP 'SMA|SMK|MA'");
+                    } else {
+                        // S1, S2, D3, dst -> cukup mengandung "S1" dll
+                        $qq->orWhereRaw("UPPER(education_hiring) LIKE ?", ['%' . $lvl . '%']);
+                    }
+                }
+            });
         }
 
         // ====== MODE NEARBY (jarak) ======
@@ -166,7 +203,7 @@ class HiringController extends Controller
         $data = $query->get();
 
         // ====================== 3. HITUNG MATCHING PERCENTAGE ======================
-        $result = $data->map(function ($hiring) use ($userSkills, $userEduScore, $levelRank) {
+        $result = $data->map(function ($hiring) use ($userSkills, $userEduScore, $levelRank, $normalizeEdu) {
 
             // --- Siapkan daftar skill lowongan (teknis + non teknis, lowercase, unik) ---
             $jobTech = array_filter(array_map(
@@ -196,19 +233,16 @@ class HiringController extends Controller
 
             // --- Pendidikan: 40% bobot ---
             $eduScore = 0;
-            $req = strtoupper(trim((string) $hiring->education_hiring));
-            $reqScore = $levelRank[$req] ?? null;
+            $reqKey = $normalizeEdu($hiring->education_hiring);
+            $reqScore = $reqKey ? ($levelRank[$reqKey] ?? null) : null;
 
             if ($reqScore !== null && $userEduScore > 0) {
                 if ($userEduScore >= $reqScore) {
-                    // pendidikan user >= syarat -> full 40
-                    $eduScore = 40;
-                } elseif ($userEduScore + 1 == $reqScore) {
-                    // beda satu tingkat (sedikit kurang) -> 25
-                    $eduScore = 25;
+                    $eduScore = 40; // memenuhi / lebih tinggi
+                } elseif (($userEduScore + 1) === $reqScore) {
+                    $eduScore = 25; // kurang 1 tingkat
                 } else {
-                    // jauh di bawah -> 10 aja
-                    $eduScore = 10;
+                    $eduScore = 10; // jauh di bawah
                 }
             }
 

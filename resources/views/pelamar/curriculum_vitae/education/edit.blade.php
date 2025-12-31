@@ -131,8 +131,6 @@
                 <select name="education_level" class="block w-full rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none h-11 px-3" required>
                     @php $lvl = old('education_level', $education->education_level); @endphp
                     <option value="" disabled {{ $lvl ? '' : 'selected' }}>Pilih Jenjang</option>
-                    <option value="SD/MI"        {{ $lvl==='SD/MI' ? 'selected':'' }}>SD / MI</option>
-                    <option value="SMP/MTs"      {{ $lvl==='SMP/MTs' ? 'selected':'' }}>SMP / MTs</option>
                     <option value="SMA/MA/SMK"   {{ $lvl==='SMA/MA/SMK' ? 'selected':'' }}>SMA / MA / SMK</option>
                     <option value="D1"           {{ $lvl==='D1' ? 'selected':'' }}>Diploma 1 (D1)</option>
                     <option value="D2"           {{ $lvl==='D2' ? 'selected':'' }}>Diploma 2 (D2)</option>
@@ -167,7 +165,7 @@
 
             <!-- Jurusan/Prodi -->
             <div>
-                <label class="block text-sm text-gray-700 mb-1">Jurusan / Program Studi <span class="text-gray-400">(opsional untuk SD/SMP)</span></label>
+                <label class="block text-sm text-gray-700 mb-1">Jurusan / Program Studi</label>
                 <input type="text" name="field_of_study"
                        value="{{ old('field_of_study', $education->field_of_study) }}"
                        placeholder="Contoh: IPA, TKJ, Informatika, Manajemen"

@@ -116,18 +116,18 @@ $s = $style['experiences'] ?? [];
                     {{-- Jika datanya adalah list HTML (seperti di job pertama) --}}
                     @if($hasHtmlList)
                         <div contenteditable="true"
-                             class="inline-edit"
-                             data-cv="{{ $cv->id }}"
-                             data-section="experiences"
-                             data-id="{{ $expId }}"
-                             data-field="description_experience"
-                             data-placeholder="Deskripsi pengalaman kerja"
-                             style="{{ inlineStyle(array_merge($s['ul'] ?? [], [ // Pakai style 'ul'
-                                 'border' => '1px dashed #ccc',
-                                 'padding' => '0px 1px',
-                                 'border-radius' => '4px',
-                             ])) }}">
-                            {!! $rawDesc !!}
+                            class="inline-edit exp-desc"
+                            data-cv="{{ $cv->id }}"
+                            data-section="experiences"
+                            data-id="{{ $expId }}"
+                            data-field="description_experience"
+                            data-placeholder="Deskripsi pengalaman kerja"
+                            style="{{ inlineStyle(array_merge($s['ul'] ?? [], [
+                                'border' => '1px dashed #ccc',
+                                'padding' => '0px 1px',
+                                'border-radius' => '4px',
+                            ])) }}">
+                        {!! $rawDesc !!}
                         </div>
                     @else
                         {{-- Jika datanya plain text, kita buatkan list --}}
@@ -135,8 +135,11 @@ $s = $style['experiences'] ?? [];
                             $descriptions = array_filter(array_map('trim', explode("\n", $rawDesc)));
                         @endphp
                         <ul style="{{ inlineStyle(array_merge($s['ul'] ?? [], [
+                            'margin-top' => '6px',
+                            'margin-bottom' => '0px',
+                            'padding-left' => '18px',
+                            'list-style-position' => 'outside',
                             'border' => '1px dashed #ccc',
-                            'padding' => '0px 1px',
                             'border-radius' => '4px',
                         ])) }}">
                             @foreach($descriptions as $desc)
@@ -148,7 +151,7 @@ $s = $style['experiences'] ?? [];
                                     data-field="description_experience"
                                     data-placeholder="Tulis deskripsi..."
                                     style="{{ inlineStyle(array_merge($s['li'] ?? [], [
-                                        'border' => '1tpx dashed #ccc',
+                                        'border' => '1px dashed #ccc',
                                         'padding' => '0px 1px',
                                         'border-radius' => '4px'
                                     ])) }}">
@@ -251,4 +254,25 @@ $s = $style['experiences'] ?? [];
     min-width: 50px;
     display: inline-block;
 }
+/* FIX: margin default UL bikin jarak role jadi jauh */
+.exp-desc ul{
+  margin: 6px 0 0 0 !important;     /* atas dikit, bawah 0 */
+  padding-left: 14px !important;    /* indent bullet */
+}
+.exp-desc li{
+  margin-bottom: 2px !important;
+}
+/* Khusus pengalaman kerja: bullet harus masuk ke kanan */
+.section.experiences ul,
+.exp-desc ul {
+  margin: 6px 0 0 0 !important;
+  padding-left: 24px !important;       /* posisi teks bullet masuk */
+  list-style-position: outside !important; /* bullet di luar teks, rapi */
+}
+
+.section.experiences li,
+.exp-desc li {
+  margin-bottom: 2px !important;
+}
+
 </style>

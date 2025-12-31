@@ -22,6 +22,7 @@
     "dependencies": {
         "fast-kde": "^0.2.2",
         "leaflet": "^1.9.4",
-        "leaflet.heat": "^0.2.0"
+        "leaflet.heat": "^0.2.0",
+        "puppeteer": "^24.34.0"
     }
 }

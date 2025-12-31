@@ -971,11 +971,20 @@ class CurriculumVitaeUserController extends Controller
             'field'   => 'required|string',
             'value'   => 'nullable',
             'id'      => 'nullable|integer',
+            'delete'  => 'sometimes|boolean', // ✅ tambahan
         ]);
 
-        $cv = CurriculumVitaeUser::findOrFail($request->cv_id);
+        $cv    = CurriculumVitaeUser::findOrFail($request->cv_id);
         $field = $request->field;
         $value = $request->value ?? '';
+
+        // helper sanitize (lebih aman untuk contenteditable kosong: &nbsp;, zero-width, spasi)
+        $sanitizePlain = function ($v) {
+            $v = trim(strip_tags((string) $v));
+            $v = preg_replace('/\x{00A0}|\x{200B}/u', ' ', $v); // nbsp + zero-width
+            $v = preg_replace('/\s+/', ' ', $v);
+            return trim($v);
+        };
 
         if ($request->section === 'personal_detail') {
             $personal = $cv->personalDetail()->first();
@@ -1003,7 +1012,15 @@ class CurriculumVitaeUserController extends Controller
             }
 
             if (in_array($field, $allowedPersonal, true)) {
-                $sanitized = in_array($field, ['personal_summary'], true) ? strip_tags($value, '<p><br><strong><em><ul><li>') : strip_tags($value);
+                $sanitized = in_array($field, ['personal_summary'], true)
+                    ? strip_tags($value, '<p><br><strong><em><ul><li>')
+                    : strip_tags($value);
+
+                // rapikan whitespace juga
+                if ($field !== 'personal_summary') {
+                    $sanitized = $sanitizePlain($sanitized);
+                }
+
                 $personal->update([$field => $sanitized]);
                 return response()->json(['success' => true, 'message' => 'Perubahan personal detail disimpan']);
             }
@@ -1016,7 +1033,7 @@ class CurriculumVitaeUserController extends Controller
             $id = $request->id;
 
             $exp = \App\Models\Experience::where('id', $id)
-                ->where('curriculum_vitae_user_id', $cv->id) // adjust column name if different
+                ->where('curriculum_vitae_user_id', $cv->id)
                 ->first();
 
             if (!$exp) {
@@ -1039,16 +1056,15 @@ class CurriculumVitaeUserController extends Controller
             if ($field === 'description_experience') {
                 $sanitized = strip_tags($value, '<ul><li><br><p><strong><em><b>');
             } else {
-                $sanitized = strip_tags($value);
+                $sanitized = $sanitizePlain($value);
             }
 
             $updated = $exp->update([$field => $sanitized]);
 
             if ($updated) {
                 return response()->json(['success' => true, 'message' => 'Experience berhasil diperbarui', 'data' => $exp->fresh()]);
-            } else {
-                return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
             }
+            return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
         }
 
         if ($request->section === 'educations') {
@@ -1079,16 +1095,15 @@ class CurriculumVitaeUserController extends Controller
             if ($field === 'description_education') {
                 $sanitized = strip_tags($value, '<ul><li><br><p><strong><em><b>');
             } else {
-                $sanitized = strip_tags($value);
+                $sanitized = $sanitizePlain($value);
             }
 
             $updated = $edu->update([$field => $sanitized]);
 
             if ($updated) {
                 return response()->json(['success' => true, 'message' => 'Education berhasil diperbarui', 'data' => $edu->fresh()]);
-            } else {
-                return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
             }
+            return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
         }
 
         if ($request->section === 'skills') {
@@ -1104,19 +1119,31 @@ class CurriculumVitaeUserController extends Controller
             }
 
             $allowedSkills = ['skill_name', 'category_level'];
-
             if (!in_array($field, $allowedSkills, true)) {
                 return response()->json(['success' => false, 'message' => 'Field skills tidak diizinkan'], 400);
             }
 
-            $sanitized = strip_tags($value);
+            $wantDelete = $request->boolean('delete');
+            $sanitized  = $sanitizePlain($value);
+
+            // ✅ HAPUS dari DB kalau skill_name dikosongkan (flag ataupun tanpa flag)
+            if ($field === 'skill_name' && ($wantDelete || $sanitized === '')) {
+                $skill->delete();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Skill berhasil dihapus',
+                    'action'  => 'deleted',
+                    'id'      => $id,
+                ]);
+            }
+
             $updated = $skill->update([$field => $sanitized]);
 
             if ($updated) {
                 return response()->json(['success' => true, 'message' => 'Skill berhasil diperbarui', 'data' => $skill->fresh()]);
-            } else {
-                return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
             }
+            return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
         }
 
         if ($request->section === 'achievements') {
@@ -1139,15 +1166,14 @@ class CurriculumVitaeUserController extends Controller
 
             $sanitized = ($field === 'description_achievement')
                 ? strip_tags($value, '<ul><li><br><p><strong><em><b>')
-                : strip_tags($value);
+                : $sanitizePlain($value);
 
             $updated = $ach->update([$field => $sanitized]);
 
             if ($updated) {
                 return response()->json(['success' => true, 'message' => 'Achievement berhasil diperbarui', 'data' => $ach->fresh()]);
-            } else {
-                return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
             }
+            return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
         }
 
         if ($request->section === 'languages') {
@@ -1168,15 +1194,14 @@ class CurriculumVitaeUserController extends Controller
                 return response()->json(['success' => false, 'message' => 'Field languages tidak diizinkan'], 400);
             }
 
-            $sanitized = strip_tags($value);
+            $sanitized = $sanitizePlain($value);
 
             $updated = $lang->update([$field => $sanitized]);
 
             if ($updated) {
                 return response()->json(['success' => true, 'message' => 'Language berhasil diperbarui', 'data' => $lang->fresh()]);
-            } else {
-                return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
             }
+            return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
         }
 
         if ($request->section === 'links') {
@@ -1197,15 +1222,14 @@ class CurriculumVitaeUserController extends Controller
                 return response()->json(['success' => false, 'message' => 'Field links tidak diizinkan'], 400);
             }
 
-            $sanitized = strip_tags($value);
+            $sanitized = $sanitizePlain($value);
 
             $updated = $link->update([$field => $sanitized]);
 
             if ($updated) {
                 return response()->json(['success' => true, 'message' => 'Link berhasil diperbarui', 'data' => $link->fresh()]);
-            } else {
-                return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
             }
+            return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
         }
 
         if ($request->section === 'organizations') {
@@ -1220,24 +1244,32 @@ class CurriculumVitaeUserController extends Controller
                 return response()->json(['success' => false, 'message' => 'Organization tidak ditemukan atau bukan milik CV ini'], 404);
             }
 
-            $allowedFields = ['organization_name', 'position_organization', 'start_date', 'end_date', 'description'];
+            // NOTE: kamu pakai field description_organization di blade, jadi izinkan juga.
+            $allowedFields = [
+                'organization_name',
+                'position_organization',
+                'start_date',
+                'end_date',
+                'description',                // kalau kolom kamu ini
+                'description_organization',    // ✅ kalau kolom kamu ini
+            ];
 
             if (!in_array($field, $allowedFields, true)) {
                 return response()->json(['success' => false, 'message' => 'Field organizations tidak diizinkan'], 400);
             }
 
-            $sanitized = ($field === 'description')
+            $sanitized = in_array($field, ['description', 'description_organization'], true)
                 ? strip_tags($value, '<ul><li><br><p><strong><em><b>')
-                : strip_tags($value);
+                : $sanitizePlain($value);
 
             $updated = $org->update([$field => $sanitized]);
 
             if ($updated) {
                 return response()->json(['success' => true, 'message' => 'Organization berhasil diperbarui', 'data' => $org->fresh()]);
-            } else {
-                return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
             }
+            return response()->json(['success' => false, 'message' => 'Gagal menyimpan perubahan'], 500);
         }
+
         return response()->json(['success' => false, 'message' => 'Section tidak dikenali'], 400);
     }
 

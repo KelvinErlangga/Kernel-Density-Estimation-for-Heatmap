@@ -64,7 +64,6 @@ var USER_HOME = window.USER_DOMICILE || {
 };
 var KDE_CONFIG = {
   mode: "fixed",
-  // ubah ke 'adaptive' kalau mau kembali ke versi dinamis
   code: "K2",
   // pilih: 'K1', 'K2', 'K3', 'K4', 'K5', 'K6', 'K7', 'K8', 'K9'
   presets: {

@@ -155,15 +155,19 @@ $s_exp = $style['experiences'] ?? [];
 
         @if($plain !== '')
             <div contenteditable="true"
-                 class="inline-edit"
-                 data-cv="{{ $cv->id }}"
-                 data-section="educations"
-                 data-id="{{ $eduId }}"
-                 data-field="description" {{-- Ganti data-field --}}
-                 data-placeholder="Deskripsi pendidikan"
-                 style="{{ inlineStyle(array_merge($s_exp['li'] ?? [], [
-                     'border'=>'1px dashed #ccc','padding'=>'4px 6px','border-radius'=>'4px','margin-top'=>'6px'
-                 ])) }}">
+                class="inline-edit edu-desc"
+                data-cv="{{ $cv->id }}"
+                data-section="educations"
+                data-id="{{ $eduId }}"
+                data-field="description"
+                data-placeholder="Deskripsi pendidikan"
+                style="{{ inlineStyle(array_merge($s_exp['li'] ?? [], [
+                    'border'        => '1px dashed #ccc',
+                    'padding'       => '3px 6px',
+                    'border-radius' => '4px',
+                    'margin-top'    => '2px',   // ✅ sebelumnya 6px
+                    'line-height'   => '1.35',  // ✅ rapikan tinggi baris
+                ])) }}">
                 {!! $rawDesc !!}
             </div>
         @endif
@@ -172,4 +176,12 @@ $s_exp = $style['experiences'] ?? [];
     @endforeach
   </div>
 </div>
+
+<style>
+  /* ✅ Hilangkan margin bawaan dari HTML editor supaya jarak tidak “jauh” */
+  .edu-desc p { margin: 0 !important; }
+  .edu-desc ul { margin: 0 !important; padding-left: 18px; }
+  .edu-desc li { margin: 0 !important; }
+</style>
+
 @endif

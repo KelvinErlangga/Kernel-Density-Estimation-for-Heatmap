@@ -182,6 +182,18 @@ Route::middleware('auth', 'verified')->group(function () {
         Route::get('/curriculum-vitae/{curriculum_vitae_user}/print-cv', [PDFController::class, 'printCurriculumVitae'])->name('print-cv');
         Route::get('/curriculum-vitae/{curriculum_vitae_user}/export-cv', [PDFController::class, 'exportPDFCurriculumVitae'])->name('export-cv.pdf');
 
+        // Route::get('/curriculum-vitae/{curriculumVitaeUser}/export-cv-pdf', [PDFController::class, 'exportCvPdfText'])
+        //     ->name('export-cv.pdf.text');
+
+        Route::post('/curriculum-vitae/{curriculumVitaeUser}/save-text-pdf', [PDFController::class, 'saveCvPdfText'])
+            ->name('pelamar.cv.saveTextPdf');
+
+        Route::get('/curriculum-vitae/{curriculumVitaeUser}/preview-pdf', [PDFController::class, 'previewPdf'])
+            ->name('pelamar.curriculum_vitae.preview.pdf');
+
+        Route::get('/curriculum-vitae/{curriculumVitaeUser}/preview', [CurriculumVitaeUserController::class, 'preview'])
+            ->name('pelamar.curriculum_vitae.preview');
+
         // ---------- Dashboard Pelamar ----------
         Route::get('/dashboard-user', [DashboardUserController::class, 'index'])->name('pelamar.dashboard.index');
         Route::get('/dashboard-user/akun', [DashboardUserController::class, 'getAkun'])->name('pelamar.dashboard.akun.index');

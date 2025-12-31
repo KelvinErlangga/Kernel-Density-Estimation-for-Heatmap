@@ -19,8 +19,6 @@ class AddUpdateEducationRequest extends FormRequest
     private function educationLevels(): array
     {
         return [
-            'SD/MI',
-            'SMP/MTs',
             'SMA/MA/SMK',
             'D1',
             'D2',

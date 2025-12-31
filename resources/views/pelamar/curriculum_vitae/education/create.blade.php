@@ -131,8 +131,6 @@
                 <label class="block text-sm text-gray-700 mb-1">Jenjang *</label>
                 <select name="education_level" class="block w-full rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none h-11 px-3" required>
                     <option value="" disabled selected>Pilih Jenjang</option>
-                    <option value="SD/MI">SD / MI</option>
-                    <option value="SMP/MTs">SMP / MTs</option>
                     <option value="SMA/MA/SMK">SMA / MA / SMK</option>
                     <option value="D1">Diploma 1 (D1)</option>
                     <option value="D2">Diploma 2 (D2)</option>
@@ -163,7 +161,7 @@
 
             <!-- Jurusan/Prodi -->
             <div>
-                <label class="block text-sm text-gray-700 mb-1">Jurusan / Program Studi <span class="text-gray-400">(opsional untuk SD/SMP)</span></label>
+                <label class="block text-sm text-gray-700 mb-1">Jurusan / Program Studi</label>
                 <input type="text" name="field_of_study" value="{{ old('field_of_study') }}" placeholder="Contoh: IPA, TKJ, Informatika, Manajemen"
                        class="block w-full rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500 focus:ring-2 focus:outline-none h-11 px-3">
                 @error('field_of_study') <div class="text-sm text-red-500 mt-1">{{ $message }}</div> @enderror

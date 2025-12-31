@@ -19,8 +19,6 @@ return new class extends Migration
             // 1) Tambah kolom baru
             // Jenjang pendidikan (enum sesuai opsi pada form)
             $table->enum('education_level', [
-                'SD/MI',
-                'SMP/MTs',
                 'SMA/MA/SMK',
                 'D1',
                 'D2',
