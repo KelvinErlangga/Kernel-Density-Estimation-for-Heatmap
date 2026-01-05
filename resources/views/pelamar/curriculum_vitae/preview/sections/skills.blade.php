@@ -29,7 +29,7 @@ foreach ($skills as $skill) {
     if ($nameRaw === '') continue;
 
     $nameLower = strtolower($nameRaw);
-    if (in_array($nameLower, $placeholderWords, true)) continue; // <-- ini biar yang kosong/placeholder gak dianggap isi
+    if (in_array($nameLower, $placeholderWords, true)) continue; // placeholder gak dianggap isi
 
     $picked = null;
     foreach ($categoryRules as $catKey => $keywords) {
@@ -56,10 +56,49 @@ foreach ($skills as $skill) {
 
 $grouped = $grouped->filter(fn($items) => $items->isNotEmpty());
 
+/**
+ * ===========================
+ * FORCE 1 KOLOM (OVERRIDE)
+ * ===========================
+ * Penyebab 2 kolom biasanya dari:
+ * - CSS columns di ul (column-count: 2)
+ * - atau container flex/grid
+ * Jadi kita paksa: ul = 1 kolom, li = full width
+ */
+$ulStyle = inlineStyle(array_merge($s['ul'] ?? [], [
+    'margin' => '0',
+    'padding-left' => '20px',
+
+    // ---- FORCE 1 COLUMN ----
+    'columns' => 'unset',
+    'column-count' => '1',
+    '-webkit-column-count' => '1',
+    '-moz-column-count' => '1',
+    'column-gap' => '0',
+
+    // jaga-jaga kalau ada flex/grid di UL
+    'display' => 'block',
+]));
+
+$containerStyle = inlineStyle(array_merge($s['container'] ?? [], [
+    // jaga-jaga kalau container bikin 2 kolom pakai flex/grid
+    'display' => 'block',
+    'width' => '100%',
+]));
+
 $liStyle = inlineStyle(array_merge($s['li'] ?? [], [
     'margin-bottom' => '8px',
     'line-height' => '1.5',
+
+    // ---- FORCE ITEM FULL WIDTH ----
+    'width' => '100%',
+    'display' => 'list-item',
+
+    // agar aman kalau masih kebawa columns
+    'break-inside' => 'avoid',
+    'page-break-inside' => 'avoid',
 ]));
+
 $labelStyle = 'font-weight:700;';
 
 $skillItemStyle = inlineStyle([
@@ -73,13 +112,10 @@ $skillItemStyle = inlineStyle([
 
 @if($skills && $skills->isNotEmpty() && $grouped->isNotEmpty())
 <div style="{{ inlineStyle(array_merge($style['page'] ?? [], ['margin-bottom' => '12px'])) }}">
-    <div style="{{ inlineStyle($s['container'] ?? []) }}">
+    <div style="{{ $containerStyle }}">
         <h3 data-i18n="section.skills" style="{{ inlineStyle($s['h3'] ?? []) }}">KEAHLIAN</h3>
 
-        <ul style="{{ inlineStyle(array_merge($s['ul'] ?? [], [
-            'margin' => '0',
-            'padding-left' => '20px',
-        ])) }}">
+        <ul style="{{ $ulStyle }}">
             @foreach($grouped as $catKey => $items)
                 <li class="skill-li" data-cat="{{ $catKey }}" style="{{ $liStyle }}">
                     <span class="skill-cat-label"
