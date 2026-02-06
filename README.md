@@ -250,8 +250,8 @@ Kontribusi sangat welcome! Silakan:
 
 ## 📞 Kontak
 
-- **Developer**: Richard Diga
-- **Email**: richard@example.com
+- **Developer**: Kelvin Erlangga
+- **Email**: kelvinerlanggaa@gmail.com
 - **Project**: Skripsi S1 Teknik Informatika
 
 ---
